@@ -3,8 +3,18 @@
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
 
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --color-osca-primary: #00327D;
+    --color-osca-primary-dark: #00234F;
+    --color-osca-ink: #161616;
+    --color-osca-muted: #F4F4F4;
+    --color-osca-body: #5B5B5B;
+    --color-osca-border: #E5E5E5;
+    --color-osca-success: #1E8E3E;
+    --color-osca-warning: #E0A800;
+    --color-osca-danger: #C0293C;
 }
