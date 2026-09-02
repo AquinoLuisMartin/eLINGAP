@@ -25,3 +25,8 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Local AI agent guidance (not shared via GitHub)
+CLAUDE.md
+AGENTS.md
+/docs/activity-log.md
