@@ -10,11 +10,11 @@
 <body class="bg-white font-sans text-osca-body antialiased">
 
     {{-- Utility bar --}}
-    <div class="bg-osca-ink text-white/80 text-xs border-b border-white/10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between gap-4">
+    <div class="bg-osca-primary text-white/90 text-[10px] sm:text-xs border-b border-white/15">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 flex flex-wrap sm:flex-nowrap items-center justify-between gap-1.5 sm:gap-4">
             <span class="text-white/60 whitespace-nowrap hidden sm:inline">{{ now()->format('l, F j, Y') }}</span>
-            <div class="flex-1 flex items-center gap-4 overflow-hidden min-w-0">
-                <a href="#announcements" class="truncate hover:text-white transition-colors">3rd Quarter Social Pension payout begins October 12</a>
+            <div class="w-full sm:flex-1 flex items-center justify-center sm:justify-start gap-4 overflow-hidden min-w-0">
+                <a href="#announcements" class="w-full sm:w-auto truncate text-center sm:text-left hover:text-white transition-colors">3rd Quarter Social Pension payout begins October 12</a>
                 <span class="hidden lg:inline text-white/30">|</span>
                 <a href="#announcements" class="hidden lg:inline truncate hover:text-white transition-colors">Free Cataract Screening &amp; Senior Eye Care — Oct 20</a>
             </div>
@@ -28,7 +28,7 @@
             <div class="flex items-center justify-between h-16 sm:h-18">
                 {{-- Logo --}}
                 <a href="#hero" class="flex items-center gap-2.5 shrink-0">
-                    <span class="flex size-10 sm:size-9 items-center justify-center rounded-md bg-osca-primary text-white font-bold text-base sm:text-sm shadow-xs">eL</span>
+                    <img src="{{ asset('images/eLINGAP.png') }}" alt="eLINGAP logo" class="size-12 sm:size-14 object-contain" width="56" height="56">
                     <div>
                         <span class="text-xl sm:text-2xl font-bold tracking-tight text-osca-ink leading-none block">eLINGAP</span>
                         <span class="text-[10px] text-osca-body hidden xs:block font-medium">Santa Maria OSCA</span>
@@ -36,7 +36,7 @@
                 </a>
 
                 {{-- Desktop menu --}}
-                <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-osca-body" aria-label="Main menu">
+                <nav class="hidden xl:flex items-center gap-4 2xl:gap-6 text-sm font-medium text-osca-body" aria-label="Main menu">
                     <a href="#hero" class="text-osca-primary font-semibold">Home</a>
                     <a href="#programs" class="hover:text-osca-primary transition-colors">Programs &amp; Benefits</a>
                     <a href="#records" class="hover:text-osca-primary transition-colors">Records</a>
@@ -50,10 +50,7 @@
                     <button type="button" data-open-modal="search" class="size-11 sm:size-9 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center rounded-lg sm:rounded-md text-osca-body hover:text-osca-primary hover:bg-osca-muted transition-colors" aria-label="Search site">
                         <svg class="size-5 sm:size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                     </button>
-                    <button type="button" data-open-modal="concern" class="hidden sm:inline-flex items-center rounded-md bg-osca-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-osca-primary-dark transition-colors shadow-xs">
-                        File a Concern
-                    </button>
-                    <button type="button" id="mobile-menu-btn" class="size-11 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg text-osca-ink lg:hidden hover:bg-osca-muted transition-colors" aria-label="Toggle menu" aria-expanded="false">
+                    <button type="button" id="mobile-menu-btn" class="size-11 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg text-osca-ink xl:hidden hover:bg-osca-muted transition-colors" aria-label="Toggle menu" aria-expanded="false">
                         <svg id="menu-icon-bars" class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
                         <svg id="menu-icon-close" class="size-6 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                     </button>
@@ -62,46 +59,35 @@
         </div>
 
         {{-- Mobile drawer --}}
-        <nav id="mobile-menu" class="hidden lg:hidden border-t border-osca-border bg-white px-4 pt-3 pb-6 space-y-1.5 max-h-[calc(100vh-4.5rem)] overflow-y-auto" aria-label="Mobile menu">
+        <nav id="mobile-menu" class="hidden xl:hidden border-t border-osca-border bg-white px-4 pt-3 pb-6 space-y-1.5 max-h-[calc(100vh-4.5rem)] overflow-y-auto" aria-label="Mobile menu">
             <a href="#hero" class="block rounded-lg px-3.5 py-3 text-base font-semibold text-osca-primary bg-osca-muted">Home</a>
             <a href="#programs" class="block rounded-lg px-3.5 py-3 text-base font-medium text-osca-ink hover:bg-osca-muted">Programs &amp; Benefits</a>
             <a href="#records" class="block rounded-lg px-3.5 py-3 text-base font-medium text-osca-ink hover:bg-osca-muted">Records Management</a>
             <a href="#sms" class="block rounded-lg px-3.5 py-3 text-base font-medium text-osca-ink hover:bg-osca-muted">SMS Notifications</a>
             <a href="#about" class="block rounded-lg px-3.5 py-3 text-base font-medium text-osca-ink hover:bg-osca-muted">About OSCA</a>
             <a href="#emergency" class="block rounded-lg px-3.5 py-3 text-base font-medium text-osca-ink hover:bg-osca-muted">Contact &amp; Hotlines</a>
-            <div class="pt-3 border-t border-osca-border">
-                <button type="button" data-open-modal="concern" class="w-full rounded-lg bg-osca-primary px-4 py-3 text-base font-semibold text-white hover:bg-osca-primary-dark shadow-xs min-h-[44px]">File a Concern</button>
-            </div>
         </nav>
     </header>
 
     <main>
-        {{-- Navy Hero Band --}}
-        <section id="hero" class="relative bg-linear-to-b from-osca-primary-dark via-osca-primary to-osca-primary text-white overflow-hidden pt-12 pb-24 sm:pt-16 sm:pb-28 lg:pt-20 lg:pb-36">
+        {{-- Light hero band --}}
+        <section id="hero" class="relative overflow-hidden pt-10 pb-20 sm:pt-14 sm:pb-24 lg:pt-16 lg:pb-28">
             {{-- Decorative organic shapes --}}
             <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
-                <div class="absolute -right-20 top-10 size-80 rounded-full border border-white/10"></div>
-                <div class="absolute right-36 top-28 size-48 rounded-full bg-white/5"></div>
-                <div class="absolute left-10 bottom-16 size-32 rounded-full bg-white/5"></div>
+                <div class="absolute -right-20 top-10 size-80 rounded-full border border-osca-primary/10"></div>
+                <div class="absolute right-36 top-28 size-48 rounded-full bg-osca-primary/5"></div>
+                <div class="absolute left-10 bottom-16 size-32 rounded-full bg-osca-primary/5"></div>
             </div>
-
-            {{-- Slider arrow controls (hidden on mobile to prevent overlaying text) --}}
-            <button type="button" class="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-10 size-10 rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20 transition-colors items-center justify-center" aria-label="Previous hero slide">
-                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
-            </button>
-            <button type="button" class="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-10 size-10 rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20 transition-colors items-center justify-center" aria-label="Next hero slide">
-                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
-            </button>
 
             <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
                     {{-- Copy column --}}
                     <div class="lg:col-span-7 space-y-5 sm:space-y-6">
-                        <span class="inline-block text-xs font-semibold uppercase tracking-widest text-white/80 bg-white/10 px-3 py-1 rounded-full border border-white/15">Welcome to eLINGAP</span>
-                        <h1 class="text-3xl sm:text-4xl lg:text-[46px] xl:text-[50px] font-bold text-white tracking-tight leading-[1.15] sm:leading-[1.1]">
-                            Caring for Santa Maria's <span class="text-white underline decoration-white/30 decoration-2">Senior Citizens</span>
+                        <span class="inline-block text-xs font-semibold uppercase tracking-widest text-osca-primary bg-osca-primary/10 px-3 py-1 rounded-full border border-osca-primary/15">Welcome to eLINGAP</span>
+                        <h1 class="text-3xl sm:text-4xl lg:text-[46px] xl:text-[50px] font-bold text-osca-ink tracking-tight leading-[1.15] sm:leading-[1.1]">
+                            Caring for Santa Maria's <span class="text-osca-primary underline decoration-osca-primary/30 decoration-2">Senior Citizens</span>
                         </h1>
-                        <p class="text-sm sm:text-base lg:text-lg text-white/85 leading-relaxed max-w-2xl">
+                        <p class="text-sm sm:text-base lg:text-lg leading-relaxed max-w-2xl">
                             An integrated web-based records management and automated SMS notification system for the Office of the Senior Citizens Affairs of Santa Maria, Bulacan.
                         </p>
                         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
@@ -109,15 +95,15 @@
                                 Register Now
                                 <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                             </a>
-                            <a href="#programs" class="inline-flex items-center justify-center rounded-lg border-2 border-white/70 px-6 sm:px-7 py-3 text-base sm:text-sm font-semibold text-white hover:bg-white/10 transition-colors min-h-[44px]">
+                            <a href="#programs" class="inline-flex items-center justify-center rounded-lg border-2 border-osca-primary/70 px-6 sm:px-7 py-3 text-base sm:text-sm font-semibold text-osca-primary hover:bg-osca-primary/10 transition-colors min-h-[44px]">
                                 Check Benefit Status
                             </a>
                         </div>
-                        <div class="pt-2 flex items-center gap-4 text-xs text-white/70">
+                        <div class="pt-2 flex items-center gap-4 text-xs text-osca-body">
                             <div class="flex items-center gap-1.5">
-                                <span class="size-2 rounded-full bg-white"></span>
-                                <span class="size-2 rounded-full bg-white/40"></span>
-                                <span class="size-2 rounded-full bg-white/40"></span>
+                                <span class="size-2 rounded-full bg-osca-primary"></span>
+                                <span class="size-2 rounded-full bg-osca-primary/40"></span>
+                                <span class="size-2 rounded-full bg-osca-primary/40"></span>
                             </div>
                             <span>01 / 03 &middot; Public Senior Welfare &amp; Records Digitization</span>
                         </div>
@@ -126,7 +112,7 @@
                     {{-- Right visual card --}}
                     <div class="lg:col-span-5 relative flex justify-center lg:justify-end">
                         <div class="relative w-full max-w-md">
-                            <div class="rounded-xl bg-white/10 backdrop-blur-md border border-white/20 p-5 sm:p-7 shadow-2xl">
+                            <div class="rounded-xl bg-osca-primary border border-osca-primary-dark/25 p-5 sm:p-7 shadow-2xl text-white">
                                 <div class="flex items-center gap-3.5 sm:gap-4 border-b border-white/15 pb-4 sm:pb-5">
                                     <div class="size-12 sm:size-14 rounded-full bg-white/15 flex items-center justify-center text-white shrink-0">
                                         <svg class="size-7 sm:size-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -142,7 +128,7 @@
                                         <span class="size-7 rounded-full bg-osca-success text-white flex items-center justify-center shrink-0 mt-0.5">
                                             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                                         </span>
-                                        <div>
+                                        <div class="min-w-0">
                                             <p class="font-semibold text-white text-xs sm:text-sm">Verified Senior Registry</p>
                                             <p class="text-xs text-white/75 mt-0.5">Automated validation of senior IDs, eligibility, and records.</p>
                                         </div>
@@ -151,14 +137,14 @@
                                         <span class="size-7 rounded-full bg-white/20 text-white flex items-center justify-center shrink-0 mt-0.5">
                                             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                         </span>
-                                        <div>
+                                        <div class="min-w-0">
                                             <p class="font-semibold text-white text-xs sm:text-sm">Direct SMS Broadcasts</p>
                                             <p class="text-xs text-white/75 mt-0.5">Instant alerts for pension schedules sent straight to seniors' phones.</p>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="mt-5 pt-3.5 border-t border-white/15 flex items-center justify-between text-xs text-white/70">
-                                    <span>Republic Act No. 9994 Compliance</span>
+                                <div class="mt-5 pt-3.5 border-t border-white/15 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-white/70">
+                                    <span class="min-w-0">Republic Act No. 9994 Compliance</span>
                                     <span class="font-semibold text-white">Active Portal</span>
                                 </div>
                             </div>
@@ -361,23 +347,20 @@
                                 <span class="px-2.5 py-1 rounded-full bg-osca-success/15 text-osca-success text-xs font-bold">Express Windows</span>
                             </div>
                             <div class="mt-5 space-y-3 text-xs">
-                                <div class="bg-white p-3.5 rounded-xl border border-osca-border flex items-center justify-between">
+                                <div class="bg-white p-3.5 rounded-xl border border-osca-border flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
                                     <span class="text-osca-body">Processing Window:</span>
                                     <span class="font-bold text-osca-ink">Window 1 &amp; Window 2</span>
                                 </div>
-                                <div class="bg-white p-3.5 rounded-xl border border-osca-border flex items-center justify-between">
+                                <div class="bg-white p-3.5 rounded-xl border border-osca-border flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
                                     <span class="text-osca-body">Required Documents:</span>
                                     <span class="font-bold text-osca-ink">Barangay Cert &amp; Valid ID</span>
                                 </div>
-                                <div class="bg-white p-3.5 rounded-xl border border-osca-border flex items-center justify-between">
+                                <div class="bg-white p-3.5 rounded-xl border border-osca-border flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
                                     <span class="text-osca-body">Average Release Time:</span>
                                     <span class="font-bold text-osca-success">Same-Day Processing</span>
                                 </div>
                             </div>
                             <div class="mt-6 pt-4 border-t border-osca-border">
-                                <button type="button" data-open-modal="concern" class="w-full rounded-lg bg-osca-primary py-3 text-xs sm:text-sm font-semibold text-white hover:bg-osca-primary-dark transition-colors shadow-xs">
-                                    Inquire About ID Application / Renewal
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -480,7 +463,7 @@
                                     <p class="text-xs text-white/80 mt-0.5">How eLINGAP serves Santa Maria's seniors</p>
                                 </div>
                             </div>
-                            <div class="bg-white border-t border-osca-border p-3.5 sm:p-4 flex items-center justify-between text-xs">
+                            <div class="bg-white border-t border-osca-border p-3.5 sm:p-4 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between text-xs">
                                 <span class="font-medium text-osca-ink">Community Outreach &amp; Orientation</span>
                                 <span class="text-osca-primary font-semibold">Duration: 2 mins</span>
                             </div>
@@ -492,27 +475,9 @@
 
         {{-- Emergency & Hotline numbers --}}
         <section id="emergency" class="scroll-mt-20 py-14 sm:py-20 bg-osca-muted" aria-label="Emergency Hotlines">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-start">
-                    {{-- Left callout banner (responsive height on mobile) --}}
-                    <div class="lg:col-span-5">
-                        <div class="rounded-2xl overflow-hidden shadow-lg aspect-auto sm:aspect-4/5 max-h-56 sm:max-h-[520px] bg-osca-primary relative">
-                            <div class="absolute inset-0 opacity-25 bg-[linear-gradient(45deg,transparent_30%,rgba(255,255,255,0.1)_50%,transparent_70%)]"></div>
-                            <div class="relative sm:absolute inset-0 flex items-end justify-end p-5 sm:p-6">
-                                <div class="bg-osca-primary-dark border border-white/20 rounded-xl p-5 sm:p-6 w-full sm:max-w-[260px]">
-                                    <div class="size-10 sm:size-12 rounded-full bg-white/15 flex items-center justify-center text-white mb-3 sm:mb-4">
-                                        <svg class="size-5 sm:size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.88.37 1.85.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.96.33 1.93.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                                    </div>
-                                    <p class="text-[11px] uppercase tracking-wider text-white/70 font-semibold">For Any Inquiries</p>
-                                    <a href="tel:0449130248" class="text-xl sm:text-2xl font-bold text-white hover:underline mt-0.5 block">(044) 913-0248</a>
-                                    <p class="text-xs text-white/70 mt-1.5">SMS Helpline: <strong class="text-white">+63 917 842 6722</strong></p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Right list --}}
-                    <div class="lg:col-span-7 space-y-5 sm:space-y-6">
+            <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid w-full grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-start">
+                    <div class="w-full min-w-0 lg:col-span-12 space-y-5 sm:space-y-6">
                         <div>
                             <span class="text-xs font-semibold uppercase tracking-wider text-osca-primary">24/7 Municipal First Responders</span>
                             <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-osca-ink tracking-tight mt-1">
@@ -522,6 +487,11 @@
                             <p class="mt-3 text-sm sm:text-base text-osca-body leading-relaxed max-w-xl">
                                 Direct contact lines for senior citizens and family caregivers during medical emergencies, urgent queries, or rescue operations.
                             </p>
+                            <div class="mt-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm">
+                                <a href="tel:0449130248" class="font-bold text-osca-primary hover:underline">OSCA Desk: (044) 913-0248</a>
+                                <span class="hidden sm:inline text-osca-border" aria-hidden="true">|</span>
+                                <span class="text-osca-body">SMS Helpline: <strong class="text-osca-ink">+63 917 842 6722</strong></span>
+                            </div>
                         </div>
 
                         {{-- Central hotline highlight --}}
@@ -619,30 +589,6 @@
                                 <p class="text-xs text-white/70">Municipal Government of Santa Maria, Bulacan</p>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        {{-- Stats strip --}}
-        <section class="py-10 sm:py-16 bg-white border-y border-osca-border" aria-label="System Metrics">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-8 lg:gap-12">
-                    <div class="border-l-4 border-osca-primary pl-3.5 sm:pl-5">
-                        <p class="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-osca-primary tracking-tight">18,400+</p>
-                        <p class="text-xs sm:text-sm font-medium text-osca-body mt-1.5">Registered Senior Citizens</p>
-                    </div>
-                    <div class="border-l-4 border-osca-primary pl-3.5 sm:pl-5">
-                        <p class="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-osca-primary tracking-tight">24</p>
-                        <p class="text-xs sm:text-sm font-medium text-osca-body mt-1.5">Barangays Covered</p>
-                    </div>
-                    <div class="border-l-4 border-osca-primary pl-3.5 sm:pl-5">
-                        <p class="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-osca-primary tracking-tight">98.6%</p>
-                        <p class="text-xs sm:text-sm font-medium text-osca-body mt-1.5">SMS Delivery Rate</p>
-                    </div>
-                    <div class="border-l-4 border-osca-primary pl-3.5 sm:pl-5">
-                        <p class="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-osca-primary tracking-tight">48,000+</p>
-                        <p class="text-xs sm:text-sm font-medium text-osca-body mt-1.5">Benefit Claims Disbursed</p>
                     </div>
                 </div>
             </div>
@@ -749,15 +695,15 @@
                             <h4 class="text-sm font-bold text-osca-ink">OSCA Express Service Summary</h4>
                             <p class="text-xs text-osca-body mt-1">All service counters are operating today at the Santa Maria Municipal Hall Complex.</p>
                             <div class="mt-4 space-y-2.5 text-xs">
-                                <div class="flex justify-between py-1 border-b border-osca-border">
+                                <div class="flex flex-wrap gap-x-3 gap-y-1 py-1 border-b border-osca-border">
                                     <span class="text-osca-body">Office Hours:</span>
                                     <span class="font-semibold text-osca-ink">Mon – Fri, 8:00 AM – 5:00 PM</span>
                                 </div>
-                                <div class="flex justify-between py-1 border-b border-osca-border">
+                                <div class="flex flex-wrap gap-x-3 gap-y-1 py-1 border-b border-osca-border">
                                     <span class="text-osca-body">Senior Express Lane:</span>
                                     <span class="font-semibold text-osca-success">Window 1 &amp; Window 2</span>
                                 </div>
-                                <div class="flex justify-between py-1">
+                                <div class="flex flex-wrap gap-x-3 gap-y-1 py-1">
                                     <span class="text-osca-body">Inquiry Helpline:</span>
                                     <span class="font-semibold text-osca-primary">(044) 913-0248</span>
                                 </div>
@@ -775,9 +721,8 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10">
                 <div class="sm:col-span-2 lg:col-span-5 space-y-4">
                     <div class="flex items-center gap-3">
-                        <span class="flex size-10 items-center justify-center rounded-lg bg-osca-primary text-white font-bold text-lg">eL</span>
                         <div>
-                            <span class="text-xl font-bold tracking-tight text-white block">eLINGAP</span>
+                            <img src="{{ asset('images/eLINGAP.png') }}" alt="eLINGAP logo" class="h-14 w-20 object-contain object-left" width="80" height="56">
                             <span class="text-xs text-white/70 block">Office of the Senior Citizens Affairs</span>
                         </div>
                     </div>
@@ -804,7 +749,7 @@
                         </p>
                         <p class="flex items-center gap-2.5">
                             <svg class="size-4 shrink-0 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-                            <span>osca@santamariabulacan.gov.ph</span>
+                            <span class="min-w-0 break-words">osca@santamariabulacan.gov.ph</span>
                         </p>
                         <p class="flex items-center gap-2.5">
                             <svg class="size-4 shrink-0 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.88.37 1.85.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.96.33 1.93.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
@@ -824,61 +769,6 @@
             </div>
         </div>
     </footer>
-
-    {{-- Concern modal --}}
-    <div id="concern-modal" class="fixed inset-0 z-50 hidden bg-osca-ink/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="concern-title">
-        <div class="bg-white rounded-2xl border border-osca-border max-w-lg w-full p-5 sm:p-7 shadow-xl max-h-[90vh] overflow-y-auto my-auto">
-            <div class="flex items-start justify-between">
-                <div>
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-osca-primary">Citizen Assistance</span>
-                    <h3 id="concern-title" class="text-lg sm:text-xl font-bold text-osca-ink mt-0.5">File a Senior Citizen Concern</h3>
-                    <p class="text-xs text-osca-body mt-1">Submit inquiries or requests directly to OSCA Santa Maria.</p>
-                </div>
-                <button type="button" data-close-modal="concern" class="size-9 min-h-[36px] min-w-[36px] rounded-lg text-osca-body hover:bg-osca-muted hover:text-osca-ink flex items-center justify-center" aria-label="Close">
-                    <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                </button>
-            </div>
-            <form id="concern-form" class="mt-5 space-y-4">
-                <div>
-                    <label for="concern-name" class="block text-xs font-semibold text-osca-ink mb-1">Full Name of Senior Citizen / Caregiver</label>
-                    <input type="text" id="concern-name" data-focus required class="w-full rounded-lg border border-osca-border px-3.5 py-2.5 text-base sm:text-sm text-osca-ink focus:border-osca-primary focus:outline-hidden min-h-[44px]" placeholder="e.g. Juanita Dela Cruz">
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label for="concern-contact" class="block text-xs font-semibold text-osca-ink mb-1">Mobile Contact Number</label>
-                        <input type="tel" id="concern-contact" required class="w-full rounded-lg border border-osca-border px-3.5 py-2.5 text-base sm:text-sm text-osca-ink focus:border-osca-primary focus:outline-hidden min-h-[44px]" placeholder="0917XXXXXXX">
-                    </div>
-                    <div>
-                        <label for="concern-barangay" class="block text-xs font-semibold text-osca-ink mb-1">Barangay</label>
-                        <select id="concern-barangay" required class="w-full rounded-lg border border-osca-border px-3.5 py-2.5 text-base sm:text-sm text-osca-ink focus:border-osca-primary focus:outline-hidden min-h-[44px]">
-                            <option value="">Select Barangay</option>
-                            @foreach (['Bagbaguin','Balasing','Buenavista','Bulac','Camangyanan','Catmon','Cay Pombo','Caysio','Guyong','Lalangan','Mag-asawang Sapa','Mahabang Parang','Manggahan','Parada','Poblacion','Pulong Buhangin','San Gabriel','San Jose Patag','San Vicente','Santa Clara','Santa Cruz','Silangan','Tabing Bakod','Tumana'] as $brgy)
-                                <option value="{{ $brgy }}">{{ $brgy }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label for="concern-type" class="block text-xs font-semibold text-osca-ink mb-1">Nature of Concern</label>
-                    <select id="concern-type" required class="w-full rounded-lg border border-osca-border px-3.5 py-2.5 text-base sm:text-sm text-osca-ink focus:border-osca-primary focus:outline-hidden min-h-[44px]">
-                        <option value="Pension Inquiry">Social Pension Inquiry</option>
-                        <option value="Senior ID Application">Senior Citizen ID Application / Renewal</option>
-                        <option value="Burial Assistance">Burial / Medical Financial Grant</option>
-                        <option value="SMS Notification Update">Update Mobile Number for SMS</option>
-                        <option value="General Inquiry">General Welfare Concern</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="concern-details" class="block text-xs font-semibold text-osca-ink mb-1">Details of Concern</label>
-                    <textarea id="concern-details" rows="3" required class="w-full rounded-lg border border-osca-border px-3.5 py-2.5 text-base sm:text-sm text-osca-ink focus:border-osca-primary focus:outline-hidden" placeholder="Please describe your concern or assistance needed..."></textarea>
-                </div>
-                <div class="pt-2 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3">
-                    <button type="button" data-close-modal="concern" class="px-4 py-2.5 text-sm font-medium text-osca-body hover:text-osca-ink text-center">Cancel</button>
-                    <button type="submit" class="rounded-lg bg-osca-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-osca-primary-dark transition-colors shadow-xs min-h-[44px] text-center">Submit Concern</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     {{-- Search modal --}}
     <div id="search-modal" class="fixed inset-0 z-50 hidden bg-osca-ink/70 backdrop-blur-xs flex items-start justify-center p-3 sm:p-4 pt-16 sm:pt-20 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="search-modal-title">

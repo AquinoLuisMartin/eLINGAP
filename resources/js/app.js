@@ -2,9 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     initMobileMenu();
-    initModal('concern');
     initModal('search');
-    initConcernForm();
     initEscapeClose();
 });
 
@@ -64,19 +62,6 @@ function openModal(modal, focusTarget) {
 
 function closeModal(modal) {
     modal.classList.add('hidden');
-}
-
-// Handle concern form submission
-function initConcernForm() {
-    const form = document.getElementById('concern-form');
-    if (!form) return;
-
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        alert('Your concern has been submitted to the OSCA Santa Maria Helpdesk. We will contact you shortly.');
-        closeModal(document.getElementById('concern-modal'));
-        form.reset();
-    });
 }
 
 // Close all modals on Escape key

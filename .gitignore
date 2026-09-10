@@ -6,6 +6,8 @@
 .phpactor.json
 .phpunit.result.cache
 /.codex
+/.agents/
+/.claude/
 /.cursor/
 /.idea
 /.nova
@@ -27,6 +29,7 @@ Homestead.yaml
 Thumbs.db
 
 # Local AI agent guidance (not shared via GitHub)
+boost.json
 CLAUDE.md
 AGENTS.md
 eLINGAP.md
