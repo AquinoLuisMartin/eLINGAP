@@ -1,58 +1,121 @@
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+# eLINGAP
 
-## About Laravel
+## An Integrated Web-Based Records Management and Automated SMS Notification System for the Office of the Senior Citizens Affairs of Santa Maria, Bulacan
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+eLINGAP is a Laravel-based web application designed to support the Office of the Senior Citizens Affairs of Santa Maria, Bulacan. The system provides a centralized platform for managing senior citizen records and supporting automated SMS notifications for more efficient, organized, and timely public service.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Technology Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- PHP 8.3 or later
+- Laravel 13
+- SQLite by default, with support for other Laravel-compatible databases
+- Node.js and npm
+- Vite and Tailwind CSS for frontend assets
 
-## Learning Laravel
+## Prerequisites
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Install the following tools before setting up the project:
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- [PHP](https://www.php.net/downloads) 8.3 or later with the required Laravel extensions
+- [Composer](https://getcomposer.org/download/)
+- [Node.js](https://nodejs.org/) and npm
+- [Git](https://git-scm.com/downloads)
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Installation
 
-## Agentic Development
+### 1. Clone the repository
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Replace `<repository-url>` with the repository URL provided by the project administrator.
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone <repository-url>
+cd eLINGAP
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 2. Install backend dependencies
+
+```bash
+composer install
+```
+
+### 3. Configure the environment
+
+Create the local environment file and generate the application key:
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+On Windows PowerShell, use this equivalent command to create the environment file:
+
+```powershell
+Copy-Item .env.example .env
+php artisan key:generate
+```
+
+The default configuration uses SQLite. Create the database file if it does not exist, then run the migrations:
+
+```bash
+php artisan migrate
+```
+
+Update the database, application, and SMS-related values in `.env` according to the deployment environment. Never commit `.env` or credentials to the repository.
+
+### 4. Install frontend dependencies
+
+```bash
+npm install
+npm run build
+```
+
+### 5. Start the application
+
+In one terminal, start the Laravel development server:
+
+```bash
+php artisan serve
+```
+
+In a second terminal, start the Vite development server while working on frontend assets:
+
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:8000`.
+
+## Common Commands
+
+```bash
+# Run the automated test suite
+composer test
+
+# Format PHP files with Laravel Pint
+vendor/bin/pint
+
+# Build production frontend assets
+npm run build
+```
 
 ## Contributing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Contributions are welcome and should support the goals of the Office of the Senior Citizens Affairs of Santa Maria, Bulacan.
 
-## Code of Conduct
+1. Create a feature branch from the latest main branch.
+2. Make focused changes that follow the existing Laravel structure and coding conventions.
+3. Add or update tests for changes that affect application behavior.
+4. Run the relevant tests, formatter, and frontend build before submitting your changes.
+5. Open a pull request with a clear description of the changes, motivation, testing performed, and any required configuration updates.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Please do not include personal information, production data, credentials, API keys, or local development files in commits or pull requests.
 
-## Security Vulnerabilities
+## Security
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Do not report security vulnerabilities in public issues. Contact the project maintainers through the repository's private security reporting process and include enough detail to reproduce the issue safely.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is built with the [Laravel framework](https://laravel.com), which is open-sourced under the [MIT license](https://opensource.org/licenses/MIT). Project-specific licensing terms should be confirmed with the project maintainers.
