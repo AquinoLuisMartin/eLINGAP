@@ -3,6 +3,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     initMobileMenu();
     initModal('search');
+    initModal('login');
+    initPasswordToggle();
+    initBackToTop();
+    initViewSwitcher();
     initEscapeClose();
 });
 
@@ -62,6 +66,63 @@ function openModal(modal, focusTarget) {
 
 function closeModal(modal) {
     modal.classList.add('hidden');
+}
+
+function initPasswordToggle() {
+    document.querySelectorAll('[data-toggle-password]').forEach(toggle => {
+        const input = document.getElementById(toggle.dataset.togglePassword);
+        if (!input) return;
+
+        toggle.addEventListener('click', () => {
+            const showing = input.type === 'text';
+            input.type = showing ? 'password' : 'text';
+            toggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+            toggle.setAttribute('aria-pressed', String(!showing));
+        });
+    });
+}
+
+function initBackToTop() {
+    document.querySelectorAll('[data-back-to-top]').forEach(button => {
+        button.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
+}
+
+function initViewSwitcher() {
+    const landingView = document.getElementById('landing-view');
+    const aboutView = document.getElementById('about-view');
+    const links = document.querySelectorAll('[data-view]');
+    const viewLinks = document.querySelectorAll('[data-view-link]');
+
+    if (!landingView || !aboutView) return;
+
+    const setView = (view) => {
+        const showingAbout = view === 'about';
+        landingView.classList.toggle('hidden', showingAbout);
+        aboutView.classList.toggle('hidden', !showingAbout);
+
+        viewLinks.forEach(link => {
+            const active = link.dataset.view === view;
+            link.classList.toggle('text-osca-primary', active);
+            link.classList.toggle('font-semibold', active);
+            link.classList.toggle('border-b-2', active);
+            link.classList.toggle('border-osca-primary', active);
+            link.classList.toggle('bg-osca-muted', active);
+        });
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    links.forEach(link => {
+        link.addEventListener('click', event => {
+            event.preventDefault();
+            setView(link.dataset.view);
+        });
+    });
+
+    setView('home');
 }
 
 // Close all modals on Escape key

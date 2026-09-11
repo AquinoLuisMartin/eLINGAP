@@ -92,10 +92,6 @@
         background: #ffffff;
     }
 
-    #sms {
-        background: linear-gradient(120deg, var(--color-osca-primary-dark), var(--color-osca-primary));
-    }
-
     footer {
         border-top: 4px solid var(--color-osca-primary);
     }
