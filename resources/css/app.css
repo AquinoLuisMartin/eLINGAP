@@ -44,20 +44,20 @@
         border-bottom: 1px solid var(--color-osca-border);
     }
 
-    #hero .lg\:col-span-7 h1 {
+    #hero .lg\:col-span-8 h1 {
         color: var(--color-osca-ink);
     }
 
-    #hero .lg\:col-span-7 p {
+    #hero .lg\:col-span-8 p {
         color: var(--color-osca-body);
     }
 
-    #hero .lg\:col-span-7 .text-white\/80,
-    #hero .lg\:col-span-7 .text-white\/70 {
+    #hero .lg\:col-span-8 .text-white\/80,
+    #hero .lg\:col-span-8 .text-white\/70 {
         color: var(--color-osca-body);
     }
 
-    #hero .lg\:col-span-7 .bg-white\/10 {
+    #hero .lg\:col-span-8 .bg-white\/10 {
         background: rgb(0 50 125 / 0.08);
         border-color: rgb(0 50 125 / 0.15);
     }
@@ -73,22 +73,20 @@
     }
 
     #programs,
-    #emergency,
     #announcements {
         background: #f7f7f7;
     }
 
     #programs article,
-    #records .rounded-2xl,
-    #about .rounded-xl,
-    #emergency .rounded-xl,
+    #records .rounded-xl,
+    #about-view .rounded-2xl,
     #announcements .rounded-xl {
         border-radius: 0.35rem;
         box-shadow: 0 8px 24px rgb(37 37 37 / 0.06);
     }
 
     #records,
-    #about {
+    #about-view {
         background: #ffffff;
     }
 

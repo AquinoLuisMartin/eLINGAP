@@ -1,16 +1,24 @@
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
 # eLINGAP
 
 ## An Integrated Web-Based Records Management and Automated SMS Notification System for the Office of the Senior Citizens Affairs of Santa Maria, Bulacan
 
 eLINGAP is a Laravel-based web application designed to support the Office of the Senior Citizens Affairs of Santa Maria, Bulacan. The system provides a centralized platform for managing senior citizen records and supporting automated SMS notifications for more efficient, organized, and timely public service.
 
+## Project Progress
+
+- Laravel 13 application foundation is set up.
+- PostgreSQL is configured as the project database.
+- Public eLINGAP landing page and responsive navigation are implemented.
+- Feature folders and placeholder files are organized by Laravel domain conventions.
+- Senior citizen records, applications, programs, SMS, payouts, reports, and administration modules are prepared for implementation.
+- Business logic, database schema, authentication workflows, and automated SMS integration remain in progress.
+
 ## Technology Stack
 
 - PHP 8.3 or later
 - Laravel 13
-- SQLite by default, with support for other Laravel-compatible databases
+- PostgreSQL
 - Node.js and npm
 - Vite and Tailwind CSS for frontend assets
 
@@ -56,7 +64,7 @@ Copy-Item .env.example .env
 php artisan key:generate
 ```
 
-The default configuration uses SQLite. Create the database file if it does not exist, then run the migrations:
+Configure PostgreSQL in `.env`, then run the migrations:
 
 ```bash
 php artisan migrate
