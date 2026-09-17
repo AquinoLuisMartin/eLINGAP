@@ -22,10 +22,10 @@ class AuthenticatedSessionController extends Controller
     public function store(LoginRequest $request, LoginLogger $logger): RedirectResponse
     {
         if (! $request->attemptLogin()) {
-            $logger->failure(LoginEvent::LoginFailed, $request->username(), 'Invalid credentials or inactive account.');
+            $logger->failure(LoginEvent::LoginFailed, $request->email(), 'Invalid credentials or inactive account.');
 
             throw ValidationException::withMessages([
-                'username' => trans('auth.failed'),
+                'email' => trans('auth.failed'),
             ]);
         }
 

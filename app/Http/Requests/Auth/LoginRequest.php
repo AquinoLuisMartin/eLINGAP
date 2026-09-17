@@ -20,7 +20,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'username' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string'],
             'remember' => ['boolean'],
         ];
@@ -34,8 +34,8 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         $credentials = [
-            // Matches the lower(username) index so sign-in is case-insensitive.
-            'username' => fn (Builder $query) => $query->whereRaw('lower(username) = ?', [$this->username()]),
+            // Matches the lower(email) value so sign-in is case-insensitive.
+            'email' => fn (Builder $query) => $query->whereRaw('lower(email) = ?', [$this->email()]),
             // Deactivated accounts must not authenticate even with a valid password.
             'is_active' => true,
             'password' => $this->string('password')->toString(),
@@ -52,17 +52,17 @@ class LoginRequest extends FormRequest
         return true;
     }
 
-    public function username(): string
+    public function email(): string
     {
-        return Str::lower(trim($this->string('username')->toString()));
+        return Str::lower(trim($this->string('email')->toString()));
     }
 
     /**
-     * Keying on both account and address avoids locking out a shared office network.
+      * Keying on both email and address avoids locking out a shared office network.
      */
     protected function throttleKey(): string
     {
-        return Str::transliterate($this->username().'|'.$this->ip());
+          return Str::transliterate($this->email().'|'.$this->ip());
     }
 
     protected function ensureIsNotRateLimited(): void
@@ -76,7 +76,7 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'username' => trans('auth.throttle', [
+            'email' => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),

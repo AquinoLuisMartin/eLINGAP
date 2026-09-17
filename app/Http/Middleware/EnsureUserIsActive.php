@@ -20,7 +20,7 @@ class EnsureUserIsActive
             $request->session()->regenerateToken();
 
             return redirect()->route('login')->withErrors([
-                'username' => 'This account has been deactivated.',
+                'email' => 'This account has been deactivated.',
             ]);
         }
 

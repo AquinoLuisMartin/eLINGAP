@@ -507,12 +507,13 @@
                 </button>
             </div>
 
-            <form id="login-form" class="mt-6 space-y-4" action="#" method="post" novalidate>
+            <form id="login-form" class="mt-6 space-y-4" action="{{ route('login') }}" method="post">
+                @csrf
                 <div>
-                    <label for="login-identity" class="block text-sm font-semibold text-slate-700">Email or User ID</label>
+                    <label for="login-identity" class="block text-sm font-semibold text-slate-700">Email</label>
                     <div class="relative mt-1.5">
                         <svg class="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
-                        <input id="login-identity" name="identity" type="text" autocomplete="username" data-focus required class="w-full rounded-lg border border-slate-300 bg-slate-50 py-3 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20" placeholder="Enter your email or user ID" aria-describedby="login-error">
+                        <input id="login-identity" name="email" type="email" autocomplete="email" data-focus required class="w-full rounded-lg border border-slate-300 bg-slate-50 py-3 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20" placeholder="Enter your email" aria-describedby="login-error">
                     </div>
                 </div>
 
