@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initMobileMenu();
     initModal('search');
     initModal('login');
+    initMockLogin();
     initPasswordToggle();
     initBackToTop();
     initViewSwitcher();
@@ -28,6 +29,57 @@ function initMobileMenu() {
 
     menu.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', () => closeMobileMenu(menu, bars, close, btn));
+    });
+}
+
+function initMockLogin() {
+    const form = document.getElementById('login-form');
+    const identity = document.getElementById('login-identity');
+    const password = document.getElementById('login-password');
+    const error = document.getElementById('login-error');
+    const submit = document.getElementById('login-submit');
+    const label = submit?.querySelector('[data-login-label]');
+    const loading = submit?.querySelector('[data-login-loading]');
+
+    if (!form || !identity || !password || !error || !submit || !label || !loading) return;
+
+    const accounts = {
+        'admin@elingap.gov.ph': { password: 'Password123!', destination: '/administration/dashboard' },
+        'staff@elingap.gov.ph': { password: 'Password123!', destination: '/applications/verify' },
+    };
+
+    const clearError = () => {
+        error.textContent = '';
+        error.classList.add('hidden');
+        [identity, password].forEach(input => input.classList.remove('border-red-400', 'ring-1', 'ring-red-200'));
+    };
+
+    [identity, password].forEach(input => input.addEventListener('input', clearError));
+
+    form.addEventListener('submit', event => {
+        event.preventDefault();
+        if (submit.disabled) return;
+
+        clearError();
+        const account = accounts[identity.value.trim().toLowerCase()];
+
+        if (!account || password.value !== account.password) {
+            error.textContent = 'Invalid credentials. Please use the demo accounts.';
+            error.classList.remove('hidden');
+            [identity, password].forEach(input => input.classList.add('border-red-400', 'ring-1', 'ring-red-200'));
+            password.focus();
+            return;
+        }
+
+        submit.disabled = true;
+        submit.setAttribute('aria-busy', 'true');
+        label.classList.add('hidden');
+        loading.classList.remove('hidden');
+        loading.classList.add('inline-flex');
+
+        window.setTimeout(() => {
+            window.location.assign(account.destination);
+        }, 500);
     });
 }
 
