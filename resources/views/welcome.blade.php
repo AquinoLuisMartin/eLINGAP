@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>eLINGAP — Office of the Senior Citizens Affairs | Santa Maria, Bulacan</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/eLINGAP.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-white font-sans text-osca-body antialiased">
@@ -506,12 +507,12 @@
                 </button>
             </div>
 
-            <form class="mt-6 space-y-4" action="#" method="post">
+            <form id="login-form" class="mt-6 space-y-4" action="#" method="post" novalidate>
                 <div>
                     <label for="login-identity" class="block text-sm font-semibold text-slate-700">Email or User ID</label>
                     <div class="relative mt-1.5">
                         <svg class="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
-                        <input id="login-identity" name="identity" type="text" autocomplete="username" data-focus required class="w-full rounded-lg border border-slate-300 bg-slate-50 py-3 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20" placeholder="Enter your email or user ID">
+                        <input id="login-identity" name="identity" type="text" autocomplete="username" data-focus required class="w-full rounded-lg border border-slate-300 bg-slate-50 py-3 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20" placeholder="Enter your email or user ID" aria-describedby="login-error">
                     </div>
                 </div>
 
@@ -519,7 +520,7 @@
                     <label for="login-password" class="block text-sm font-semibold text-slate-700">Password</label>
                     <div class="relative mt-1.5">
                         <svg class="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="12" x="4" y="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-                        <input id="login-password" name="password" type="password" autocomplete="current-password" required class="w-full rounded-lg border border-slate-300 bg-slate-50 py-3 pl-10 pr-12 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20" placeholder="Enter your password">
+                        <input id="login-password" name="password" type="password" autocomplete="current-password" required class="w-full rounded-lg border border-slate-300 bg-slate-50 py-3 pl-10 pr-12 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20" placeholder="Enter your password" aria-describedby="login-error">
                         <button type="button" data-toggle-password="login-password" class="absolute right-2 top-1/2 size-9 -translate-y-1/2 inline-flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-colors" aria-label="Show password" aria-pressed="false">
                             <svg data-eye-icon class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.06 12.35a1 1 0 0 1 0-.7C3.32 8.07 7.26 5 12 5s8.68 3.07 9.94 6.65a1 1 0 0 1 0 .7C20.68 15.93 16.74 19 12 19s-8.68-3.07-9.94-6.65Z"/><circle cx="12" cy="12" r="3"/></svg>
                         </button>
@@ -534,7 +535,14 @@
                     <a href="mailto:osca@santamariabulacan.gov.ph?subject=Password%20Reset" class="font-semibold text-blue-600 hover:underline">Forgot password?</a>
                 </div>
 
-                <button type="submit" class="w-full rounded-lg bg-[#0B3B75] px-4 py-3 text-sm font-semibold text-white hover:bg-blue-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2">Log In</button>
+                <p id="login-error" class="hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert"></p>
+                <button id="login-submit" type="submit" class="w-full rounded-lg bg-[#0B3B75] px-4 py-3 text-sm font-semibold text-white hover:bg-blue-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2">
+                    <span data-login-label>Log In</span>
+                    <span data-login-loading class="hidden items-center justify-center gap-2">
+                        <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z"></path></svg>
+                        <span>Signing in...</span>
+                    </span>
+                </button>
                 <p class="text-center text-xs leading-relaxed text-slate-500">Need an account or first-time setup? Contact OSCA frontline desk or your Barangay coordinator.</p>
             </form>
         </div>

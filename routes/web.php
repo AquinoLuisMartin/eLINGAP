@@ -20,6 +20,14 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::view('dashboard', 'dashboard.index')->name('dashboard');
 
+    Route::get('/administration/dashboard', function () {
+        return view('administration.dashboard');
+    });
+
+    Route::get('/applications/verify', function () {
+        return view('applications.verify');
+    });
+
     Route::prefix('administration')->name('administration.')->group(function () {
         Route::resource('users', UserController::class)->except(['show', 'destroy']);
         Route::patch('users/{user}/status', [UserStatusController::class, 'update'])->name('users.status.update');
