@@ -12,18 +12,27 @@
     $currentPageTitle = $pageTitles[$active] ?? 'Dashboard';
 @endphp
 
-<div class="admin-shell theme-{{ $theme }}" data-theme="{{ $theme }}"
+<div class="admin-shell"
+    :class="theme === 'dark' ? 'theme-dark' : 'theme-light'"
     x-data="{
         sidebarOpen: false,
         adminOpen: true,
         profileOpen: false,
         notificationsOpen: false,
+        theme: localStorage.getItem('elingap-theme') === 'dark' ? 'dark' : 'light',
         init() {
-            let savedTheme = localStorage.getItem('elingap-theme');
-            if (savedTheme && savedTheme !== '{{ $theme }}') {
-                $wire.set('theme', savedTheme);
-            }
-            $watch('$wire.theme', value => localStorage.setItem('elingap-theme', value));
+            this.applyTheme(this.theme);
+        },
+        applyTheme(value) {
+            this.theme = value === 'dark' ? 'dark' : 'light';
+            localStorage.setItem('elingap-theme', this.theme);
+            document.documentElement.classList.toggle('theme-dark', this.theme === 'dark');
+            document.documentElement.classList.toggle('theme-light', this.theme === 'light');
+            document.documentElement.style.colorScheme = this.theme;
+            document.body.classList.toggle('theme-dark', this.theme === 'dark');
+        },
+        toggleTheme() {
+            this.applyTheme(this.theme === 'light' ? 'dark' : 'light');
         }
     }"
     @keydown.escape.window="profileOpen = false; notificationsOpen = false">
@@ -151,16 +160,17 @@
                 <span>Change Password</span>
                 <x-admin.icon name="chevron-right" size="15" />
             </button>
-            <button type="button" wire:click="toggleTheme">
+            <button type="button" @click="toggleTheme()">
                 <span class="profile-action-icon">
-                    @if ($theme === 'light')
+                    <span x-show="theme === 'light'">
                         <x-admin.icon name="moon" size="16" />
-                    @else
+                    </span>
+                    <span x-show="theme === 'dark'" x-cloak>
                         <x-admin.icon name="sun" size="16" />
-                    @endif
+                    </span>
                 </span>
                 <span>System Preferences</span>
-                <small>{{ $theme === 'light' ? 'Light mode' : 'Dark mode' }}</small>
+                <small x-text="theme === 'light' ? 'Light mode' : 'Dark mode'"></small>
             </button>
         </div>
         <button type="button" class="profile-logout" @click="profileOpen = false; $wire.set('logoutConfirmOpen', true)">
@@ -203,13 +213,14 @@
                     </button>
                 </div>
 
-                <button type="button" class="theme-toggle icon-button" wire:click="toggleTheme" aria-label="Switch to {{ $theme === 'light' ? 'dark' : 'light' }} mode" title="Switch to {{ $theme === 'light' ? 'dark' : 'light' }} mode">
-                    @if ($theme === 'light')
+                <button type="button" class="theme-toggle icon-button" @click="toggleTheme()" :aria-label="theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'" :title="theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'">
+                    <span x-show="theme === 'light'">
                         <x-admin.icon name="moon" size="18" />
-                    @else
+                    </span>
+                    <span x-show="theme === 'dark'" x-cloak>
                         <x-admin.icon name="sun" size="18" />
-                    @endif
-                    <span class="theme-toggle-label">{{ $theme === 'light' ? 'Dark' : 'Light' }}</span>
+                    </span>
+                    <span class="theme-toggle-label" x-text="theme === 'light' ? 'Dark' : 'Light'"></span>
                 </button>
             </div>
         </header>

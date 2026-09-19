@@ -38,7 +38,7 @@ class AuthenticatedSessionController extends Controller
 
         $user->loadMissing('role');
 
-        return redirect()->intended(route($user->homeRouteName()));
+        return redirect()->to(route($user->homeRouteName()));
     }
 
     public function destroy(Request $request, LoginLogger $logger): RedirectResponse

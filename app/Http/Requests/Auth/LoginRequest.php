@@ -20,22 +20,29 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'email', 'max:255'],
+            'email' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
             'remember' => ['boolean'],
         ];
     }
 
     /**
-     * Attempt to sign the user in, reporting whether the credentials were accepted.
+     * Attempt to sign the user in by email or username.
      */
     public function attemptLogin(): bool
     {
         $this->ensureIsNotRateLimited();
 
         $credentials = [
-            // Matches the lower(email) value so sign-in is case-insensitive.
-            'email' => fn (Builder $query) => $query->whereRaw('lower(email) = ?', [$this->email()]),
+            // Case-insensitive match on email or username.
+            'email' => function (Builder $query): void {
+                $identity = $this->identity();
+
+                $query->where(function (Builder $query) use ($identity): void {
+                    $query->whereRaw('lower(email) = ?', [$identity])
+                        ->orWhereRaw('lower(username) = ?', [$identity]);
+                });
+            },
             // Deactivated accounts must not authenticate even with a valid password.
             'is_active' => true,
             'password' => $this->string('password')->toString(),
@@ -52,17 +59,25 @@ class LoginRequest extends FormRequest
         return true;
     }
 
-    public function email(): string
+    public function identity(): string
     {
         return Str::lower(trim($this->string('email')->toString()));
     }
 
     /**
-      * Keying on both email and address avoids locking out a shared office network.
+     * Kept for login failure logging that still expects an email()-shaped helper.
+     */
+    public function email(): string
+    {
+        return $this->identity();
+    }
+
+    /**
+     * Keying on both identity and address avoids locking out a shared office network.
      */
     protected function throttleKey(): string
     {
-          return Str::transliterate($this->email().'|'.$this->ip());
+        return Str::transliterate($this->identity().'|'.$this->ip());
     }
 
     protected function ensureIsNotRateLimited(): void

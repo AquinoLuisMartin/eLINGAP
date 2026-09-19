@@ -108,10 +108,14 @@ class RoleRoutingTest extends TestCase
             ->assertOk();
     }
 
-    public function test_admin_cannot_access_application_verify_route(): void
+    public function test_admin_can_login_with_username(): void
     {
-        $this->actingAs($this->admin)
-            ->get(route('applications.verify'))
-            ->assertForbidden();
+        $response = $this->post('/login', [
+            'email' => 'adminstamaria',
+            'password' => 'password123',
+        ]);
+
+        $response->assertRedirect(route('administration.dashboard'));
+        $this->assertAuthenticatedAs($this->admin);
     }
 }

@@ -1,9 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
 
 :root { --navy: #0a2540; --blue: #2563eb; --ink: #102a43; --muted: #728197; --line: #e7edf3; --paper: #f8fafc; --white: #fff; --radius: 14px; }
+[x-cloak] { display: none !important; }
 * { box-sizing: border-box; }
 body:has(.admin-shell) { margin: 0; background: var(--paper); color: var(--ink); font-family: 'DM Sans', sans-serif; }
-.admin-shell { min-height: 100vh; display: flex; background: var(--paper); }
+html.theme-dark body:has(.admin-shell),
+body.theme-dark:has(.admin-shell) { background: #0f172a; color: #e5edf7; }
+.admin-shell { min-height: 100vh; display: flex; background: var(--paper); transition: background-color .18s ease, color .18s ease; }
 .admin-sidebar { width: 76px; flex: 0 0 76px; position: fixed; inset: 0 auto 0 0; z-index: 20; display: flex; flex-direction: column; padding: 20px 12px 16px; color: #334155; background: #fff; border-right: 1px solid #e2e8f0; box-shadow: 8px 0 30px #102a430d; transition: width .22s ease, padding .22s ease, background .22s ease, color .22s ease; overflow: hidden; }
 .admin-sidebar.is-expanded { width: 252px; padding-left: 16px; padding-right: 16px; }
 .sidebar-brand { height: 44px; display: flex; align-items: center; justify-content: center; gap: 11px; padding: 0 7px; margin-bottom: 30px; white-space: nowrap; transition: justify-content .22s ease; }

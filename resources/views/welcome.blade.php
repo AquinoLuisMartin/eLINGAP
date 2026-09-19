@@ -494,7 +494,7 @@
     </div>
 
     {{-- Login modal --}}
-    <div id="login-modal" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="login-modal-title" aria-describedby="login-modal-description">
+    <div id="login-modal" class="fixed inset-0 z-50 {{ $errors->any() ? '' : 'hidden' }} bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="login-modal-title" aria-describedby="login-modal-description">
         <div class="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 sm:p-7 shadow-2xl my-auto">
             <div class="flex items-start justify-between gap-4">
                 <div>
@@ -509,11 +509,18 @@
 
             <form id="login-form" class="mt-6 space-y-4" action="{{ route('login') }}" method="post">
                 @csrf
+                @if ($errors->any())
+                    <p id="login-error" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert">
+                        {{ $errors->first() }}
+                    </p>
+                @else
+                    <p id="login-error" class="hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert"></p>
+                @endif
                 <div>
-                    <label for="login-identity" class="block text-sm font-semibold text-slate-700">Email</label>
+                    <label for="login-identity" class="block text-sm font-semibold text-slate-700">Email or Username</label>
                     <div class="relative mt-1.5">
                         <svg class="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
-                        <input id="login-identity" name="email" type="email" autocomplete="email" data-focus required class="w-full rounded-lg border border-slate-300 bg-slate-50 py-3 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20" placeholder="Enter your email" aria-describedby="login-error">
+                        <input id="login-identity" name="email" type="text" value="{{ old('email') }}" autocomplete="username" data-focus required class="w-full rounded-lg border border-slate-300 bg-slate-50 py-3 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20" placeholder="Email or username" aria-describedby="login-error">
                     </div>
                 </div>
 
@@ -530,13 +537,12 @@
 
                 <div class="flex flex-wrap items-center justify-between gap-3 pt-1 text-sm">
                     <label class="inline-flex items-center gap-2 text-slate-600 cursor-pointer">
-                        <input type="checkbox" name="remember" class="size-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600">
+                        <input type="checkbox" name="remember" class="size-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600" @checked(old('remember'))>
                         <span>Remember me</span>
                     </label>
                     <a href="mailto:osca@santamariabulacan.gov.ph?subject=Password%20Reset" class="font-semibold text-blue-600 hover:underline">Forgot password?</a>
                 </div>
 
-                <p id="login-error" class="hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert"></p>
                 <button id="login-submit" type="submit" class="w-full rounded-lg bg-[#0B3B75] px-4 py-3 text-sm font-semibold text-white hover:bg-blue-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2">
                     <span data-login-label>Log In</span>
                     <span data-login-loading class="hidden items-center justify-center gap-2">

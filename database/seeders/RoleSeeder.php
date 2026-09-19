@@ -2,15 +2,25 @@
 
 namespace Database\Seeders;
 
+use App\Enums\UserRole;
+use App\Models\Role;
 use Illuminate\Database\Seeder;
 
 class RoleSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * Seed ADMIN and OSCA_STAFF roles used by authentication routing.
      */
     public function run(): void
     {
-        // Placeholder for role seed data.
+        Role::query()->firstOrCreate(
+            ['name' => UserRole::Admin->value],
+            ['description' => 'System Administrator'],
+        );
+
+        Role::query()->firstOrCreate(
+            ['name' => UserRole::OscaStaff->value],
+            ['description' => 'OSCA Staff'],
+        );
     }
 }
