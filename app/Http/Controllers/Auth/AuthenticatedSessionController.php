@@ -36,7 +36,9 @@ class AuthenticatedSessionController extends Controller
 
         $logger->success(LoginEvent::Login, $user);
 
-        return redirect()->intended(route('dashboard'));
+        $user->loadMissing('role');
+
+        return redirect()->intended(route($user->homeRouteName()));
     }
 
     public function destroy(Request $request, LoginLogger $logger): RedirectResponse

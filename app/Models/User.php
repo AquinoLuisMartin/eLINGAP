@@ -87,6 +87,23 @@ class User extends Authenticatable
         return $this->hasRole(UserRole::Admin);
     }
 
+    public function isOscaStaff(): bool
+    {
+        return $this->hasRole(UserRole::OscaStaff);
+    }
+
+    /**
+     * Named route for the user's role home after sign-in.
+     */
+    public function homeRouteName(): string
+    {
+        return match ($this->role?->name) {
+            UserRole::Admin => 'administration.dashboard',
+            UserRole::OscaStaff => 'dashboard',
+            default => 'login',
+        };
+    }
+
     protected function fullName(): Attribute
     {
         return Attribute::get(fn (): string => implode(' ', array_filter([

@@ -216,28 +216,28 @@
 
         <div class="admin-content">
             @if ($active === 'records')
-                @include('livewire.administration.dashboard.records')
+                @include('administration.dashboard.records')
             @elseif ($active === 'programs')
-                @include('livewire.administration.dashboard.programs')
+                @include('administration.dashboard.programs')
             @elseif ($active === 'sms')
-                @include('livewire.administration.dashboard.sms')
+                @include('administration.dashboard.sms')
             @elseif ($active === 'users')
-                @include('livewire.administration.dashboard.users')
+                @include('administration.dashboard.users')
             @elseif ($active === 'system-logs')
-                @include('livewire.administration.dashboard.logs')
+                @include('administration.dashboard.logs')
             @elseif ($active === 'configuration')
-                @include('livewire.administration.dashboard.configuration')
+                @include('administration.dashboard.configuration')
             @elseif ($active === 'help')
-                @include('livewire.administration.dashboard.help')
+                @include('administration.dashboard.help')
             @else
-                @include('livewire.administration.dashboard.overview')
+                @include('administration.dashboard.overview')
             @endif
         </div>
     </main>
 
     {{-- Overlays and Dialogs --}}
-    @include('livewire.administration.dashboard.modals')
-    @include('livewire.administration.dashboard.drawer')
+    @include('administration.dashboard.modals')
+    @include('administration.dashboard.drawer')
 
     {{-- Toast Notification --}}
     @if ($toast)

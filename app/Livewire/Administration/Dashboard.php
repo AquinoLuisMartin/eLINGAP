@@ -475,6 +475,6 @@ class Dashboard extends Component
     // Render the Livewire component view
     public function render()
     {
-        return view('livewire.administration.dashboard');
+        return view('administration.dashboard.panel');
     }
 }
