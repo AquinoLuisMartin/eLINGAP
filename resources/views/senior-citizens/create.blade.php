@@ -1,11 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Senior Citizen</title>
-</head>
-<body>
-    <!-- Placeholder senior citizen create page. -->
-</body>
-</html>
+@extends('layouts.app')
+
+@section('content')
+    <h1>Register senior citizen</h1>
+    @include('components.alert')
+    <form method="POST" action="{{ route('senior-citizens.store') }}">
+        @include('senior-citizens._form')
+    </form>
+@endsection

@@ -2,4 +2,9 @@
 
 namespace App\Enums;
 
-// Placeholder for SMS status enum.
+enum SmsStatus: string
+{
+    case Queued = 'QUEUED';
+    case Sent = 'SENT';
+    case Failed = 'FAILED';
+}

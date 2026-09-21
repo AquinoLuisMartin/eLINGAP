@@ -1,11 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Senior Citizen</title>
-</head>
-<body>
-    <!-- Placeholder senior citizen edit page. -->
-</body>
-</html>
+@extends('layouts.app')
+
+@section('content')
+    <h1>Edit senior citizen</h1>
+    @include('components.alert')
+    <form method="POST" action="{{ route('senior-citizens.update', $seniorCitizen) }}">
+        @method('PUT')
+        @include('senior-citizens._form')
+    </form>
+@endsection

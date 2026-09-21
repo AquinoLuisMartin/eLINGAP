@@ -2,4 +2,10 @@
 
 namespace App\Enums;
 
-// Placeholder for application status enum.
+enum ApplicationStatus: string
+{
+    case Pending = 'PENDING';
+    case Approved = 'APPROVED';
+    case Rejected = 'REJECTED';
+    case Cancelled = 'CANCELLED';
+}

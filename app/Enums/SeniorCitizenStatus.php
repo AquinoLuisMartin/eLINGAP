@@ -2,4 +2,9 @@
 
 namespace App\Enums;
 
-// Placeholder for senior citizen status enum.
+enum SeniorCitizenStatus: string
+{
+    case Pending = 'PENDING';
+    case Verified = 'VERIFIED';
+    case Archived = 'ARCHIVED';
+}
