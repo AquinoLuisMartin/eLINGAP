@@ -5,9 +5,9 @@
         <h2>User Accounts</h2>
         <p class="section-subtitle">Manage system users, roles, and access permissions.</p>
     </div>
-    <button type="button" class="primary-button" wire:click="openModal('user')">
+    <a class="primary-button" href="{{ route('administration.users.create') }}">
         <x-admin.icon name="plus" size="17" /> Add User
-    </button>
+    </a>
 </section>
 
 <section class="metric-grid user-metrics">
@@ -18,10 +18,8 @@
         <div class="metric-label">Total Users</div>
         <div class="metric-value">{{ $this->userCounts['total'] }}</div>
         <div class="metric-bottom">
-            <span class="trend">+1</span>
             <span>registered accounts</span>
         </div>
-        <div class="metric-progress blue"><i style="width: 100%;"></i></div>
     </div>
 
     <div class="metric-card">
@@ -31,10 +29,8 @@
         <div class="metric-label">Active</div>
         <div class="metric-value">{{ $this->userCounts['active'] }}</div>
         <div class="metric-bottom">
-            <span class="trend">+1</span>
             <span>with access</span>
         </div>
-        <div class="metric-progress mint"><i style="width: 85%;"></i></div>
     </div>
 
     <div class="metric-card">
@@ -44,23 +40,19 @@
         <div class="metric-label">Suspended</div>
         <div class="metric-value">{{ $this->userCounts['suspended'] }}</div>
         <div class="metric-bottom">
-            <span class="trend">0</span>
             <span>needs review</span>
         </div>
-        <div class="metric-progress amber"><i style="width: 15%;"></i></div>
     </div>
 
     <div class="metric-card">
         <div class="metric-icon violet">
             <x-admin.icon name="clock-3" size="19" />
         </div>
-        <div class="metric-label">Inactive</div>
-        <div class="metric-value">{{ $this->userCounts['inactive'] }}</div>
+        <div class="metric-label">Administrators</div>
+        <div class="metric-value">{{ $this->userCounts['administrators'] }}</div>
         <div class="metric-bottom">
-            <span class="trend">0</span>
-            <span>no recent access</span>
+            <span>administrator accounts</span>
         </div>
-        <div class="metric-progress violet"><i style="width: 15%;"></i></div>
     </div>
 </section>
 
@@ -71,7 +63,7 @@
             <input type="text" wire:model.live="userQuery" placeholder="Search users..." aria-label="Search users" />
         </label>
         <div class="filter-pills">
-            @foreach (['All', 'Active', 'Suspended', 'Inactive'] as $filter)
+            @foreach (['All', 'Active', 'Suspended'] as $filter)
                 <button type="button" class="{{ $userStatusFilter === $filter ? 'selected' : '' }}" wire:click="$set('userStatusFilter', '{{ $filter }}')">
                     {{ $filter }}
                 </button>
@@ -85,7 +77,7 @@
                 <tr>
                     <th>User</th>
                     <th>Role</th>
-                    <th>Assigned Barangay</th>
+                    <th>Username</th>
                     <th>Status</th>
                     <th>Last Login</th>
                     <th>Created</th>
@@ -95,40 +87,42 @@
             <tbody>
                 @forelse ($this->filteredUsers as $user)
                     @php
-                        $initials = collect(explode(' ', $user['name']))
+                        $initials = collect(explode(' ', $user->full_name))
                             ->map(fn($part) => mb_substr($part, 0, 1))
                             ->take(2)
                             ->implode('');
                     @endphp
-                    <tr wire:key="user-{{ $user['email'] }}">
+                    <tr wire:key="user-{{ $user->id }}">
                         <td>
                             <div class="user-cell">
                                 <span class="user-avatar">{{ $initials }}</span>
                                 <span>
-                                    <strong>{{ $user['name'] }}</strong>
-                                    <small>{{ $user['email'] }}</small>
+                                    <strong>{{ $user->full_name }}</strong>
+                                    <small>{{ $user->email }}</small>
                                 </span>
                             </div>
                         </td>
                         <td>
-                            <span class="role-badge">{{ $user['role'] }}</span>
+                            <span class="role-badge">{{ $user->role->name->label() }}</span>
                         </td>
-                        <td>{{ $user['barangay'] }}</td>
+                        <td>{{ $user->username }}</td>
                         <td>
-                            <span class="status-badge {{ strtolower($user['status']) }}">
-                                {{ $user['status'] }}
+                            <span class="status-badge {{ $user->is_active ? 'active' : 'suspended' }}">
+                                {{ $user->is_active ? 'Active' : 'Suspended' }}
                             </span>
                         </td>
-                        <td>{{ $user['lastLogin'] }}</td>
-                        <td>{{ $user['created'] }}</td>
+                        <td>{{ $user->last_login_at?->format('M j, Y g:i A') ?? 'Never' }}</td>
+                        <td>{{ $user->created_at->format('M j, Y') }}</td>
                         <td>
                             <div class="row-actions">
-                                <button type="button" class="icon-button" title="Edit user" aria-label="Edit {{ $user['name'] }}" wire:click="openModal('user', {{ json_encode($user) }})">
+                                <a class="icon-button" title="Edit user" aria-label="Edit {{ $user->full_name }}" href="{{ route('administration.users.edit', $user) }}">
                                     <x-admin.icon name="pencil" size="15" />
-                                </button>
-                                <button type="button" class="small-action-button" wire:click="toggleUserStatus('{{ $user['email'] }}')">
-                                    {{ $user['status'] === 'Active' ? 'Suspend' : 'Activate' }}
-                                </button>
+                                </a>
+                                @can('manageAccess', $user)
+                                    <button type="button" class="small-action-button" wire:click="toggleUserStatus({{ $user->id }})">
+                                        {{ $user->is_active ? 'Suspend' : 'Activate' }}
+                                    </button>
+                                @endcan
                             </div>
                         </td>
                     </tr>
@@ -143,8 +137,10 @@
         </table>
     </div>
 
+    {{ $this->filteredUsers->links() }}
+
     <div class="table-footer">
-        <span>Showing {{ count($this->filteredUsers) }} of {{ count($userList) }} users</span>
+        <span>Showing {{ count($this->filteredUsers) }} of {{ $this->filteredUsers->total() }} users</span>
         <span>{{ $this->userCounts['active'] }} active accounts have access</span>
     </div>
 </div>

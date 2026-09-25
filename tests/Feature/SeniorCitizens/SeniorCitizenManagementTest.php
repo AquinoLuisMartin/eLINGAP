@@ -77,6 +77,34 @@ class SeniorCitizenManagementTest extends TestCase
         $this->assertSame('ARCHIVED', $seniorCitizen->fresh()->status->value);
     }
 
+    public function test_staff_can_update_a_senior_citizen_and_changes_are_audited(): void
+    {
+        $staff = $this->user('OSCA_STAFF');
+        $seniorCitizen = $this->seniorCitizen();
+
+        $response = $this->actingAs($staff)->put(route('senior-citizens.update', $seniorCitizen), [
+            'barangay_id' => $seniorCitizen->barangay_id,
+            'first_name' => 'Maria Updated',
+            'last_name' => 'Santos',
+            'birth_date' => '1948-01-01',
+            'sex' => 'FEMALE',
+            'address' => 'Updated Address, Santa Maria',
+        ]);
+
+        $response->assertRedirect(route('senior-citizens.show', $seniorCitizen));
+        $this->assertSame('Maria Updated', $seniorCitizen->fresh()->first_name);
+
+        $history = $seniorCitizen->histories()->where('action', 'updated')->first();
+        $this->assertNotNull($history);
+        $this->assertSame('Maria', $history->changes['from']['first_name']);
+        $this->assertSame('Maria Updated', $history->changes['to']['first_name']);
+
+        $audit = \App\Models\AuditLog::where('auditable_id', $seniorCitizen->id)->where('action', 'senior_citizen.updated')->first();
+        $this->assertNotNull($audit);
+        $this->assertSame('Maria', $audit->old_values['first_name']);
+        $this->assertSame('Maria Updated', $audit->new_values['first_name']);
+    }
+
     private function user(string $role): User
     {
         $roleRecord = Role::firstOrCreate(['name' => $role], ['description' => $role]);

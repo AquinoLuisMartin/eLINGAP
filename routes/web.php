@@ -4,10 +4,10 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Administration\UserController;
 use App\Http\Controllers\Administration\UserPasswordController;
 use App\Http\Controllers\Administration\UserStatusController;
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\SeniorCitizens\SeniorCitizenController;
 use App\Http\Controllers\Applications\ApplicationController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Programs\ProgramController;
+use App\Http\Controllers\SeniorCitizens\SeniorCitizenController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -19,7 +19,7 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 });
 
-Route::middleware(['auth', 'active'])->group(function () {
+Route::middleware(['auth', 'auth.session', 'active'])->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
     Route::resource('senior-citizens', SeniorCitizenController::class)->except(['destroy']);

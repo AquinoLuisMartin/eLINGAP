@@ -65,14 +65,6 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Kept for login failure logging that still expects an email()-shaped helper.
-     */
-    public function email(): string
-    {
-        return $this->identity();
-    }
-
-    /**
      * Keying on both identity and address avoids locking out a shared office network.
      */
     protected function throttleKey(): string

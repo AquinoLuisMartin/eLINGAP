@@ -74,7 +74,7 @@ class SeniorCitizenController extends Controller
 
     public function update(UpdateSeniorCitizenRequest $request, SeniorCitizen $seniorCitizen): RedirectResponse
     {
-        $oldValues = $seniorCitizen->only($request->validated());
+        $oldValues = $seniorCitizen->only(array_keys($request->validated()));
 
         DB::transaction(function () use ($request, $seniorCitizen, $oldValues) {
             $seniorCitizen->update($request->validated());

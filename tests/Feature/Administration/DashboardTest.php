@@ -3,7 +3,6 @@
 namespace Tests\Feature\Administration;
 
 use App\Livewire\Administration\Dashboard;
-use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -19,20 +18,7 @@ class DashboardTest extends TestCase
     {
         parent::setUp();
 
-        $role = Role::firstOrCreate(
-            ['name' => 'ADMIN'],
-            ['description' => 'System Administrator']
-        );
-
-        $this->adminUser = User::create([
-            'role_id' => $role->id,
-            'username' => 'admin',
-            'email' => 'admin@elingap.gov.ph',
-            'password_hash' => bcrypt('password123'),
-            'first_name' => 'Maria',
-            'last_name' => 'Santos',
-            'is_active' => true,
-        ]);
+        $this->adminUser = User::factory()->admin()->create();
     }
 
     public function test_administration_dashboard_screen_can_be_rendered(): void
@@ -95,10 +81,14 @@ class DashboardTest extends TestCase
 
     public function test_can_toggle_user_status(): void
     {
+        $user = User::factory()->inactive()->create();
+
         Livewire::actingAs($this->adminUser)
             ->test(Dashboard::class)
-            ->call('toggleUserStatus', 'joseph.delacruz@osca.gov.ph')
-            ->assertSet('toast', 'Joseph Dela Cruz is now active.');
+            ->call('toggleUserStatus', $user->id)
+            ->assertSet('toast', $user->full_name.' is now active.');
+
+        $this->assertTrue($user->fresh()->is_active);
     }
 
     public function test_can_schedule_broadcast_and_deduct_credits(): void

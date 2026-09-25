@@ -2,10 +2,9 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Enums\UserRole;
-use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class RoleRoutingTest extends TestCase
@@ -16,46 +15,22 @@ class RoleRoutingTest extends TestCase
 
     protected User $staff;
 
+    protected string $password;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        $adminRole = Role::query()->firstOrCreate(
-            ['name' => UserRole::Admin->value],
-            ['description' => 'System Administrator']
-        );
-
-        $staffRole = Role::query()->firstOrCreate(
-            ['name' => UserRole::OscaStaff->value],
-            ['description' => 'OSCA Staff']
-        );
-
-        $this->admin = User::query()->create([
-            'role_id' => $adminRole->id,
-            'username' => 'adminstamaria',
-            'email' => 'adminstamaria@bulacan.gov.ph',
-            'password_hash' => 'password123',
-            'first_name' => 'Admin',
-            'last_name' => 'StaMaria',
-            'is_active' => true,
-        ]);
-
-        $this->staff = User::query()->create([
-            'role_id' => $staffRole->id,
-            'username' => 'stamariastaff',
-            'email' => 'stamariastaff@bulacan.gov.ph',
-            'password_hash' => 'password123',
-            'first_name' => 'OSCA',
-            'last_name' => 'Staff',
-            'is_active' => true,
-        ]);
+        $this->password = Str::password();
+        $this->admin = User::factory()->admin()->create(['password_hash' => $this->password]);
+        $this->staff = User::factory()->create(['password_hash' => $this->password]);
     }
 
     public function test_admin_login_redirects_to_administration_dashboard(): void
     {
         $response = $this->post('/login', [
-            'email' => 'adminstamaria@bulacan.gov.ph',
-            'password' => 'password123',
+            'email' => $this->admin->email,
+            'password' => $this->password,
         ]);
 
         $response->assertRedirect(route('administration.dashboard'));
@@ -65,8 +40,8 @@ class RoleRoutingTest extends TestCase
     public function test_staff_login_redirects_to_staff_dashboard(): void
     {
         $response = $this->post('/login', [
-            'email' => 'stamariastaff@bulacan.gov.ph',
-            'password' => 'password123',
+            'email' => $this->staff->email,
+            'password' => $this->password,
         ]);
 
         $response->assertRedirect(route('dashboard'));
@@ -111,8 +86,8 @@ class RoleRoutingTest extends TestCase
     public function test_admin_can_login_with_username(): void
     {
         $response = $this->post('/login', [
-            'email' => 'adminstamaria',
-            'password' => 'password123',
+            'email' => $this->admin->username,
+            'password' => $this->password,
         ]);
 
         $response->assertRedirect(route('administration.dashboard'));

@@ -72,6 +72,7 @@ class User extends Authenticatable
 
         return $query->where(function (Builder $query) use ($term) {
             $query->whereRaw('lower(username) like ?', [$term])
+                ->orWhereRaw('lower(email) like ?', [$term])
                 ->orWhereRaw('lower(first_name) like ?', [$term])
                 ->orWhereRaw('lower(last_name) like ?', [$term]);
         });

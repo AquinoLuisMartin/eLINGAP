@@ -1,6 +1,6 @@
 {{-- Administrative Modals --}}
 
-{{-- Senior / Program / User Creation and Edit Modal --}}
+{{-- Senior / Program Creation Modal --}}
 @if ($modal)
     <div class="modal-backdrop" role="dialog" aria-modal="true" wire:keydown.escape="closeModal">
         <div class="modal-card">
@@ -12,9 +12,6 @@
                     @elseif ($modal === 'program')
                         <h2>Create Program</h2>
                         <p>Set up a new benefits and programs cycle.</p>
-                    @elseif ($modal === 'user')
-                        <h2>{{ $editingUser ? 'Edit User' : 'Add User' }}</h2>
-                        <p>{{ $editingUser ? 'Update role, email, or account details.' : 'Invite a staff member to the eLINGAP workspace.' }}</p>
                     @endif
                 </div>
                 <button type="button" class="icon-button" wire:click="closeModal" aria-label="Close dialog">
@@ -61,23 +58,6 @@
                             <option value="Annual 2027">Annual 2027</option>
                         </select>
                     </label>
-                @elseif ($modal === 'user')
-                    <label class="field-label">
-                        Full name
-                        <input type="text" wire:model="userForm.name" placeholder="Enter full name" />
-                    </label>
-                    <label class="field-label">
-                        Email address
-                        <input type="email" wire:model="userForm.email" placeholder="name@osca.gov.ph" />
-                    </label>
-                    <label class="field-label">
-                        Role
-                        <select wire:model="userForm.role">
-                            <option value="OSCA Staff">OSCA Staff</option>
-                            <option value="Barangay Coordinator">Barangay Coordinator</option>
-                            <option value="System Administrator">System Administrator</option>
-                        </select>
-                    </label>
                 @endif
             </div>
 
@@ -91,10 +71,6 @@
                     <button type="button" class="primary-button" wire:click="saveProgram">
                         <x-admin.icon name="check" size="16" /> Save program
                     </button>
-                @elseif ($modal === 'user')
-                    <button type="button" class="primary-button" wire:click="saveUser">
-                        <x-admin.icon name="check" size="16" /> {{ $editingUser ? 'Save changes' : 'Save user' }}
-                    </button>
                 @endif
             </div>
         </div>
@@ -107,8 +83,8 @@
         <div class="modal-card profile-details-modal">
             <div class="modal-heading">
                 <div>
-                    <h2 id="profile-modal-title">Maria A.</h2>
-                    <p>System Administrator · admin@elingap.gov.ph</p>
+                    <h2 id="profile-modal-title">{{ $this->currentUser->full_name }}</h2>
+                    <p>{{ $this->currentUser->role->name->label() }} &middot; {{ $this->currentUser->email }}</p>
                 </div>
                 <button type="button" class="icon-button" wire:click="closeModal" aria-label="Close profile">
                     <x-admin.icon name="x" size="19" />
@@ -116,20 +92,20 @@
             </div>
             <div class="profile-modal-grid">
                 <div>
-                    <small>Assigned Office</small>
-                    <strong>OSCA Santa Maria Municipal Hall</strong>
+                    <small>Username</small>
+                    <strong>{{ $this->currentUser->username }}</strong>
                 </div>
                 <div>
                     <small>Account Status</small>
-                    <strong class="health-value"><i></i> Active</strong>
+                    <strong class="health-value"><i></i>{{ $this->currentUser->is_active ? 'Active' : 'Suspended' }}</strong>
                 </div>
                 <div>
-                    <small>Last Active / Login</small>
-                    <strong>Sep 14, 2024 · 07:48 AM</strong>
+                    <small>Last Login</small>
+                    <strong>{{ $this->currentUser->last_login_at?->format('M j, Y g:i A') ?? 'Never' }}</strong>
                 </div>
                 <div>
-                    <small>Recent Activity</small>
-                    <strong>18 actions this month</strong>
+                    <small>Account Created</small>
+                    <strong>{{ $this->currentUser->created_at->format('M j, Y') }}</strong>
                 </div>
             </div>
             <div class="modal-actions">
@@ -146,7 +122,7 @@
             <div class="modal-heading">
                 <div>
                     <h2 id="password-modal-title">Change Password</h2>
-                    <p>Update the password for admin@elingap.gov.ph.</p>
+                    <p>Update the password for {{ $this->currentUser->username }}.</p>
                 </div>
                 <button type="button" class="icon-button" wire:click="closeModal" aria-label="Close password dialog">
                     <x-admin.icon name="x" size="19" />
@@ -164,9 +140,11 @@
                 Confirm password
                 <input type="password" wire:model="passwordForm.confirm" />
             </label>
-            @if ($passwordError)
-                <p class="form-error" role="alert">{{ $passwordError }}</p>
-            @endif
+            @foreach (['current', 'next', 'confirm'] as $field)
+                @error('passwordForm.'.$field)
+                    <p class="form-error" role="alert">{{ $message }}</p>
+                @enderror
+            @endforeach
             <div class="modal-actions">
                 <button type="button" class="secondary-button" wire:click="closeModal">Cancel</button>
                 <button type="button" class="primary-button" wire:click="updatePassword">

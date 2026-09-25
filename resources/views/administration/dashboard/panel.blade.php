@@ -113,10 +113,10 @@
 
         {{-- Sidebar Footer Profile Toggle --}}
         <button class="sidebar-footer" type="button" aria-expanded="false" aria-haspopup="menu" @click="profileOpen = !profileOpen">
-            <div class="profile-avatar">MA</div>
+            <div class="profile-avatar">{{ mb_substr($this->currentUser->first_name, 0, 1).mb_substr($this->currentUser->last_name, 0, 1) }}</div>
             <div class="profile-copy">
-                <strong>Maria A.</strong>
-                <small>System Administrator</small>
+                <strong>{{ $this->currentUser->full_name }}</strong>
+                <small>{{ $this->currentUser->role->name->label() }}</small>
             </div>
             <span class="icon-button sidebar-logout" aria-label="Open account menu" title="Open account menu">
                 <x-admin.icon name="chevron-right" size="17" />
@@ -128,11 +128,11 @@
     <div class="profile-menu-backdrop" x-show="profileOpen" @click="profileOpen = false" style="display: none;"></div>
     <aside class="profile-menu" role="menu" x-show="profileOpen" @click.stop style="display: none;">
         <div class="profile-menu-header">
-            <div class="profile-menu-avatar">MA</div>
+            <div class="profile-menu-avatar">{{ mb_substr($this->currentUser->first_name, 0, 1).mb_substr($this->currentUser->last_name, 0, 1) }}</div>
             <div>
-                <strong>Maria A.</strong>
-                <span class="role-badge">System Administrator</span>
-                <small>admin@elingap.gov.ph</small>
+                <strong>{{ $this->currentUser->full_name }}</strong>
+                <span class="role-badge">{{ $this->currentUser->role->name->label() }}</span>
+                <small>{{ $this->currentUser->email }}</small>
             </div>
         </div>
         <div class="profile-details">
@@ -142,7 +142,7 @@
             </div>
             <div>
                 <small>Last Active / Login</small>
-                <strong>Sep 14, 2024 · 07:48 AM</strong>
+                <strong>{{ $this->currentUser->last_login_at?->format('M j, Y g:i A') ?? 'Never' }}</strong>
             </div>
             <div class="account-status">
                 <small>Account Status</small>
