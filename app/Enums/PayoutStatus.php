@@ -2,4 +2,9 @@
 
 namespace App\Enums;
 
-// Placeholder for payout status enum.
+enum PayoutStatus: string
+{
+    case Pending = 'PENDING';
+    case Released = 'RELEASED';
+    case Failed = 'FAILED';
+}

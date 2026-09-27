@@ -2,4 +2,17 @@
 
 namespace App\Services\Reports;
 
-// Placeholder service for beneficiary and program reports.
+use App\Models\Beneficiary;
+
+class BeneficiaryReportService
+{
+    public function summary(): array
+    {
+        return Beneficiary::query()
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->orderBy('status')
+            ->pluck('total', 'status')
+            ->all();
+    }
+}

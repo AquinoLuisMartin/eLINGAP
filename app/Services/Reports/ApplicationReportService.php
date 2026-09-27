@@ -2,4 +2,17 @@
 
 namespace App\Services\Reports;
 
-// Placeholder service for application statistics reporting.
+use App\Models\Application;
+
+class ApplicationReportService
+{
+    public function summary(): array
+    {
+        return Application::query()
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->orderBy('status')
+            ->pluck('total', 'status')
+            ->all();
+    }
+}

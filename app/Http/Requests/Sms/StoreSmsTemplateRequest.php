@@ -6,5 +6,17 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreSmsTemplateRequest extends FormRequest
 {
-    // Placeholder request for SMS template storage.
+    public function authorize(): bool
+    {
+        return $this->user()?->can('create', \App\Models\SmsMessage::class) ?? false;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:120', 'unique:sms_templates,name'],
+            'body' => ['required', 'string', 'max:1600'],
+            'is_active' => ['sometimes', 'boolean'],
+        ];
+    }
 }
