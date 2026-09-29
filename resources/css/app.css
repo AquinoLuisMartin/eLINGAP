@@ -1,6 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+[x-cloak] {
+    display: none !important;
+}
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../views/**/*.blade.php';
@@ -20,6 +26,32 @@
 }
 
 @layer components {
+    .field-label {
+        display: block;
+        margin-bottom: 0.375rem;
+        color: #64748b;
+        font-size: 0.625rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+
+    .field-input {
+        width: 100%;
+        border: 1px solid #dbe3ee;
+        border-radius: 0.75rem;
+        background: #ffffff;
+        padding: 0.65rem 0.75rem;
+        color: #1e293b;
+        font-size: 0.875rem;
+        outline: none;
+    }
+
+    .field-input:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 2px rgb(37 99 235 / 0.15);
+    }
+
     body {
         background: #ffffff;
         overflow-x: hidden;
