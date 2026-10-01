@@ -8,21 +8,20 @@ use App\Http\Requests\Administration\UpdateUserPasswordRequest;
 use App\Models\User;
 use App\Services\Auth\LoginLogger;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 
 class UserPasswordController extends Controller
 {
     public function update(UpdateUserPasswordRequest $request, User $user, LoginLogger $logger): RedirectResponse
     {
-        Gate::authorize('update', $user);
+        DB::transaction(function () use ($request, $user, $logger): void {
+            $user->forceFill([
+                'password_hash' => $request->validated('password'),
+                'remember_token' => null,
+            ])->save();
 
-        // Clearing the token stops any remembered session from surviving the reset.
-        $user->forceFill([
-            'password_hash' => $request->string('password')->toString(),
-            'remember_token' => null,
-        ])->save();
-
-        $logger->success(LoginEvent::PasswordReset, $user);
+            $logger->success(LoginEvent::PasswordReset, $user);
+        });
 
         return back()->with('status', "Password for {$user->username} was reset.");
     }

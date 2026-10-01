@@ -27,8 +27,18 @@ class ApplicationController extends Controller
         Gate::authorize('create', Application::class);
 
         return view('applications.create', [
-            'seniorCitizens' => SeniorCitizen::query()->where('status', 'VERIFIED')->orderBy('last_name')->get(),
-            'programs' => Program::query()->whereIn('status', ['ACTIVE', 'UPCOMING'])->orderBy('name')->get(),
+            'seniorCitizens' => SeniorCitizen::query()
+                ->select(['id', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'registration_number'])
+                ->where('status', 'VERIFIED')
+                ->orderBy('last_name')
+                ->limit(100)
+                ->get(),
+            'programs' => Program::query()
+                ->select(['id', 'name'])
+                ->whereIn('status', ['ACTIVE', 'UPCOMING'])
+                ->orderBy('name')
+                ->limit(100)
+                ->get(),
         ]);
     }
 
@@ -57,11 +67,26 @@ class ApplicationController extends Controller
 
     public function updateStatus(UpdateApplicationStatusRequest $request, Application $application): RedirectResponse
     {
-        $fromStatus = $application->status->value;
+        DB::transaction(function () use ($request, $application) {
+            $application = Application::query()
+                ->whereKey($application->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+            $fromStatus = $application->status->value;
+            $toStatus = $request->string('status')->toString();
 
-        DB::transaction(function () use ($request, $application, $fromStatus) {
-            $application->update(['status' => $request->string('status')->toString(), 'remarks' => $request->input('remarks'), 'reviewed_by' => $request->user()->id, 'reviewed_at' => now()]);
-            $application->statusHistories()->create(['from_status' => $fromStatus, 'to_status' => $application->status->value, 'remarks' => $request->input('remarks'), 'changed_by' => $request->user()->id]);
+            $application->update([
+                'status' => $toStatus,
+                'remarks' => $request->input('remarks'),
+                'reviewed_by' => $request->user()->id,
+                'reviewed_at' => now(),
+            ]);
+            $application->statusHistories()->create([
+                'from_status' => $fromStatus,
+                'to_status' => $application->status->value,
+                'remarks' => $request->input('remarks'),
+                'changed_by' => $request->user()->id,
+            ]);
         });
 
         return back()->with('status', 'Application status updated.');

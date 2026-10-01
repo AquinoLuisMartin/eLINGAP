@@ -22,6 +22,61 @@ eLINGAP is a Laravel-based web application designed to support the Office of the
 - Node.js and npm
 - Vite and Tailwind CSS for frontend assets
 
+## System Folder Structure
+
+The project follows Laravel conventions and organizes eLINGAP features by domain:
+
+```text
+eLINGAP/
+├── app/
+│   ├── Console/Commands/       # Artisan commands
+│   ├── Enums/                  # Shared status and role enums
+│   ├── Http/
+│   │   ├── Controllers/        # Web request controllers by system module
+│   │   ├── Middleware/         # Authentication, activity, and role checks
+│   │   └── Requests/           # Form request validation by module
+│   ├── Jobs/Sms/               # Queued SMS jobs
+│   ├── Livewire/               # Livewire components
+│   ├── Models/                 # Eloquent models
+│   ├── Notifications/          # Application notifications
+│   ├── Policies/               # Authorization policies
+│   ├── Providers/              # Application and SMS service providers
+│   └── Services/               # Business logic and external service integrations
+├── bootstrap/                  # Laravel application bootstrap files
+├── config/                     # Application and package configuration
+├── database/
+│   ├── factories/              # Model factories for tests and seed data
+│   ├── migrations/             # Database schema definitions
+│   └── seeders/                # Initial roles, barangays, and programs
+├── public/                     # Public entry point and static assets
+├── resources/
+│   ├── css/                    # Application and administration styles
+│   ├── js/                     # Frontend JavaScript entry point
+│   └── views/                  # Blade views by feature
+│       ├── administration/     # Dashboard, users, audit logs, and settings
+│       ├── applications/       # Senior citizen application workflows
+│       ├── auth/               # Login and password reset screens
+│       ├── payouts/            # Payouts and payout schedules
+│       ├── programs/           # Programs and beneficiaries
+│       ├── reports/            # Application, beneficiary, demographic, and payout reports
+│       ├── senior-citizens/    # Senior citizen records and verification
+│       └── sms/                # Messages, templates, blasts, announcements, and logs
+├── routes/
+│   ├── console.php             # Console command routes
+│   └── web.php                 # Web application routes
+├── storage/                    # Logs, cache, sessions, and generated files
+├── tests/
+│   ├── Feature/                # End-to-end and module behavior tests
+│   └── Unit/                   # Isolated unit tests
+├── .env.example                # Environment configuration template
+├── artisan                     # Laravel command-line entry point
+├── composer.json               # PHP dependencies and scripts
+├── package.json                # Frontend dependencies and scripts
+└── vite.config.js              # Vite asset build configuration
+```
+
+The primary system modules are **Administration**, **Authentication**, **Senior Citizens**, **Applications**, **Programs and Beneficiaries**, **Payouts**, **Reports**, and **SMS Notifications**. Controllers, requests, policies, services, views, and tests should be placed in the corresponding module directory when a feature is module-specific.
+
 ## Prerequisites
 
 Install the following tools before setting up the project:

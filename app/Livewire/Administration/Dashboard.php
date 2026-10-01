@@ -2,13 +2,25 @@
 
 namespace App\Livewire\Administration;
 
+use App\Enums\LoginEvent;
+use App\Enums\UserRole;
+use App\Models\User;
+use App\Services\Auth\LoginLogger;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\View\View;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 #[Title('eLINGAP — System Admin Dashboard')]
 class Dashboard extends Component
 {
+    use WithPagination;
+
     // Active navigation tab
     public string $active = 'dashboard';
 
@@ -20,9 +32,6 @@ class Dashboard extends Component
 
     // Active modal identifier or payload
     public ?string $modal = null;
-
-    // Payload for user modal edit mode
-    public ?array $editingUser = null;
 
     // Unread notification count
     public int $noticeCount = 5;
@@ -77,11 +86,7 @@ class Dashboard extends Component
 
     public array $programForm = ['name' => '', 'agency' => '', 'budget' => '', 'cycle' => 'Q4 2026'];
 
-    public array $userForm = ['name' => '', 'email' => '', 'role' => 'OSCA Staff'];
-
     public array $passwordForm = ['current' => '', 'next' => '', 'confirm' => ''];
-
-    public string $passwordError = '';
 
     public array $templateValues = [];
 
@@ -112,17 +117,6 @@ class Dashboard extends Component
         ['name' => 'Social Pension for Indigent Senior Citizens', 'agency' => 'DSWD / OSCA', 'budget' => '₱4,500,000', 'used' => 78, 'cycle' => 'Q3 2026', 'status' => 'Active'],
         ['name' => 'Senior Citizens Medical Assistance', 'agency' => 'Municipal Health Office', 'budget' => '₱1,250,000', 'used' => 54, 'cycle' => 'Annual 2026', 'status' => 'Active'],
         ['name' => 'Food and Wellness Support', 'agency' => 'Municipality of Santa Maria', 'budget' => '₱860,000', 'used' => 32, 'cycle' => 'Q4 2026', 'status' => 'Upcoming'],
-    ];
-
-    // User accounts registry
-    public array $userList = [
-        ['name' => 'Maria A.', 'email' => 'maria.admin@elingap.gov.ph', 'role' => 'Municipal Administrator', 'barangay' => 'All barangays', 'status' => 'Active', 'lastLogin' => 'Today, 09:18 AM', 'created' => 'Jan. 08, 2024'],
-        ['name' => 'Ana Villanueva', 'email' => 'ana.villanueva@osca.gov.ph', 'role' => 'OSCA Coordinator', 'barangay' => 'Poblacion', 'status' => 'Active', 'lastLogin' => 'Today, 08:42 AM', 'created' => 'Feb. 14, 2024'],
-        ['name' => 'Rogelio Cruz', 'email' => 'rogelio.cruz@osca.gov.ph', 'role' => 'Benefits Officer', 'barangay' => 'Sta. Cruz', 'status' => 'Active', 'lastLogin' => 'Yesterday, 04:12 PM', 'created' => 'Mar. 22, 2024'],
-        ['name' => 'Liza Mendoza', 'email' => 'liza.mendoza@osca.gov.ph', 'role' => 'Registry Clerk', 'barangay' => 'Kaybanban', 'status' => 'Active', 'lastLogin' => 'Yesterday, 02:30 PM', 'created' => 'Apr. 03, 2024'],
-        ['name' => 'Paolo Reyes', 'email' => 'paolo.reyes@osca.gov.ph', 'role' => 'SMS Operator', 'barangay' => 'All barangays', 'status' => 'Active', 'lastLogin' => 'Sept. 15, 10:21 AM', 'created' => 'Apr. 18, 2024'],
-        ['name' => 'Joseph Dela Cruz', 'email' => 'joseph.delacruz@osca.gov.ph', 'role' => 'Registry Clerk', 'barangay' => 'San Gabriel', 'status' => 'Suspended', 'lastLogin' => 'Sept. 02, 11:04 AM', 'created' => 'May. 06, 2024'],
-        ['name' => 'Mila Santos', 'email' => 'mila.santos@osca.gov.ph', 'role' => 'Benefits Officer', 'barangay' => 'Bagong Nayon', 'status' => 'Inactive', 'lastLogin' => 'Aug. 28, 03:45 PM', 'created' => 'Jun. 12, 2024'],
     ];
 
     // Broadcast campaign history
@@ -181,23 +175,26 @@ class Dashboard extends Component
         $this->toast = '';
     }
 
-    // Open an administrative modal dialog
-    public function openModal(string $type, ?array $user = null): void
+    public function boot(): void
     {
-        $this->modal = $type;
-        $this->editingUser = $user;
+        Gate::authorize('viewAny', User::class);
+    }
 
-        if ($type === 'user' && $user) {
-            $this->userForm = [
-                'name' => $user['name'],
-                'email' => $user['email'],
-                'role' => $user['role'],
-            ];
-        } elseif ($type === 'user') {
-            $this->userForm = ['name' => '', 'email' => '', 'role' => 'OSCA Staff'];
-        } elseif ($type === 'senior') {
+    #[Computed]
+    public function currentUser(): User
+    {
+        return auth()->user()->loadMissing('role');
+    }
+
+    public function openModal(string $type): void
+    {
+        abort_unless(in_array($type, ['senior', 'program'], true), 404);
+
+        $this->modal = $type;
+
+        if ($type === 'senior') {
             $this->seniorForm = ['name' => '', 'age' => '', 'barangay' => 'Poblacion'];
-        } elseif ($type === 'program') {
+        } else {
             $this->programForm = ['name' => '', 'agency' => '', 'budget' => '', 'cycle' => 'Q4 2026'];
         }
     }
@@ -206,12 +203,12 @@ class Dashboard extends Component
     public function closeModal(): void
     {
         $this->modal = null;
-        $this->editingUser = null;
         $this->profileModal = null;
         $this->exportJob = null;
         $this->templatePrompt = null;
         $this->logoutConfirmOpen = false;
-        $this->passwordError = '';
+        $this->reset('passwordForm');
+        $this->resetValidation();
     }
 
     // Save a new senior citizen registry record
@@ -257,50 +254,15 @@ class Dashboard extends Component
         $this->triggerToast('Program saved successfully.');
     }
 
-    // Save a new or updated administrative user account
-    public function saveUser(): void
+    public function toggleUserStatus(int $userId): void
     {
-        if (empty(trim($this->userForm['name'])) || empty(trim($this->userForm['email']))) {
-            return;
-        }
+        $user = User::findOrFail($userId);
+        Gate::authorize('manageAccess', $user);
 
-        if ($this->editingUser) {
-            foreach ($this->userList as &$user) {
-                if ($user['email'] === $this->editingUser['email']) {
-                    $user['name'] = $this->userForm['name'];
-                    $user['email'] = $this->userForm['email'];
-                    $user['role'] = $this->userForm['role'];
-                    break;
-                }
-            }
-            $this->triggerToast('User account updated successfully.');
-        } else {
-            $this->userList[] = [
-                'name' => $this->userForm['name'],
-                'email' => $this->userForm['email'],
-                'role' => $this->userForm['role'],
-                'barangay' => 'All barangays',
-                'status' => 'Active',
-                'lastLogin' => 'Never',
-                'created' => 'Today',
-            ];
-            $this->triggerToast('User account saved successfully.');
-        }
+        $user->update(['is_active' => ! $user->is_active]);
+        unset($this->filteredUsers, $this->userCounts);
 
-        $this->closeModal();
-    }
-
-    // Toggle active and suspended status of a user
-    public function toggleUserStatus(string $email): void
-    {
-        foreach ($this->userList as &$user) {
-            if ($user['email'] === $email) {
-                $next = $user['status'] === 'Active' ? 'Suspended' : 'Active';
-                $user['status'] = $next;
-                $this->triggerToast("{$user['name']} is now ".strtolower($next).'.');
-                break;
-            }
-        }
+        $this->triggerToast($user->full_name.' is now '.($user->is_active ? 'active' : 'suspended').'.');
     }
 
     // Save system configuration settings
@@ -401,28 +363,40 @@ class Dashboard extends Component
         });
     }
 
-    // Filter users by search term and account status
-    #[Computed]
-    public function filteredUsers(): array
+    public function updatedUserQuery(): void
     {
-        return array_filter($this->userList, function ($user) {
-            $matchesStatus = $this->userStatusFilter === 'All' || $user['status'] === $this->userStatusFilter;
-            $haystack = strtolower("{$user['name']} {$user['email']} {$user['role']} {$user['barangay']}");
-            $matchesSearch = empty($this->userQuery) || str_contains($haystack, strtolower($this->userQuery));
-
-            return $matchesStatus && $matchesSearch;
-        });
+        $this->resetPage();
     }
 
-    // Count statistics for user accounts
+    public function updatedUserStatusFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    #[Computed]
+    public function filteredUsers(): LengthAwarePaginator
+    {
+        return User::query()
+            ->select(['id', 'role_id', 'username', 'email', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'is_active', 'last_login_at', 'created_at'])
+            ->with('role:id,name')
+            ->when(trim($this->userQuery) !== '', fn ($query) => $query->search(trim($this->userQuery)))
+            ->when(in_array($this->userStatusFilter, ['Active', 'Suspended'], true), fn ($query) => $query->where('is_active', $this->userStatusFilter === 'Active'))
+            ->orderBy('last_name')
+            ->orderBy('id')
+            ->paginate(15);
+    }
+
     #[Computed]
     public function userCounts(): array
     {
+        $total = User::count();
+        $active = User::active()->count();
+
         return [
-            'total' => count($this->userList),
-            'active' => count(array_filter($this->userList, fn ($u) => $u['status'] === 'Active')),
-            'suspended' => count(array_filter($this->userList, fn ($u) => $u['status'] === 'Suspended')),
-            'inactive' => count(array_filter($this->userList, fn ($u) => $u['status'] === 'Inactive')),
+            'total' => $total,
+            'active' => $active,
+            'suspended' => $total - $active,
+            'administrators' => User::whereRelation('role', 'name', UserRole::Admin->value)->count(),
         ];
     }
 
@@ -445,35 +419,33 @@ class Dashboard extends Component
         $this->openFaq = $this->openFaq === $index ? null : $index;
     }
 
-    // Update administrator password
-    public function updatePassword(): void
+    public function updatePassword(LoginLogger $logger): void
     {
-        if (empty($this->passwordForm['current']) || empty($this->passwordForm['next']) || empty($this->passwordForm['confirm'])) {
-            $this->passwordError = 'Complete all password fields.';
+        try {
+            $validated = $this->validate([
+                'passwordForm.current' => ['required', 'string', 'current_password'],
+                'passwordForm.next' => ['required', 'string', Password::defaults()],
+                'passwordForm.confirm' => ['required', 'same:passwordForm.next'],
+            ]);
 
-            return;
+            DB::transaction(function () use ($validated, $logger): void {
+                $user = $this->currentUser;
+                $user->forceFill([
+                    'password_hash' => $validated['passwordForm']['next'],
+                    'remember_token' => null,
+                ])->save();
+
+                $logger->success(LoginEvent::PasswordChanged, $user);
+            });
+        } finally {
+            $this->reset('passwordForm');
         }
 
-        if (strlen($this->passwordForm['next']) < 8) {
-            $this->passwordError = 'New password must be at least 8 characters.';
-
-            return;
-        }
-
-        if ($this->passwordForm['next'] !== $this->passwordForm['confirm']) {
-            $this->passwordError = 'New password and confirmation do not match.';
-
-            return;
-        }
-
-        $this->passwordForm = ['current' => '', 'next' => '', 'confirm' => ''];
-        $this->passwordError = '';
         $this->profileModal = null;
         $this->triggerToast('Password updated successfully.');
     }
 
-    // Render the Livewire component view
-    public function render()
+    public function render(): View
     {
         return view('administration.dashboard.panel');
     }

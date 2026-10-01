@@ -22,7 +22,7 @@ class AuthenticatedSessionController extends Controller
     public function store(LoginRequest $request, LoginLogger $logger): RedirectResponse
     {
         if (! $request->attemptLogin()) {
-            $logger->failure(LoginEvent::LoginFailed, $request->email(), 'Invalid credentials or inactive account.');
+            $logger->failure(LoginEvent::LoginFailed, $request->identity(), 'Invalid credentials or inactive account.');
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
@@ -38,7 +38,7 @@ class AuthenticatedSessionController extends Controller
 
         $user->loadMissing('role');
 
-        return redirect()->to(route($user->homeRouteName()));
+        return redirect()->route($user->homeRouteName());
     }
 
     public function destroy(Request $request, LoginLogger $logger): RedirectResponse

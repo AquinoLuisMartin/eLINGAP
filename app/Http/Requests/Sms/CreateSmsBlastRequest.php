@@ -6,5 +6,16 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class CreateSmsBlastRequest extends FormRequest
 {
-    // Placeholder request for SMS broadcasting.
+    public function authorize(): bool
+    {
+        return $this->user()?->can('create', \App\Models\SmsMessage::class) ?? false;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'message' => ['required', 'string', 'max:1600'],
+            'status' => ['nullable', 'string', 'in:VERIFIED,ACTIVE'],
+        ];
+    }
 }

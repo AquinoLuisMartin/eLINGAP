@@ -25,7 +25,7 @@ class LoginLogger
     {
         LoginLog::create([
             'user_id' => $user?->id,
-            'username_attempted' => $username,
+            'username_attempted' => $username === null ? null : mb_substr($username, 0, 100),
             'event' => $event,
             'ip_address' => $this->request->ip(),
             'user_agent' => $this->request->userAgent(),

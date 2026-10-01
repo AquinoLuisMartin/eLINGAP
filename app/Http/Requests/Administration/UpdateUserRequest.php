@@ -10,7 +10,7 @@ class UpdateUserRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('update', $this->route('user')) ?? false;
     }
 
     /**
@@ -21,7 +21,7 @@ class UpdateUserRequest extends FormRequest
         $user = $this->route('user');
 
         return [
-            'role_id' => ['required', Rule::exists('roles', 'id')],
+            'role_id' => ['required', 'integer', Rule::exists('roles', 'id')],
             'username' => ['required', 'string', 'min:3', 'max:100', 'regex:/^[a-z0-9._-]+$/', Rule::unique('users', 'username')->ignore($user)],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user)],
             'first_name' => ['required', 'string', 'max:100'],
@@ -31,13 +31,13 @@ class UpdateUserRequest extends FormRequest
         ];
     }
 
-    /**
-     * Usernames are stored lowercase so sign-in cannot match two accounts.
-     */
+    // Normalize login identifiers before validating uniqueness.
     protected function prepareForValidation(): void
     {
-        if ($this->has('username')) {
-            $this->merge(['username' => Str::lower(trim($this->string('username')->toString()))]);
+        foreach (['username', 'email'] as $field) {
+            if (is_string($this->input($field))) {
+                $this->merge([$field => Str::lower(trim($this->input($field)))]);
+            }
         }
     }
 

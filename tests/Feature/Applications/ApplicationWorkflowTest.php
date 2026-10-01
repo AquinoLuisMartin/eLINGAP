@@ -51,6 +51,43 @@ class ApplicationWorkflowTest extends TestCase
         $this->assertSame(0, Application::count());
     }
 
+    public function test_submitting_application_for_unverified_senior_is_rejected(): void
+    {
+        $staff = $this->user('OSCA_STAFF');
+        $seniorCitizen = $this->seniorCitizen();
+        $program = Program::create(['name' => 'Medical Assistance', 'agency' => 'OSCA', 'budget' => 100000, 'status' => 'ACTIVE']);
+
+        $this->actingAs($staff)->post(route('applications.store'), [
+            'senior_citizen_id' => $seniorCitizen->id,
+            'program_id' => $program->id,
+            'applied_on' => '2026-09-21',
+        ])->assertSessionHasErrors('senior_citizen_id');
+
+        $this->assertSame(0, Application::count());
+    }
+
+    public function test_submitting_duplicate_application_is_rejected(): void
+    {
+        $staff = $this->user('OSCA_STAFF');
+        $seniorCitizen = $this->seniorCitizen();
+        $seniorCitizen->update(['status' => 'VERIFIED']);
+        $program = Program::create(['name' => 'Medical Assistance', 'agency' => 'OSCA', 'budget' => 100000, 'status' => 'ACTIVE']);
+
+        $this->actingAs($staff)->post(route('applications.store'), [
+            'senior_citizen_id' => $seniorCitizen->id,
+            'program_id' => $program->id,
+            'applied_on' => '2026-09-21',
+        ])->assertRedirect();
+
+        $this->actingAs($staff)->post(route('applications.store'), [
+            'senior_citizen_id' => $seniorCitizen->id,
+            'program_id' => $program->id,
+            'applied_on' => '2026-09-22',
+        ])->assertSessionHasErrors('senior_citizen_id');
+
+        $this->assertSame(1, Application::count());
+    }
+
     private function user(string $role): User
     {
         $roleRecord = Role::firstOrCreate(['name' => $role], ['description' => $role]);

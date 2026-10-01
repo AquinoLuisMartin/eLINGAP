@@ -1,11 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create User Account</title>
-</head>
-<body>
-    <!-- Placeholder user creation page. -->
-</body>
-</html>
+@extends('layouts.app')
+
+@section('content')
+    <h1>Create user account</h1>
+    @include('components.alert')
+    <form method="POST" action="{{ route('administration.users.store') }}">
+        @include('administration.users._form')
+    </form>
+@endsection
