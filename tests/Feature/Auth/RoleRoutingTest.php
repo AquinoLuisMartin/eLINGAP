@@ -93,4 +93,12 @@ class RoleRoutingTest extends TestCase
         $response->assertRedirect(route('administration.dashboard'));
         $this->assertAuthenticatedAs($this->admin);
     }
+
+    public function test_logout_redirects_to_the_homepage(): void
+    {
+        $response = $this->actingAs($this->staff)->post(route('logout'));
+
+        $response->assertRedirect(route('home'));
+        $this->assertGuest();
+    }
 }

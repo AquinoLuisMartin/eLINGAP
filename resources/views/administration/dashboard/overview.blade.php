@@ -2,7 +2,7 @@
 <section class="welcome-row">
     <div>
         <p class="section-kicker">{{ now()->format('l, F j, Y') }}</p>
-        <h2>Good morning, Maria <span>✦</span></h2>
+        <h2>Good morning, Maria</h2>
         <p class="section-subtitle">Here is what's happening across the eLINGAP registry today.</p>
     </div>
 </section>

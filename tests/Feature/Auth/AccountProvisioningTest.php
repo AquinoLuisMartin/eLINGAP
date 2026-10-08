@@ -13,13 +13,15 @@ class AccountProvisioningTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_default_seeding_creates_roles_without_accounts(): void
+    public function test_default_seeding_creates_roles_and_initial_accounts(): void
     {
         $this->seed();
         $this->seed();
 
         $this->assertDatabaseCount('roles', 2);
-        $this->assertDatabaseEmpty('users');
+        $this->assertDatabaseCount('users', 2);
+        $this->assertDatabaseHas('users', ['username' => 'Marie Cruz', 'first_name' => 'Marie']);
+        $this->assertDatabaseHas('users', ['username' => 'Pedro Silva', 'first_name' => 'Pedro']);
     }
 
     public function test_seeding_does_not_change_existing_accounts(): void
@@ -30,7 +32,7 @@ class AccountProvisioningTest extends TestCase
         $this->seed();
 
         $this->assertSame($attributes, $user->fresh()->getAttributes());
-        $this->assertDatabaseCount('users', 1);
+        $this->assertDatabaseCount('users', 3);
     }
 
     public function test_an_administrator_can_be_created_interactively(): void

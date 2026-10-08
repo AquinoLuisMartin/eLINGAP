@@ -1,15 +1,113 @@
 @extends('layouts.app')
+
 @section('content')
-<div class="mb-6"><p class="text-sm font-semibold uppercase text-osca-primary">Overview</p><h1 class="text-3xl font-bold">Staff dashboard</h1><p class="text-slate-600">Current registry and processing activity.</p></div>
-<div class="grid gap-4 md:grid-cols-3">
-    <a href="{{ route('senior-citizens.index', ['status' => 'VERIFIED']) }}" class="rounded-lg border bg-white p-5 hover:border-osca-primary"><p class="text-slate-600">Total active seniors</p><p class="text-3xl font-bold">{{ number_format($activeCount) }}</p></a>
-    <a href="{{ route('applications.index', ['status' => 'APPROVED']) }}" class="rounded-lg border bg-white p-5 hover:border-osca-primary"><p class="text-slate-600">Approved applications</p><p class="text-3xl font-bold">{{ number_format($readyCount) }}</p></a>
-    <div class="rounded-lg border bg-white p-5"><p class="text-slate-600">Upcoming 80, 90 and 100 milestones</p><p class="text-3xl font-bold">{{ number_format($milestoneCount) }}</p></div>
-</div>
-<div class="mt-6 grid gap-5 lg:grid-cols-2">
-    <section class="rounded-lg border bg-white p-5"><h2 class="mb-4 text-xl font-semibold">Population by barangay</h2>@forelse ($barangays as $barangay)<div class="mb-3"><div class="flex justify-between text-sm"><span>{{ $barangay->name }}</span><span>{{ $barangay->total }}</span></div><div class="mt-1 h-3 rounded bg-slate-100"><div class="h-3 rounded bg-osca-primary" style="width: {{ $activeCount ? round(100 * $barangay->total / $activeCount) : 0 }}%"></div></div></div>@empty<p class="text-slate-600">No active seniors recorded yet.</p>@endforelse</section>
-    <section class="rounded-lg border bg-white p-5"><h2 class="mb-4 text-xl font-semibold">Age distribution</h2>@foreach ($ageGroups as $bracket => $count)<div class="mb-3"><div class="flex justify-between text-sm"><span>{{ $bracket }}</span><span>{{ $count }}</span></div><div class="mt-1 h-3 rounded bg-slate-100"><div class="h-3 rounded bg-osca-primary" style="width: {{ $activeCount ? round(100 * $count / $activeCount) : 0 }}%"></div></div></div>@endforeach<p class="text-sm text-slate-600">Total: {{ number_format($ageGroups->sum()) }}</p></section>
-    <section class="rounded-lg border bg-white p-5"><h2 class="text-xl font-semibold">Gender</h2>@forelse ($genders as $sex => $count)<p class="mt-2 flex justify-between"><span>{{ ucfirst(strtolower($sex)) }}</span><span>{{ $count }}</span></p>@empty<p class="mt-2 text-slate-600">No data yet.</p>@endforelse</section>
-    <section class="rounded-lg border bg-white p-5"><h2 class="text-xl font-semibold">Registry status</h2>@forelse ($statuses as $status => $count)<p class="mt-2 flex justify-between"><x-badge :status="$status" /><span>{{ $count }}</span></p>@empty<p class="mt-2 text-slate-600">No data yet.</p>@endforelse</section>
-</div>
+<section class="welcome-row">
+    <div>
+        <p class="section-kicker">{{ now()->format('l, F j, Y') }}</p>
+        <h2>Staff dashboard</h2>
+        <p class="section-subtitle">Current registry and processing activity across OSCA Santa Maria.</p>
+    </div>
+    <a href="{{ route('senior-citizens.index', ['status' => 'VERIFIED']) }}" class="primary-button">View senior registry</a>
+</section>
+
+<section class="metric-grid">
+    <a href="{{ route('senior-citizens.index', ['status' => 'VERIFIED']) }}" class="metric-card">
+        <div class="metric-icon blue"><x-admin.icon name="users" size="19" /></div>
+        <div class="metric-label">Total Active Seniors</div>
+        <div class="metric-value">{{ number_format($activeCount) }}</div>
+        <div class="metric-bottom"><span>Verified registry records</span></div>
+        <div class="metric-progress blue"><i style="width: {{ $activeCount ? 100 : 0 }}%;"></i></div>
+    </a>
+    <a href="{{ route('applications.index', ['status' => 'APPROVED']) }}" class="metric-card">
+        <div class="metric-icon mint"><x-admin.icon name="clipboard-list" size="19" /></div>
+        <div class="metric-label">Approved Applications</div>
+        <div class="metric-value">{{ number_format($readyCount) }}</div>
+        <div class="metric-bottom"><span>Ready for processing</span></div>
+        <div class="metric-progress mint"><i style="width: {{ $readyCount ? 100 : 0 }}%;"></i></div>
+    </a>
+    <div class="metric-card">
+        <div class="metric-icon amber"><x-admin.icon name="calendar-days" size="19" /></div>
+        <div class="metric-label">Upcoming Milestones</div>
+        <div class="metric-value">{{ number_format($milestoneCount) }}</div>
+        <div class="metric-bottom"><span>80, 90 and 100-year milestones</span></div>
+        <div class="metric-progress amber"><i style="width: {{ $milestoneCount ? 100 : 0 }}%;"></i></div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-icon violet"><x-admin.icon name="archive" size="19" /></div>
+        <div class="metric-label">Barangays Covered</div>
+        <div class="metric-value">{{ number_format($barangays->count()) }}</div>
+        <div class="metric-bottom"><span>Active areas in the registry</span></div>
+        <div class="metric-progress violet"><i style="width: {{ $barangays->count() ? 100 : 0 }}%;"></i></div>
+    </div>
+</section>
+
+<section class="dashboard-grid">
+    <div class="panel">
+        <div class="panel-heading">
+            <div><h3>Population by Barangay</h3><p>Verified senior citizens by service area</p></div>
+            <span class="soft-badge blue">{{ number_format($activeCount) }} total</span>
+        </div>
+        <div class="barangay-list">
+            @forelse ($barangays as $barangay)
+                <div class="bar-row">
+                    <div><span>{{ $barangay->name }}</span><strong>{{ number_format($barangay->total) }}</strong></div>
+                    <div class="bar-track"><i style="width: {{ $activeCount ? round(100 * $barangay->total / $activeCount) : 0 }}%;"></i></div>
+                </div>
+            @empty
+                <p class="section-subtitle">No active seniors recorded yet.</p>
+            @endforelse
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-heading">
+            <div><h3>Age Distribution</h3><p>Verified registry breakdown</p></div>
+        </div>
+        <div class="barangay-list">
+            @foreach ($ageGroups as $bracket => $count)
+                <div class="bar-row">
+                    <div><span>{{ $bracket }}</span><strong>{{ number_format($count) }}</strong></div>
+                    <div class="bar-track"><i style="width: {{ $activeCount ? round(100 * $count / $activeCount) : 0 }}%;"></i></div>
+                </div>
+            @endforeach
+            <p class="section-subtitle">Total: {{ number_format($ageGroups->sum()) }}</p>
+        </div>
+    </div>
+</section>
+
+<section class="dashboard-grid lower-grid">
+    <div class="panel">
+        <div class="panel-heading">
+            <div><h3>Gender Distribution</h3><p>Current verified records</p></div>
+        </div>
+        <div class="activity-list">
+            @forelse ($genders as $sex => $count)
+                <div class="task-row">
+                    <span class="task-icon blue"><x-admin.icon name="users" size="15" /></span>
+                    <div><strong>{{ ucfirst(strtolower($sex)) }}</strong><small>Verified senior citizens</small></div>
+                    <strong>{{ number_format($count) }}</strong>
+                </div>
+            @empty
+                <p class="section-subtitle">No data yet.</p>
+            @endforelse
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-heading">
+            <div><h3>Registry Status</h3><p>All senior citizen records</p></div>
+        </div>
+        <div class="activity-list">
+            @forelse ($statuses as $status => $count)
+                <div class="task-row">
+                    <span class="task-icon mint"><x-admin.icon name="clipboard-list" size="15" /></span>
+                    <div><strong><x-badge :status="$status" /></strong><small>Registry records</small></div>
+                    <strong>{{ number_format($count) }}</strong>
+                </div>
+            @empty
+                <p class="section-subtitle">No data yet.</p>
+            @endforelse
+        </div>
+    </div>
+</section>
 @endsection

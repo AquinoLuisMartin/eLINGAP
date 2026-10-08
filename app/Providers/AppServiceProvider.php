@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Hashing\Sha256Hasher;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Session\Middleware\AuthenticateSession;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 
@@ -24,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Hash::extend('sha256', fn () => new Sha256Hasher);
+
         Model::shouldBeStrict(! $this->app->isProduction());
 
         Livewire::addPersistentMiddleware([

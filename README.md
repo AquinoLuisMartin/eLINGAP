@@ -1,184 +1,157 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+﻿# eLINGAP
 
+An Integrated Web-Based Records Management and Automated SMS Notification System for the Office of the Senior Citizens Affairs of Santa Maria, Bulacan.
 
-## eLINGAP: An Integrated Web-Based Records Management and Automated SMS Notification System for the Office of the Senior Citizens Affairs of Santa Maria, Bulacan
+eLINGAP centralizes senior citizen records, program applications, beneficiaries, payout workflows, and SMS notifications for OSCA staff and administrators.
 
-eLINGAP is a Laravel-based web application designed to support the Office of the Senior Citizens Affairs of Santa Maria, Bulacan. The system provides a centralized platform for managing senior citizen records and supporting automated SMS notifications for more efficient, organized, and timely public service.
+## Current Features
 
-## Project Progress
+- Public landing page, login, password reset, and role-based dashboards.
+- Administrator account management and account access controls.
+- Senior citizen registration, record updates, photos, and death declarations or corrections.
+- Program listings, beneficiary enrollment, and application status workflows.
+- Payout schedules, release tracking, claimant details, and payout reversals.
+- SMS templates, individual messages, broadcasts, logs, and retries.
+- Application, demographic, payout, and staff reports with export routes.
 
-- Laravel 13 application foundation is set up.
-- PostgreSQL is configured as the project database.
-- Public eLINGAP landing page and responsive navigation are implemented.
-- Feature folders and placeholder files are organized by Laravel domain conventions.
-- Senior citizen records, applications, programs, SMS, payouts, reports, and administration modules are prepared for implementation.
-- Business logic, database schema, authentication workflows, and automated SMS integration remain in progress.
+The application is under active development. Some screens still contain prototype content. SMS delivery requires a configured external gateway and a running queue worker.
 
 ## Technology Stack
 
-- PHP 8.3 or later
-- Laravel 13
-- PostgreSQL
-- Node.js and npm
-- Vite and Tailwind CSS for frontend assets
+| Component | Project dependency |
+| --- | --- |
+| PHP | 8.3 or later |
+| Laravel | 13 (`^13.17`) |
+| Livewire | 4 (`^4.4`) |
+| Database | PostgreSQL |
+| Frontend | Blade, Tailwind CSS 4, Vite 8 |
+| Tests | PHPUnit 12 |
 
-## System Folder Structure
+Install Composer, Git, PostgreSQL, and Node.js with npm. Vite requires Node.js `^20.19.0` or `>=22.12.0`. Enable PHP's PostgreSQL extensions alongside the extensions required by Laravel.
 
-The project follows Laravel conventions and organizes eLINGAP features by domain:
+## Local Setup
 
-```text
-eLINGAP/
-├── app/
-│   ├── Console/Commands/       # Artisan commands
-│   ├── Enums/                  # Shared status and role enums
-│   ├── Http/
-│   │   ├── Controllers/        # Web request controllers by system module
-│   │   ├── Middleware/         # Authentication, activity, and role checks
-│   │   └── Requests/           # Form request validation by module
-│   ├── Jobs/Sms/               # Queued SMS jobs
-│   ├── Livewire/               # Livewire components
-│   ├── Models/                 # Eloquent models
-│   ├── Notifications/          # Application notifications
-│   ├── Policies/               # Authorization policies
-│   ├── Providers/              # Application and SMS service providers
-│   └── Services/               # Business logic and external service integrations
-├── bootstrap/                  # Laravel application bootstrap files
-├── config/                     # Application and package configuration
-├── database/
-│   ├── factories/              # Model factories for tests and seed data
-│   ├── migrations/             # Database schema definitions
-│   └── seeders/                # Initial roles, barangays, and programs
-├── public/                     # Public entry point and static assets
-├── resources/
-│   ├── css/                    # Application and administration styles
-│   ├── js/                     # Frontend JavaScript entry point
-│   └── views/                  # Blade views by feature
-│       ├── administration/     # Dashboard, users, audit logs, and settings
-│       ├── applications/       # Senior citizen application workflows
-│       ├── auth/               # Login and password reset screens
-│       ├── payouts/            # Payouts and payout schedules
-│       ├── programs/           # Programs and beneficiaries
-│       ├── reports/            # Application, beneficiary, demographic, and payout reports
-│       ├── senior-citizens/    # Senior citizen records and verification
-│       └── sms/                # Messages, templates, blasts, announcements, and logs
-├── routes/
-│   ├── console.php             # Console command routes
-│   └── web.php                 # Web application routes
-├── storage/                    # Logs, cache, sessions, and generated files
-├── tests/
-│   ├── Feature/                # End-to-end and module behavior tests
-│   └── Unit/                   # Isolated unit tests
-├── .env.example                # Environment configuration template
-├── artisan                     # Laravel command-line entry point
-├── composer.json               # PHP dependencies and scripts
-├── package.json                # Frontend dependencies and scripts
-└── vite.config.js              # Vite asset build configuration
-```
+### 1. Clone and install dependencies
 
-The primary system modules are **Administration**, **Authentication**, **Senior Citizens**, **Applications**, **Programs and Beneficiaries**, **Payouts**, **Reports**, and **SMS Notifications**. Controllers, requests, policies, services, views, and tests should be placed in the corresponding module directory when a feature is module-specific.
-
-## Prerequisites
-
-Install the following tools before setting up the project:
-
-- [PHP](https://www.php.net/downloads) 8.3 or later with the required Laravel extensions
-- [Composer](https://getcomposer.org/download/)
-- [Node.js](https://nodejs.org/) and npm
-- [Git](https://git-scm.com/downloads)
-
-## Installation
-
-### 1. Clone the repository
-
-Replace `<repository-url>` with the repository URL provided by the project administrator.
+Replace `<repository-url>` with the project's repository URL.
 
 ```bash
 git clone <repository-url>
 cd eLINGAP
-```
-
-### 2. Install backend dependencies
-
-```bash
 composer install
+npm install
 ```
 
-### 3. Configure the environment
+### 2. Configure the environment
 
-Create the local environment file and generate the application key:
+Copy the environment template:
 
 ```bash
 cp .env.example .env
-php artisan key:generate
 ```
 
-On Windows PowerShell, use this equivalent command to create the environment file:
+For Windows PowerShell:
 
 ```powershell
 Copy-Item .env.example .env
-php artisan key:generate
 ```
 
-Configure PostgreSQL in `.env`, then run the migrations:
+Create a local PostgreSQL database, then configure its connection in `.env`. The template uses PostgreSQL and database-backed sessions, cache, and queues. Configure the application URL and mail settings as needed; password reset emails require a working mail configuration.
 
 ```bash
+php artisan key:generate
 php artisan migrate
 ```
 
-Update the database, application, and SMS-related values in `.env` according to the deployment environment. Never commit `.env` or credentials to the repository.
+Keep `.env`, credentials, and personal data out of version control.
 
-### 4. Install frontend dependencies
+### 3. Create an administrator
 
 ```bash
-npm install
-npm run build
+php artisan app:create-admin
 ```
 
-### 5. Start the application
+The command prompts interactively for account details and creates the administrator role if needed. Administrators can provision additional accounts through the application.
 
-In one terminal, start the Laravel development server:
+`php artisan db:seed` seeds roles, barangays, and users through `DatabaseSeeder`. Review the seeders before running them, especially against an existing database, because the user seeder can update accounts.
+
+### 4. Build assets and start the application
 
 ```bash
+npm run build
 php artisan serve
 ```
 
-In a second terminal, start the Vite development server while working on frontend assets:
+Open `http://localhost:8000`. For frontend development, run `npm run dev` in a separate terminal.
+
+For queued SMS processing, run another terminal:
 
 ```bash
-npm run dev
+php artisan queue:work
 ```
 
-The application will be available at `http://localhost:8000`.
+Alternatively, `composer dev` invokes Laravel's development command. `composer setup` installs dependencies, creates `.env` if missing, generates the application key, runs migrations, and builds assets; configure the database before using it.
 
-## Common Commands
+## SMS Configuration
+
+The SMS gateway reads `services.sms.url`, `services.sms.token`, and `services.sms.timeout` from `config/services.php`. Configure the corresponding environment settings locally.
+
+The driver sends authenticated requests to the gateway's `/messages` endpoint with `to` and `message` fields and an idempotency header. It expects a JSON response containing a provider message ID in `id`. Confirm that the chosen provider supports this contract before enabling delivery.
+
+Messages are queued after database commits. The queue job records send results and failures, retries failed attempts, and checks linked senior citizen eligibility before sending. A recorded sent status reflects the gateway request result.
+
+## Project Layout
+
+```text
+app/
+  Console/Commands/    Artisan commands, including administrator creation
+  Enums/              Roles and workflow statuses
+  Http/               Controllers, middleware, and form requests
+  Jobs/Sms/           Queued SMS delivery
+  Livewire/           Livewire components
+  Models/             Eloquent models
+  Policies/           Authorization rules
+  Providers/          Application service bindings
+  Services/           Domain logic, reports, and SMS integration
+  Support/            Shared helpers
+database/
+  factories/          Test data factories
+  migrations/         Database schema
+  seeders/            Initial data and account seeding
+docs/                 Project notes
+resources/
+  css/                Application and administration styles
+  js/                 Frontend JavaScript
+  views/              Blade layouts and feature views
+routes/               Web and console routes
+tests/                Feature and unit tests
+```
+
+Feature code is grouped around administration, authentication, senior citizens, applications, programs, payouts, reports, and SMS.
+
+## Development Checks
+
+The test configuration uses PostgreSQL with a separate database named `db_elingap_testing`. Create that database and ensure the local database user can access it before running database-backed tests. Use a dedicated test database because tests may reset its tables.
 
 ```bash
-# Run the automated test suite
 composer test
-
-# Format PHP files with Laravel Pint
+php artisan test --filter=SeniorCitizenManagementTest
 vendor/bin/pint
-
-# Build production frontend assets
 npm run build
 ```
 
+On Windows, use `vendor\bin\pint.bat` for formatting if the shell cannot run `vendor/bin/pint`.
+
 ## Contributing
 
-Contributions are welcome and should support the goals of the Office of the Senior Citizens Affairs of Santa Maria, Bulacan.
+- Follow [AGENTS.md](AGENTS.md) and the existing module conventions.
+- Keep changes focused and add relevant tests for behavior changes.
+- Run the applicable tests, PHP formatter, and frontend build.
+- Describe configuration changes and validation in the pull request.
+- Exclude personal information, production data, credentials, and local environment files.
 
-1. Create a feature branch from the latest main branch.
-2. Make focused changes that follow the existing Laravel structure and coding conventions.
-3. Add or update tests for changes that affect application behavior.
-4. Run the relevant tests, formatter, and frontend build before submitting your changes.
-5. Open a pull request with a clear description of the changes, motivation, testing performed, and any required configuration updates.
-
-Please do not include personal information, production data, credentials, API keys, or local development files in commits or pull requests.
-
-## Security
-
-Do not report security vulnerabilities in public issues. Contact the project maintainers through the repository's private security reporting process and include enough detail to reproduce the issue safely.
+Report security issues privately to the project maintainers.
 
 ## License
 
-This project is built with the [Laravel framework](https://laravel.com), which is open-sourced under the [MIT license](https://opensource.org/licenses/MIT). Project-specific licensing terms should be confirmed with the project maintainers.
+The Laravel framework is licensed under the MIT license. Confirm project-specific licensing terms with the maintainers.

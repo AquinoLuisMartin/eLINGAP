@@ -49,6 +49,13 @@ class User extends Authenticatable
         return 'password_hash';
     }
 
+    public function getRememberToken(): ?string
+    {
+        return array_key_exists('remember_token', $this->attributes)
+            ? (string) $this->attributes['remember_token']
+            : null;
+    }
+
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
