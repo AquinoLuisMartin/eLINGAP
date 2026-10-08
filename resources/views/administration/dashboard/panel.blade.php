@@ -45,7 +45,7 @@
             </div>
             <div class="brand-copy">
                 <strong>eLINGAP</strong>
-                <small>OSCA Santa Maria</small>
+                <small>{{ $this->configuration->firstWhere('key', 'organization_name')?->value ?? 'Administration' }}</small>
             </div>
         </div>
 
@@ -138,7 +138,7 @@
         <div class="profile-details">
             <div>
                 <small>Assigned Office</small>
-                <strong>OSCA Santa Maria Municipal Hall</strong>
+                <strong>{{ $this->configuration->firstWhere('key', 'office_name')?->value ?? 'Not configured' }}</strong>
             </div>
             <div>
                 <small>Last Active / Login</small>
@@ -146,7 +146,7 @@
             </div>
             <div class="account-status">
                 <small>Account Status</small>
-                <span><i></i> Active</span>
+                <span><i></i> {{ $this->currentUser->is_active ? 'Active' : 'Suspended' }}</span>
             </div>
         </div>
         <div class="profile-actions">
@@ -194,7 +194,7 @@
             <div class="header-actions">
                 <label class="global-search">
                     <x-admin.icon name="search" size="17" />
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search by name, OSCA ID, or barangay..." aria-label="Global search" />
+                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search records, programs, or events..." aria-label="Global search" />
                 </label>
 
                 <div class="header-date">
@@ -202,13 +202,13 @@
                     <span>{{ now()->format('l, F j, Y') }}</span>
                 </div>
 
-                <span class="online-status"><i></i> System Online</span>
+
 
                 <div class="notification-wrap">
-                    <button type="button" class="notification-button icon-button" aria-label="Notifications" @click="notificationsOpen = true; $wire.clearNotices()">
+                    <button type="button" class="notification-button icon-button" aria-label="Notifications" @click="notificationsOpen = true">
                         <x-admin.icon name="bell" size="19" />
-                        @if ($noticeCount > 0)
-                            <b>{{ $noticeCount }}</b>
+                        @if ($this->summary['pending'] + $this->summary['sms_failed'] > 0)
+                            <b>{{ number_format($this->summary['pending'] + $this->summary['sms_failed']) }}</b>
                         @endif
                     </button>
                 </div>

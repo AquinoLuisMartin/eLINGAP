@@ -50,33 +50,18 @@ class DashboardTest extends TestCase
             ->assertSet('active', 'help');
     }
 
-    public function test_can_save_new_senior_record(): void
+    public function test_registry_links_to_the_persisted_creation_workflow(): void
     {
-        Livewire::actingAs($this->adminUser)
-            ->test(Dashboard::class)
-            ->call('openModal', 'senior')
-            ->assertSet('modal', 'senior')
-            ->set('seniorForm.name', 'Juan Dela Cruz')
-            ->set('seniorForm.age', '65')
-            ->set('seniorForm.barangay', 'Poblacion')
-            ->call('saveSenior')
-            ->assertSet('modal', null)
-            ->assertSet('toast', 'Senior record saved successfully.');
+        Livewire::actingAs($this->adminUser)->test(Dashboard::class)
+            ->call('navigate', 'records')
+            ->assertSeeHtml('href="'.route('senior-citizens.create').'"');
     }
 
-    public function test_can_save_new_program(): void
+    public function test_programs_link_to_the_persisted_creation_workflow(): void
     {
-        Livewire::actingAs($this->adminUser)
-            ->test(Dashboard::class)
-            ->call('openModal', 'program')
-            ->assertSet('modal', 'program')
-            ->set('programForm.name', 'Centenarian Gift Award')
-            ->set('programForm.agency', 'MSWDO')
-            ->set('programForm.budget', '₱500,000')
-            ->set('programForm.cycle', 'Annual 2027')
-            ->call('saveProgram')
-            ->assertSet('modal', null)
-            ->assertSet('toast', 'Program saved successfully.');
+        Livewire::actingAs($this->adminUser)->test(Dashboard::class)
+            ->call('navigate', 'programs')
+            ->assertSeeHtml('href="'.route('administration.programs.create').'"');
     }
 
     public function test_can_toggle_user_status(): void
@@ -91,15 +76,12 @@ class DashboardTest extends TestCase
         $this->assertTrue($user->fresh()->is_active);
     }
 
-    public function test_can_schedule_broadcast_and_deduct_credits(): void
+    public function test_dispatcher_links_to_the_validated_broadcast_workflow(): void
     {
-        Livewire::actingAs($this->adminUser)
-            ->test(Dashboard::class)
-            ->set('smsBarangay', 'Poblacion')
-            ->set('smsMessage', 'Paalala: Magdala ng valid ID bukas.')
-            ->call('scheduleBroadcast')
-            ->assertSet('toast', 'Broadcast scheduled successfully.')
-            ->assertSet('credits', 12840 - 2418);
+        Livewire::actingAs($this->adminUser)->test(Dashboard::class)
+            ->call('navigate', 'sms')
+            ->assertSeeHtml('href="'.route('sms.blasts.create').'"')
+            ->assertDontSee('credits available');
     }
 
     public function test_can_toggle_theme(): void
