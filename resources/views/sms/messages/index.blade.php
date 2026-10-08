@@ -1,11 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMS Messages</title>
-</head>
-<body>
-    <!-- Placeholder SMS messages page. -->
-</body>
-</html>
+@extends('layouts.app')
+@section('content')
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3"><h1 class="text-3xl font-bold">Individual SMS messages</h1><a class="rounded bg-osca-primary px-4 py-2 text-white" href="{{ route('sms.messages.create') }}">Send SMS</a></div>
+<a class="mb-4 inline-block text-osca-primary underline" href="{{ route('sms.blasts.index') }}">Broadcast history</a>
+<div class="overflow-x-auto rounded-lg border bg-white"><table class="w-full min-w-130 text-left text-sm"><thead class="bg-slate-100"><tr><th class="p-3">Recipient</th><th class="p-3">Message</th><th class="p-3">Queued</th><th class="p-3">Status</th><th class="p-3">Failure reason</th><th class="p-3">Action</th></tr></thead><tbody class="divide-y">@forelse ($messages as $message)<tr><td class="p-3">{{ $message->seniorCitizen?->full_name ?: $message->recipient_number }}</td><td class="p-3">{{ $message->message }}</td><td class="p-3">{{ $message->queued_at?->format('Y-m-d H:i') ?: '—' }}</td><td class="p-3"><x-badge :status="$message->status" /></td><td class="p-3">{{ $message->failure_reason ?: '—' }}</td><td class="p-3">@if ($message->status === \App\Enums\SmsStatus::Failed)<form method="POST" action="{{ route('sms.messages.retry', $message) }}" onsubmit="return confirm('Retry this failed SMS?')">@csrf<button class="text-osca-primary underline">Retry</button></form>@endif</td></tr>@empty<tr><td colspan="6" class="p-6 text-center">No messages have been queued yet.</td></tr>@endforelse</tbody></table></div><div class="mt-4">{{ $messages->links() }}</div>
+@endsection

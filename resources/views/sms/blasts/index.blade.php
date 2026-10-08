@@ -1,11 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMS Blasts</title>
-</head>
-<body>
-    <!-- Placeholder SMS blast page. -->
-</body>
-</html>
+@extends('layouts.app')
+@section('content')
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3"><div><p class="text-sm font-semibold uppercase text-osca-primary">Messaging</p><h1 class="text-3xl font-bold">SMS history</h1><a class="text-sm text-osca-primary underline" href="{{ route('sms.templates.index') }}">Manage templates</a></div><a class="rounded bg-osca-primary px-4 py-2 text-white" href="{{ route('sms.blasts.create') }}">New broadcast</a></div>
+<p class="mb-3 text-sm text-slate-600">Broadcasts are grouped by audience and show their current delivery results.</p>
+<div class="overflow-x-auto rounded-lg border bg-white"><table class="w-full min-w-160 text-left text-sm"><thead class="bg-slate-100"><tr><th class="p-3">Date</th><th class="p-3">Audience</th><th class="p-3">Sender</th><th class="p-3">Message</th><th class="p-3">Recipients</th><th class="p-3">Sent</th><th class="p-3">Failed</th><th class="p-3">Action</th></tr></thead><tbody class="divide-y">@forelse ($blasts as $blast)<tr><td class="p-3">{{ $blast->created_at->format('Y-m-d H:i') }}</td><td class="p-3">{{ $blast->barangay?->name ?: 'All barangays' }}</td><td class="p-3">{{ $blast->creator->first_name }} {{ $blast->creator->last_name }}</td><td class="max-w-60 truncate p-3">{{ $blast->message }}</td><td class="p-3">{{ $blast->recipient_count }}</td><td class="p-3">{{ $blast->sent_count }}</td><td class="p-3">{{ $blast->failed_count }}</td><td class="p-3"><a class="text-osca-primary underline" href="{{ route('sms.blasts.show', $blast) }}">Details</a></td></tr>@empty<tr><td colspan="8" class="p-6 text-center">No broadcasts have been queued yet.</td></tr>@endforelse</tbody></table></div><div class="mt-4">{{ $blasts->links() }}</div>
+<a class="mt-5 inline-block text-osca-primary underline" href="{{ route('sms.messages.index') }}">View individual SMS messages</a>
+@endsection

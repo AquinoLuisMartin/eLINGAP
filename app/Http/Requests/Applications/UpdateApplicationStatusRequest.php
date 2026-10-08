@@ -15,7 +15,16 @@ class UpdateApplicationStatusRequest extends FormRequest
     {
         return [
             'status' => ['required', 'in:APPROVED,REJECTED,CANCELLED'],
-            'remarks' => ['nullable', 'string', 'max:5000'],
+            'remarks' => ['required_if:status,REJECTED', 'nullable', 'string', 'max:5000'],
         ];
+    }
+
+    public function after(): array
+    {
+        return [function ($validator): void {
+            if ($this->route('application')?->status?->value !== 'PENDING') {
+                $validator->errors()->add('status', 'Only a pending application can be reviewed.');
+            }
+        }];
     }
 }

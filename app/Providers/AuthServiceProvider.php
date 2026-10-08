@@ -18,6 +18,7 @@ use App\Policies\ReportPolicy;
 use App\Policies\SeniorCitizenPolicy;
 use App\Policies\SmsMessagePolicy;
 use App\Policies\UserPolicy;
+use App\Services\Reports\StaffReport;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -32,5 +33,6 @@ class AuthServiceProvider extends ServiceProvider
         SmsMessage::class => SmsMessagePolicy::class,
         SmsTemplate::class => SmsMessagePolicy::class,
         User::class => UserPolicy::class,
+        StaffReport::class => ReportPolicy::class,
     ];
 }

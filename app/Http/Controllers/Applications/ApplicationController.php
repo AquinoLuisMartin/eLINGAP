@@ -6,33 +6,52 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Applications\StoreApplicationRequest;
 use App\Http\Requests\Applications\UpdateApplicationStatusRequest;
 use App\Models\Application;
+use App\Models\AuditLog;
+use App\Models\Barangay;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ApplicationController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         Gate::authorize('viewAny', Application::class);
 
-        return view('applications.index', ['applications' => Application::query()->with(['seniorCitizen', 'program'])->latest('id')->paginate(15)]);
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'in:PENDING,APPROVED,REJECTED,CANCELLED'],
+            'barangay_id' => ['nullable', 'integer', 'exists:barangays,id'],
+        ]);
+        $query = Application::query()->with(['seniorCitizen.barangay', 'program'])
+            ->when($filters['search'] ?? null, fn ($query, $search) => $query->where(function ($query) use ($search) {
+                $query->where('application_number', 'like', '%'.$search.'%')
+                    ->orWhereHas('seniorCitizen', fn ($senior) => $senior->searchable($search));
+            }))
+            ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->when($filters['barangay_id'] ?? null, fn ($query, $id) => $query->whereHas('seniorCitizen', fn ($senior) => $senior->where('barangay_id', $id)));
+
+        return view('applications.index', [
+            'applications' => $query->latest('id')->paginate(15)->withQueryString(),
+            'barangays' => Barangay::query()->orderBy('name')->get(['id', 'name']),
+        ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         Gate::authorize('create', Application::class);
+        $search = $request->validate(['senior_search' => ['nullable', 'string', 'max:100']])['senior_search'] ?? null;
 
         return view('applications.create', [
-            'seniorCitizens' => SeniorCitizen::query()
-                ->select(['id', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'registration_number'])
-                ->where('status', 'VERIFIED')
-                ->orderBy('last_name')
-                ->limit(100)
-                ->get(),
+            'seniorCitizens' => $search ? SeniorCitizen::query()
+                ->select(['id', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'registration_number', 'osca_id_number'])
+                ->where('status', 'VERIFIED')->searchable($search)
+                ->orderBy('last_name')->limit(25)->get() : collect(),
             'programs' => Program::query()
                 ->select(['id', 'name'])
                 ->whereIn('status', ['ACTIVE', 'UPCOMING'])
@@ -47,10 +66,11 @@ class ApplicationController extends Controller
         $application = DB::transaction(function () use ($request) {
             $application = Application::create([
                 ...$request->validated(),
-                'application_number' => 'APP-'.now()->format('YmdHis').'-'.random_int(100, 999),
+                'application_number' => 'APP-'.Str::ulid(),
                 'status' => 'PENDING',
             ]);
             $application->statusHistories()->create(['to_status' => 'PENDING', 'changed_by' => $request->user()->id]);
+            AuditLog::create(['user_id' => $request->user()->id, 'action' => 'application.created', 'auditable_type' => Application::class, 'auditable_id' => $application->id, 'new_values' => ['status' => 'PENDING'], 'ip_address' => $request->ip()]);
 
             return $application;
         });
@@ -73,6 +93,7 @@ class ApplicationController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
             $fromStatus = $application->status->value;
+            abort_unless($fromStatus === 'PENDING', 409, 'This application has already been reviewed.');
             $toStatus = $request->string('status')->toString();
 
             $application->update([
@@ -87,6 +108,7 @@ class ApplicationController extends Controller
                 'remarks' => $request->input('remarks'),
                 'changed_by' => $request->user()->id,
             ]);
+            AuditLog::create(['user_id' => $request->user()->id, 'action' => 'application.status_changed', 'auditable_type' => Application::class, 'auditable_id' => $application->id, 'old_values' => ['status' => $fromStatus], 'new_values' => ['status' => $toStatus], 'ip_address' => $request->ip()]);
         });
 
         return back()->with('status', 'Application status updated.');

@@ -1,11 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Program Beneficiaries</title>
-</head>
-<body>
-    <!-- Placeholder program beneficiaries page. -->
-</body>
-</html>
+@extends('layouts.app')
+@section('content')
+<a href="{{ route('programs.show', $program) }}" class="text-osca-primary underline">Back to program</a><h1 class="my-5 text-3xl font-bold">{{ $program->name }} beneficiaries</h1>
+@can('update', $program)
+<form method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4"><label>Find a verified senior <input name="senior_search" value="{{ request('senior_search') }}" class="mt-1 block rounded border p-2" placeholder="Name or OSCA ID" required></label><button class="rounded border px-4 py-2">Search</button></form>
+<form method="POST" action="{{ route('programs.beneficiaries.store', $program) }}" class="mb-6 grid max-w-2xl gap-3 rounded-lg border bg-white p-4">@csrf<input type="hidden" name="program_id" value="{{ $program->id }}"><label>Senior citizen <select name="senior_citizen_id" required class="mt-1 block w-full rounded border p-2"><option value="">Select senior citizen</option>@foreach ($seniorCitizens as $senior)<option value="{{ $senior->id }}">{{ $senior->full_name }} ({{ $senior->osca_id_number ?: $senior->registration_number }})</option>@endforeach</select></label><label>Enrolled on <input type="date" name="enrolled_on" value="{{ old('enrolled_on', today()->format('Y-m-d')) }}" required class="mt-1 block w-full rounded border p-2"></label><button class="rounded bg-osca-primary px-4 py-2 text-white">Enroll beneficiary</button></form>
+@endcan
+<p class="mb-2 text-sm text-slate-600">{{ $beneficiaries->total() }} beneficiaries</p><div class="overflow-x-auto rounded-lg border bg-white"><table class="w-full text-left text-sm"><thead class="bg-slate-100"><tr><th class="p-3">Senior</th><th class="p-3">Barangay</th><th class="p-3">Enrolled</th><th class="p-3">Status</th></tr></thead><tbody class="divide-y">@forelse ($beneficiaries as $beneficiary)<tr><td class="p-3"><a class="text-osca-primary underline" href="{{ route('senior-citizens.show', $beneficiary->seniorCitizen) }}">{{ $beneficiary->seniorCitizen->full_name }}</a></td><td class="p-3">{{ $beneficiary->seniorCitizen->barangay->name }}</td><td class="p-3">{{ $beneficiary->enrolled_on->format('Y-m-d') }}</td><td class="p-3"><x-badge :status="$beneficiary->status" /></td></tr>@empty<tr><td colspan="4" class="p-6 text-center">No beneficiaries enrolled.</td></tr>@endforelse</tbody></table></div><div class="mt-4">{{ $beneficiaries->links() }}</div>
+@endsection

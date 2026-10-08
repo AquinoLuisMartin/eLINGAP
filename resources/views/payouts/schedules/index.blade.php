@@ -1,11 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payout Schedules</title>
-</head>
-<body>
-    <!-- Placeholder payout schedules page. -->
-</body>
-</html>
+@extends('layouts.app')
+@section('content')
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3"><h1 class="text-3xl font-bold">Payout schedules</h1><a class="rounded bg-osca-primary px-4 py-2 text-white" href="{{ route('payout-schedules.create') }}">New schedule</a></div>
+<div class="overflow-x-auto rounded-lg border bg-white"><table class="w-full min-w-120 text-left text-sm"><thead class="bg-slate-100"><tr><th class="p-3">Reference</th><th class="p-3">Program</th><th class="p-3">Date</th><th class="p-3">Amount</th><th class="p-3">Status</th></tr></thead><tbody class="divide-y">@forelse ($schedules as $schedule)<tr><td class="p-3"><a class="text-osca-primary underline" href="{{ route('payout-schedules.show', $schedule) }}">{{ $schedule->reference_number }}</a></td><td class="p-3">{{ $schedule->program->name }}</td><td class="p-3">{{ $schedule->scheduled_on->format('Y-m-d') }}</td><td class="p-3">{{ \App\Support\PhilippineCurrency::format($schedule->amount) }}</td><td class="p-3"><x-badge :status="$schedule->status" /></td></tr>@empty<tr><td colspan="5" class="p-6 text-center">No payout schedules yet.</td></tr>@endforelse</tbody></table></div><div class="mt-4">{{ $schedules->links() }}</div>
+@endsection

@@ -1,6 +1,8 @@
 // Landing page interactions
 
 document.addEventListener('DOMContentLoaded', () => {
+    initStaffControls();
+    initApplicationWizard();
     initMobileMenu();
     initModal('search');
     initModal('login');
@@ -9,6 +11,97 @@ document.addEventListener('DOMContentLoaded', () => {
     initViewSwitcher();
     initEscapeClose();
 });
+
+function initStaffControls() {
+    const sidebar = document.getElementById('staff-sidebar');
+    const toggle = document.getElementById('staff-nav-toggle');
+    toggle?.addEventListener('click', () => {
+        const expanded = toggle.getAttribute('aria-expanded') === 'true';
+        sidebar.classList.toggle('md:w-64', !expanded);
+        sidebar.classList.toggle('md:w-20', expanded);
+        sidebar.querySelectorAll('.staff-nav-label').forEach(label => label.hidden = expanded);
+        toggle.setAttribute('aria-expanded', String(!expanded));
+        toggle.setAttribute('aria-label', expanded ? 'Expand navigation' : 'Collapse navigation');
+    });
+
+    const claimantType = document.getElementById('claimant-type');
+    const proxyFields = document.getElementById('proxy-fields');
+    if (claimantType && proxyFields) {
+        const sync = () => {
+            proxyFields.hidden = claimantType.value !== 'PROXY';
+            proxyFields.querySelectorAll('input[type="text"]').forEach(input => input.required = !proxyFields.hidden);
+        };
+        claimantType.addEventListener('change', sync);
+        sync();
+    }
+
+    const releaseForm = document.getElementById('payout-release-form');
+    releaseForm?.addEventListener('submit', event => {
+        const claimant = claimantType.value === 'PROXY' ? releaseForm.elements.claimant_name.value : 'Senior in person';
+        const facts = `${releaseForm.dataset.beneficiary}\n${releaseForm.dataset.program}\n${releaseForm.dataset.amount}\nClaimant: ${claimant}`;
+        if (!window.confirm(`Confirm payout release?\n\n${facts}`)) event.preventDefault();
+    });
+
+    const broadcast = document.getElementById('broadcast-message');
+    const count = document.getElementById('sms-count');
+    if (broadcast && count) {
+        document.getElementById('broadcast-template')?.addEventListener('change', event => {
+            const selected = event.target.selectedOptions[0];
+            if (selected?.dataset.body) {
+                broadcast.value = selected.dataset.body;
+                broadcast.dispatchEvent(new Event('input'));
+            }
+        });
+        const basic = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ ÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
+        const extended = '^{}\\[~]|€';
+        const sync = () => {
+            const chars = [...broadcast.value];
+            const gsm = chars.every(char => basic.includes(char) || extended.includes(char));
+            const units = gsm ? chars.reduce((n, char) => n + (extended.includes(char) ? 2 : 1), 0) : broadcast.value.length;
+            const single = gsm ? 160 : 70;
+            const multipart = gsm ? 153 : 67;
+            const segments = units ? (units <= single ? 1 : Math.ceil(units / multipart)) : 0;
+            count.textContent = `${chars.length} characters · ${gsm ? 'GSM-7' : 'Unicode'} · ${segments} segment${segments === 1 ? '' : 's'}`;
+        };
+        broadcast.addEventListener('input', sync);
+        sync();
+        document.getElementById('sms-broadcast-form')?.addEventListener('submit', event => {
+            const form = event.currentTarget;
+            const facts = `${form.dataset.audience}\nEligible: ${form.dataset.eligible}\nExcluded: ${form.dataset.excluded}\n${count.textContent}\n\n${broadcast.value}`;
+            if (!window.confirm(`Queue this SMS broadcast?\n\n${facts}`)) event.preventDefault();
+        });
+    }
+}
+
+function initApplicationWizard() {
+    const form = document.getElementById('application-wizard');
+    if (!form) return;
+    const steps = [...form.querySelectorAll('[data-wizard-step]')];
+    const back = document.getElementById('wizard-back');
+    const next = document.getElementById('wizard-next');
+    const submit = document.getElementById('wizard-submit');
+    const progress = document.getElementById('wizard-progress');
+    const labels = ['Senior citizen', 'Program and date', 'Review and submit'];
+    let index = 0;
+    const show = () => {
+        steps.forEach((step, position) => { step.hidden = position !== index; });
+        back.hidden = index === 0;
+        next.hidden = index === steps.length - 1;
+        submit.hidden = index !== steps.length - 1;
+        progress.textContent = `Step ${index + 1} of ${steps.length} · ${labels[index]}`;
+        if (index === 2) {
+            const senior = form.elements.senior_citizen_id.selectedOptions[0]?.textContent || '';
+            const program = form.elements.program_id.selectedOptions[0]?.textContent || '';
+            document.getElementById('application-review').textContent = `${senior} · ${program} · ${form.elements.applied_on.value}`;
+        }
+    };
+    next.addEventListener('click', () => {
+        const controls = [...steps[index].querySelectorAll('input, select, textarea')];
+        if (controls.every(control => control.reportValidity())) { index++; show(); }
+    });
+    back.addEventListener('click', () => { index--; show(); });
+    show();
+}
 
 // Toggle mobile navigation drawer
 function initMobileMenu() {

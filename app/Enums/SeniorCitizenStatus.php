@@ -7,4 +7,5 @@ enum SeniorCitizenStatus: string
     case Pending = 'PENDING';
     case Verified = 'VERIFIED';
     case Archived = 'ARCHIVED';
+    case Deceased = 'DECEASED';
 }

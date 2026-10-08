@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Programs;
 
+use App\Models\Barangay;
 use App\Models\Program;
+use App\Models\SeniorCitizen;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -77,5 +79,19 @@ class ProgramManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Social Pension')
             ->assertSee('Applications: 0');
+    }
+
+    public function test_admin_can_enroll_a_verified_senior_once(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $program = Program::create(['name' => 'Assistance', 'agency' => 'OSCA', 'budget' => 10000, 'status' => 'ACTIVE']);
+        $barangay = Barangay::create(['name' => 'Poblacion', 'code' => 'POB']);
+        $senior = SeniorCitizen::create(['barangay_id' => $barangay->id, 'registration_number' => 'SC-TEST-001', 'first_name' => 'Maria', 'last_name' => 'Santos', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED']);
+        $payload = ['program_id' => $program->id, 'senior_citizen_id' => $senior->id, 'enrolled_on' => today()->toDateString()];
+
+        $this->actingAs($admin)->post(route('programs.beneficiaries.store', $program), $payload)->assertRedirect();
+        $this->assertDatabaseHas('beneficiaries', ['program_id' => $program->id, 'senior_citizen_id' => $senior->id]);
+        $this->post(route('programs.beneficiaries.store', $program), $payload)->assertSessionHasErrors('senior_citizen_id');
+        $this->assertDatabaseCount('beneficiaries', 1);
     }
 }

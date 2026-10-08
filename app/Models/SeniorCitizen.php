@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['barangay_id', 'registration_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'sex', 'civil_status', 'address', 'contact_number', 'osca_id_number', 'status', 'verified_at', 'verified_by'])]
+#[Fillable(['barangay_id', 'registration_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'sex', 'civil_status', 'address', 'contact_number', 'osca_id_number', 'status', 'verified_at', 'verified_by', 'died_on', 'death_declared_at', 'death_declared_by'])]
 class SeniorCitizen extends Model
 {
     protected function casts(): array
@@ -19,6 +19,8 @@ class SeniorCitizen extends Model
             'birth_date' => 'date',
             'verified_at' => 'datetime',
             'status' => SeniorCitizenStatus::class,
+            'died_on' => 'date',
+            'death_declared_at' => 'datetime',
         ];
     }
 
@@ -40,6 +42,11 @@ class SeniorCitizen extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(SeniorCitizenDocument::class);
+    }
+
+    public function beneficiaries(): HasMany
+    {
+        return $this->hasMany(Beneficiary::class);
     }
 
     #[Scope]

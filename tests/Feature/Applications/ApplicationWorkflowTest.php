@@ -88,6 +88,21 @@ class ApplicationWorkflowTest extends TestCase
         $this->assertSame(1, Application::count());
     }
 
+    public function test_rejection_requires_reason_and_terminal_decision_cannot_be_repeated(): void
+    {
+        $staff = $this->user('OSCA_STAFF');
+        $senior = $this->seniorCitizen();
+        $senior->update(['status' => 'VERIFIED']);
+        $program = Program::create(['name' => 'Assistance', 'agency' => 'OSCA', 'budget' => 10000, 'status' => 'ACTIVE']);
+        $application = Application::create(['senior_citizen_id' => $senior->id, 'program_id' => $program->id, 'application_number' => 'APP-TEST-001', 'applied_on' => today(), 'status' => 'PENDING']);
+
+        $this->actingAs($staff)->patch(route('applications.status.update', $application), ['status' => 'REJECTED'])->assertSessionHasErrors('remarks');
+        $this->patch(route('applications.status.update', $application), ['status' => 'REJECTED', 'remarks' => 'Documents incomplete.'])->assertRedirect();
+        $this->assertSame('REJECTED', $application->fresh()->status->value);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'application.status_changed', 'auditable_id' => $application->id]);
+        $this->patch(route('applications.status.update', $application), ['status' => 'APPROVED'])->assertSessionHasErrors('status');
+    }
+
     private function user(string $role): User
     {
         $roleRecord = Role::firstOrCreate(['name' => $role], ['description' => $role]);

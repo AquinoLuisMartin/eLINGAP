@@ -1,13 +1,13 @@
 @extends('layouts.app')
 @section('content')
-<h1>New benefit application</h1>
-@include('components.alert')
-<form method="POST" action="{{ route('applications.store') }}">
-    @csrf
-    <label>Senior citizen <select name="senior_citizen_id" required><option value="">Select senior citizen</option>@foreach ($seniorCitizens as $seniorCitizen)<option value="{{ $seniorCitizen->id }}">{{ $seniorCitizen->full_name }} ({{ $seniorCitizen->registration_number }})</option>@endforeach</select></label>
-    <label>Program <select name="program_id" required><option value="">Select program</option>@foreach ($programs as $program)<option value="{{ $program->id }}">{{ $program->name }}</option>@endforeach</select></label>
-    <label>Applied on <input type="date" name="applied_on" value="{{ old('applied_on', now()->toDateString()) }}" required></label>
-    <label>Remarks <textarea name="remarks">{{ old('remarks') }}</textarea></label>
-    <button type="submit">Submit application</button>
+<a class="text-sm text-osca-primary underline" href="{{ route('applications.index') }}">Back to applications</a><h1 class="my-4 text-3xl font-bold">New benefit application</h1>
+<p class="mb-5 text-slate-600">This workflow links a verified senior citizen to an existing benefit program.</p>
+<form method="GET" class="mb-5 flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4"><label>Find a verified senior <input name="senior_search" value="{{ request('senior_search') }}" required class="mt-1 block rounded border p-2" placeholder="Name or OSCA ID"></label><button class="rounded border px-4 py-2">Search</button></form>
+<form method="POST" action="{{ route('applications.store') }}" id="application-wizard" class="max-w-3xl rounded-lg border bg-white p-5">@csrf
+    <p id="wizard-progress" class="mb-4 text-sm font-semibold text-osca-primary">Step 1 of 3 · Senior citizen</p>
+    <fieldset data-wizard-step="1" class="grid gap-3"><legend class="mb-3 text-lg font-semibold">Select senior citizen</legend><label>Verified senior citizen <select name="senior_citizen_id" required class="mt-1 block w-full rounded border p-2"><option value="">Select senior citizen</option>@foreach ($seniorCitizens as $seniorCitizen)<option value="{{ $seniorCitizen->id }}" @selected(old('senior_citizen_id') == $seniorCitizen->id)>{{ $seniorCitizen->full_name }} ({{ $seniorCitizen->osca_id_number ?: $seniorCitizen->registration_number }})</option>@endforeach</select></label>@if (request('senior_search') && $seniorCitizens->isEmpty())<p class="text-slate-600">No verified seniors matched. Check the name or OSCA ID.</p>@endif</fieldset>
+    <fieldset data-wizard-step="2" class="grid gap-3"><legend class="mb-3 text-lg font-semibold">Program and date</legend><label>Program <select name="program_id" required class="mt-1 block w-full rounded border p-2"><option value="">Select program</option>@foreach ($programs as $program)<option value="{{ $program->id }}" @selected(old('program_id') == $program->id)>{{ $program->name }}</option>@endforeach</select></label><label>Applied on <input type="date" name="applied_on" value="{{ old('applied_on', now()->toDateString()) }}" required class="mt-1 block w-full rounded border p-2"></label><label>Remarks <textarea name="remarks" class="mt-1 block w-full rounded border p-2">{{ old('remarks') }}</textarea></label></fieldset>
+    <fieldset data-wizard-step="3" class="grid gap-3"><legend class="mb-3 text-lg font-semibold">Review and submit</legend><p>Confirm the senior and program before submitting. Existing applications for the same senior and program are rejected by the server.</p><p id="application-review" class="rounded bg-slate-50 p-3"></p></fieldset>
+    <div class="sticky bottom-0 mt-5 flex flex-wrap items-center gap-3 border-t bg-white py-4"><button type="button" id="wizard-back" class="rounded border px-4 py-2">Back</button><button type="button" id="wizard-next" class="rounded bg-osca-primary px-4 py-2 text-white">Continue</button><button type="submit" id="wizard-submit" class="rounded bg-osca-primary px-4 py-2 text-white">Submit application</button><a href="{{ route('applications.index') }}" class="text-sm underline">Cancel</a></div>
 </form>
 @endsection

@@ -8,13 +8,14 @@ use App\Models\SmsMessage;
 
 class SmsService
 {
-    public function queue(string $recipientNumber, string $message, ?int $userId = null, ?int $seniorCitizenId = null): SmsMessage
+    public function queue(string $recipientNumber, string $message, ?int $userId = null, ?int $seniorCitizenId = null, ?int $blastId = null): SmsMessage
     {
         $smsMessage = SmsMessage::create([
             'recipient_number' => $recipientNumber,
             'message' => $message,
             'created_by' => $userId,
             'senior_citizen_id' => $seniorCitizenId,
+            'sms_blast_id' => $blastId,
             'status' => SmsStatus::Queued,
             'queued_at' => now(),
         ]);

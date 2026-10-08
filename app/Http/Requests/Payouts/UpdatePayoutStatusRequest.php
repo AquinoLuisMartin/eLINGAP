@@ -13,6 +13,15 @@ class UpdatePayoutStatusRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['status' => ['required', 'string', 'in:PENDING,RELEASED,FAILED']];
+        return [
+            'status' => ['required', 'in:RELEASED'],
+            'claimant_type' => ['required', 'in:SELF,PROXY'],
+            'claimant_name' => ['required_if:claimant_type,PROXY', 'nullable', 'string', 'max:200'],
+            'claimant_relationship' => ['required_if:claimant_type,PROXY', 'nullable', 'string', 'max:100'],
+            'claimant_contact' => ['required_if:claimant_type,PROXY', 'nullable', 'string', 'max:30'],
+            'osca_id_checked' => ['accepted'],
+            'authorization_checked' => ['required_if:claimant_type,PROXY', 'accepted_if:claimant_type,PROXY'],
+            'representative_id_checked' => ['required_if:claimant_type,PROXY', 'accepted_if:claimant_type,PROXY'],
+        ];
     }
 }

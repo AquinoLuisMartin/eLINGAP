@@ -5,6 +5,7 @@ namespace App\Jobs\Sms;
 use App\Enums\SmsStatus;
 use App\Models\SmsMessage;
 use App\Services\Sms\SmsGateway;
+use App\Services\Sms\SmsText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -27,6 +28,16 @@ class SendSmsJob implements ShouldQueue
         $smsMessage = SmsMessage::query()->findOrFail($this->smsMessageId);
         if ($smsMessage->status !== SmsStatus::Queued) {
             return;
+        }
+
+        if ($smsMessage->senior_citizen_id) {
+            $senior = $smsMessage->seniorCitizen;
+            if ($senior?->status?->value !== 'VERIFIED' || SmsText::mobile($senior->contact_number) !== $smsMessage->recipient_number) {
+                $smsMessage->update(['status' => SmsStatus::Failed, 'failure_reason' => 'Recipient is no longer eligible.']);
+                $smsMessage->deliveryLogs()->create(['status' => SmsStatus::Failed, 'response_payload' => ['error' => 'Recipient is no longer eligible.'], 'recorded_at' => now()]);
+
+                return;
+            }
         }
 
         $result = $gateway->send($smsMessage->recipient_number, $smsMessage->message, 'sms-'.$smsMessage->id);

@@ -27,4 +27,9 @@ class PayoutPolicy
     {
         return $this->viewAny($user);
     }
+
+    public function reverse(User $user, Payout $payout): bool
+    {
+        return $user->isAdmin();
+    }
 }

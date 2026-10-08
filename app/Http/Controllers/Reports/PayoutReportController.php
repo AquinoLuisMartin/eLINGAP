@@ -4,16 +4,15 @@ namespace App\Http\Controllers\Reports;
 
 use App\Http\Controllers\Controller;
 use App\Models\Application;
-use App\Services\Reports\PayoutReportService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\View\View;
 
 class PayoutReportController extends Controller
 {
-    public function __invoke(PayoutReportService $service): View
+    public function __invoke(): RedirectResponse
     {
         Gate::authorize('viewAny', Application::class);
 
-        return view('reports.payouts', ['summary' => $service->summary()]);
+        return redirect()->route('reports.workspace', 'payouts');
     }
 }

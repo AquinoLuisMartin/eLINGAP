@@ -5,17 +5,20 @@ use App\Http\Controllers\Administration\UserController;
 use App\Http\Controllers\Administration\UserPasswordController;
 use App\Http\Controllers\Administration\UserStatusController;
 use App\Http\Controllers\Applications\ApplicationController;
-use App\Http\Controllers\Programs\BeneficiaryController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Payouts\PayoutController;
 use App\Http\Controllers\Payouts\PayoutScheduleController;
+use App\Http\Controllers\Programs\BeneficiaryController;
 use App\Http\Controllers\Programs\ProgramController;
 use App\Http\Controllers\Reports\ApplicationReportController;
 use App\Http\Controllers\Reports\DemographicsReportController;
 use App\Http\Controllers\Reports\PayoutReportController;
 use App\Http\Controllers\Reports\ReportController;
+use App\Http\Controllers\Reports\StaffReportController;
 use App\Http\Controllers\SeniorCitizens\SeniorCitizenController;
+use App\Http\Controllers\SeniorCitizens\SeniorCitizenDeathController;
 use App\Http\Controllers\Sms\SmsBlastController;
 use App\Http\Controllers\Sms\SmsMessageController;
 use App\Http\Controllers\Sms\SmsTemplateController;
@@ -38,6 +41,9 @@ Route::middleware(['auth', 'auth.session', 'active'])->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
     Route::resource('senior-citizens', SeniorCitizenController::class)->except(['destroy']);
+    Route::post('senior-citizens/{senior_citizen}/death', [SeniorCitizenDeathController::class, 'store'])->name('senior-citizens.death.store');
+    Route::patch('senior-citizens/{senior_citizen}/death', [SeniorCitizenDeathController::class, 'correct'])->name('senior-citizens.death.correct');
+    Route::get('senior-citizens/{senior_citizen}/photo', [SeniorCitizenController::class, 'photo'])->name('senior-citizens.photo');
     Route::resource('programs', ProgramController::class)->only(['index', 'show']);
     Route::view('applications/verify', 'applications.verify')->name('applications.verify');
     Route::resource('applications', ApplicationController::class)->only(['index', 'create', 'store', 'show']);
@@ -47,6 +53,7 @@ Route::middleware(['auth', 'auth.session', 'active'])->group(function () {
     Route::get('payouts', [PayoutController::class, 'index'])->name('payouts.index');
     Route::get('payouts/{payout}', [PayoutController::class, 'show'])->name('payouts.show');
     Route::patch('payouts/{payout}/status', [PayoutController::class, 'updateStatus'])->name('payouts.status.update');
+    Route::patch('payouts/{payout}/reverse', [PayoutController::class, 'reverse'])->name('payouts.reverse');
     Route::get('payout-schedules', [PayoutScheduleController::class, 'index'])->name('payout-schedules.index');
     Route::get('payout-schedules/create', [PayoutScheduleController::class, 'create'])->name('payout-schedules.create');
     Route::post('payout-schedules', [PayoutScheduleController::class, 'store'])->name('payout-schedules.store');
@@ -57,17 +64,21 @@ Route::middleware(['auth', 'auth.session', 'active'])->group(function () {
     Route::get('sms/messages', [SmsMessageController::class, 'index'])->name('sms.messages.index');
     Route::get('sms/messages/create', [SmsMessageController::class, 'create'])->name('sms.messages.create');
     Route::post('sms/messages', [SmsMessageController::class, 'store'])->name('sms.messages.store');
-    Route::get('sms/blasts', fn () => view('sms.blasts.index'))->name('sms.blasts.index');
+    Route::get('sms/blasts', [SmsBlastController::class, 'index'])->name('sms.blasts.index');
     Route::get('sms/blasts/create', [SmsBlastController::class, 'create'])->name('sms.blasts.create');
+    Route::get('sms/blasts/{blast}', [SmsBlastController::class, 'show'])->name('sms.blasts.show');
     Route::post('sms/blasts', [SmsBlastController::class, 'store'])->name('sms.blasts.store');
+    Route::post('sms/messages/{message}/retry', [SmsBlastController::class, 'retry'])->name('sms.messages.retry');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('reports/applications', ApplicationReportController::class)->name('reports.applications');
     Route::get('reports/demographics', DemographicsReportController::class)->name('reports.demographics');
     Route::get('reports/payouts', PayoutReportController::class)->name('reports.payouts');
+    Route::get('reports/workspace/{type}', [StaffReportController::class, 'show'])->name('reports.workspace');
+    Route::get('reports/workspace/{type}/export', [StaffReportController::class, 'export'])->name('reports.export');
 
     // OSCA Staff side (existing placeholder views; no new UI).
     Route::middleware('role:'.UserRole::OscaStaff->value)->group(function () {
-        Route::view('dashboard', 'dashboard.index')->name('dashboard');
+        Route::get('dashboard', DashboardController::class)->name('dashboard');
     });
 
     // Admin side.
