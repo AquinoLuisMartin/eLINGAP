@@ -33,5 +33,6 @@ boost.json
 CLAUDE.md
 AGENTS.md
 eLINGAP.md
+elingap_schema.sql
 /docs
 /docs/activity-log.md
