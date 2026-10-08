@@ -1,6 +1,15 @@
+import Alpine from 'alpinejs';
+import collapse from '@alpinejs/collapse';
+
 // Landing page interactions
 
 document.addEventListener('DOMContentLoaded', () => {
+    if (!window.Alpine) {
+        window.Alpine = Alpine;
+        Alpine.plugin(collapse);
+        Alpine.start();
+    }
+
     initStaffControls();
     initApplicationWizard();
     initMobileMenu();

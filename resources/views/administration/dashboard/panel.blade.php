@@ -125,7 +125,7 @@
     </aside>
 
     {{-- Profile Flyout Menu --}}
-    <div class="profile-menu-backdrop" x-show="profileOpen" @click="profileOpen = false" style="display: none;"></div>
+    <div class="profile-menu-backdrop" x-show="profileOpen" style="display: none;"></div>
     <aside class="profile-menu" role="menu" x-show="profileOpen" @click.stop style="display: none;">
         <div class="profile-menu-header">
             <div class="profile-menu-avatar">{{ mb_substr($this->currentUser->first_name, 0, 1).mb_substr($this->currentUser->last_name, 0, 1) }}</div>

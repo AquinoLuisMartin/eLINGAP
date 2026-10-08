@@ -1,5 +1,5 @@
 {{-- Notifications Slide-in Drawer --}}
-<div class="notification-drawer-backdrop" x-show="notificationsOpen" x-transition.opacity @click="notificationsOpen = false" style="display: none;">
+<div class="notification-drawer-backdrop" x-show="notificationsOpen" x-transition.opacity style="display: none;">
     <aside class="notification-drawer" @click.stop>
         <div class="drawer-heading">
             <div>
