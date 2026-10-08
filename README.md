@@ -3,9 +3,6 @@
 
 
 # eLINGAP : An Integrated Web-Based Records Management and Automated SMS Notification System for the Office of the Senior Citizens Affairs of Santa Maria, Bulacan.
-
-eLINGAP centralizes senior citizen records, program applications, beneficiaries, payout workflows, and SMS notifications for OSCA staff and administrators.
-
 ## Current Features
 
 - Public landing page, login, password reset, and role-based dashboards.
