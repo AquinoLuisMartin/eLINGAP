@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use Database\Seeders\UserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -12,6 +13,17 @@ use Tests\TestCase;
 class AccountProvisioningTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_user_seeder_can_run_without_preexisting_roles(): void
+    {
+        $this->seed(UserSeeder::class);
+        $this->seed(UserSeeder::class);
+
+        $this->assertDatabaseCount('roles', 2);
+        $this->assertDatabaseCount('users', 2);
+        $this->assertSame(1, User::active()->whereRelation('role', 'name', 'ADMIN')->count());
+        $this->assertSame(1, User::active()->whereRelation('role', 'name', 'OSCA_STAFF')->count());
+    }
 
     public function test_default_seeding_creates_roles_and_initial_accounts(): void
     {

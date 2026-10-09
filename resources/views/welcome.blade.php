@@ -494,7 +494,7 @@
     </div>
 
     {{-- Login modal --}}
-    <div id="login-modal" class="fixed inset-0 z-50 {{ $errors->any() ? '' : 'hidden' }} bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="login-modal-title" aria-describedby="login-modal-description">
+    <div id="login-modal" class="fixed inset-0 z-50 {{ ($showLogin ?? false) || $errors->any() ? '' : 'hidden' }} bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="login-modal-title" aria-describedby="login-modal-description">
         <div class="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 sm:p-7 shadow-2xl my-auto">
             <div class="flex items-start justify-between gap-4">
                 <div>

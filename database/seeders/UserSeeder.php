@@ -14,6 +14,8 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(RoleSeeder::class);
+
         $this->upsertUser(
             username: 'Marie Cruz',
             password: 'admin123',

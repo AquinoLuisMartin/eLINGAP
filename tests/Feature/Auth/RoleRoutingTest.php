@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
 
 class RoleRoutingTest extends TestCase
@@ -92,6 +93,22 @@ class RoleRoutingTest extends TestCase
 
         $response->assertRedirect(route('administration.dashboard'));
         $this->assertAuthenticatedAs($this->admin);
+    }
+
+    #[TestWith([true, 'administration.dashboard'])]
+    #[TestWith([false, 'dashboard'])]
+    public function test_accounts_without_email_can_login_with_a_spaced_username_and_access_their_dashboard(bool $admin, string $dashboard): void
+    {
+        $user = $admin ? $this->admin : $this->staff;
+        $user->update(['username' => $user->first_name.' '.$user->last_name, 'email' => null]);
+
+        $this->post(route('login'), [
+            'email' => Str::upper($user->username),
+            'password' => $this->password,
+        ])->assertRedirect(route($dashboard));
+
+        $this->assertAuthenticatedAs($user);
+        $this->get(route($dashboard))->assertOk();
     }
 
     public function test_logout_redirects_to_the_homepage(): void
