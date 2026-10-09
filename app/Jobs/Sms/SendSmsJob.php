@@ -52,7 +52,8 @@ class SendSmsJob implements ShouldQueue
             return;
         }
 
-        $smsMessage->update(['status' => SmsStatus::Failed, 'failure_reason' => $exception?->getMessage()]);
-        $smsMessage->deliveryLogs()->create(['status' => SmsStatus::Failed, 'response_payload' => ['error' => $exception?->getMessage()], 'recorded_at' => now()]);
+        $reason = 'SMS delivery failed. Check the provider configuration and delivery status before retrying.';
+        $smsMessage->update(['status' => SmsStatus::Failed, 'failure_reason' => $reason]);
+        $smsMessage->deliveryLogs()->create(['status' => SmsStatus::Failed, 'response_payload' => ['error' => $reason], 'recorded_at' => now()]);
     }
 }

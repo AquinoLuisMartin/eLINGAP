@@ -73,7 +73,7 @@ class SeniorCitizenController extends Controller
                 ]);
 
                 if ($photo = $request->file('photo')) {
-                    $photoPath = $photo->store('senior-photos');
+                    $photoPath = $photo->store('senior-photos', 'local');
                     $seniorCitizen->documents()->create(['document_type' => 'PHOTO', 'path' => $photoPath, 'original_name' => $photo->getClientOriginalName(), 'mime_type' => $photo->getMimeType(), 'size' => $photo->getSize(), 'uploaded_by' => $request->user()->id]);
                 }
 
@@ -88,7 +88,7 @@ class SeniorCitizenController extends Controller
             });
         } catch (Throwable $exception) {
             if ($photoPath) {
-                Storage::delete($photoPath);
+                Storage::disk('local')->delete($photoPath);
             }
             throw $exception;
         }
@@ -111,7 +111,7 @@ class SeniorCitizenController extends Controller
         Gate::authorize('view', $seniorCitizen);
         $photo = $seniorCitizen->documents()->where('document_type', 'PHOTO')->latest('id')->firstOrFail();
 
-        $response = response()->file(Storage::path($photo->path), ['Content-Type' => $photo->mime_type]);
+        $response = response()->file(Storage::disk('local')->path($photo->path), ['Content-Type' => $photo->mime_type]);
         $response->setPrivate();
         $response->headers->addCacheControlDirective('no-store');
 
@@ -139,7 +139,7 @@ class SeniorCitizenController extends Controller
                 $oldValues = $seniorCitizen->only(array_keys($data));
                 $seniorCitizen->update($data);
                 if ($photo = $request->file('photo')) {
-                    $photoPath = $photo->store('senior-photos');
+                    $photoPath = $photo->store('senior-photos', 'local');
                     $seniorCitizen->documents()->create(['document_type' => 'PHOTO', 'path' => $photoPath, 'original_name' => $photo->getClientOriginalName(), 'mime_type' => $photo->getMimeType(), 'size' => $photo->getSize(), 'uploaded_by' => $request->user()->id]);
                 }
                 $seniorCitizen->histories()->create([
@@ -151,7 +151,7 @@ class SeniorCitizenController extends Controller
             });
         } catch (Throwable $exception) {
             if ($photoPath) {
-                Storage::delete($photoPath);
+                Storage::disk('local')->delete($photoPath);
             }
             throw $exception;
         }

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Administration;
 
 use App\Models\User;
+use App\Rules\PasswordInput;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -28,7 +29,7 @@ class StoreUserRequest extends FormRequest
             'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
             'name_suffix' => ['nullable', 'string', 'max:20'],
-            'password' => ['required', 'string', 'confirmed', Password::defaults()],
+            'password' => ['required', 'string', 'confirmed', new PasswordInput, Password::defaults()],
             'is_active' => ['boolean'],
         ];
     }

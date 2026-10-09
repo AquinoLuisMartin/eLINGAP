@@ -11,6 +11,7 @@ use App\Models\SeniorCitizen;
 use App\Models\SmsBlast;
 use App\Models\SystemConfiguration;
 use App\Models\User;
+use App\Rules\PasswordInput;
 use App\Services\Auth\LoginLogger;
 use App\Services\Reports\AdminDashboardReport;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -170,8 +171,8 @@ class Dashboard extends Component
     {
         try {
             $validated = $this->validate([
-                'passwordForm.current' => ['required', 'string', 'current_password'],
-                'passwordForm.next' => ['required', 'string', Password::defaults()],
+                'passwordForm.current' => ['required', 'string', new PasswordInput, 'current_password'],
+                'passwordForm.next' => ['required', 'string', new PasswordInput, Password::defaults()],
                 'passwordForm.confirm' => ['required', 'same:passwordForm.next'],
             ]);
 

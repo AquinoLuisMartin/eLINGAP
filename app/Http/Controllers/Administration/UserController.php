@@ -18,6 +18,10 @@ class UserController extends Controller
     public function index(Request $request): View
     {
         Gate::authorize('viewAny', User::class);
+        $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'role' => ['nullable', 'in:ADMIN,OSCA_STAFF'],
+        ]);
 
         $users = User::query()
             ->with('role')

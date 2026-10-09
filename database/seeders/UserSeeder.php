@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
@@ -14,11 +15,15 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
+        if (! app()->environment(['local', 'testing'])) {
+            return;
+        }
+
         $this->call(RoleSeeder::class);
 
         $this->upsertUser(
             username: 'Marie Cruz',
-            password: 'admin123',
+            password: Str::password(),
             firstName: 'Marie',
             lastName: 'Cruz',
             role: UserRole::Admin,
@@ -26,7 +31,7 @@ class UserSeeder extends Seeder
 
         $this->upsertUser(
             username: 'Pedro Silva',
-            password: 'osca123',
+            password: Str::password(),
             firstName: 'Pedro',
             lastName: 'Silva',
             role: UserRole::OscaStaff,
@@ -42,7 +47,7 @@ class UserSeeder extends Seeder
     ): void {
         $roleRecord = Role::query()->where('name', $role->value)->firstOrFail();
 
-        User::query()->updateOrCreate(
+        User::query()->firstOrCreate(
             ['username' => $username],
             [
                 'role_id' => $roleRecord->id,

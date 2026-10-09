@@ -21,9 +21,9 @@ class PasswordResetController extends Controller
 
     public function sendRequest(ForgotPasswordRequest $request): RedirectResponse
     {
-        $status = Password::sendResetLink($request->only('email'));
+        Password::sendResetLink($request->only('email'));
 
-        return back()->with('status', __($status));
+        return back()->with('status', 'If an account matches that email address, a password reset link will be sent.');
     }
 
     public function createReset(string $token): View

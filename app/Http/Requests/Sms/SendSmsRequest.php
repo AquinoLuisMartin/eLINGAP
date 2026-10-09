@@ -13,7 +13,7 @@ class SendSmsRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
-        if ($this->filled('recipient_number') && $mobile = SmsText::mobile($this->input('recipient_number'))) {
+        if (is_string($this->input('recipient_number')) && $mobile = SmsText::mobile($this->input('recipient_number'))) {
             $this->merge(['recipient_number' => $mobile]);
         }
     }

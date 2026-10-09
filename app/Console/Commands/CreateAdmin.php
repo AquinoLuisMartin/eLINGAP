@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\UserRole;
 use App\Models\Role;
 use App\Models\User;
+use App\Rules\PasswordInput;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -40,7 +41,7 @@ class CreateAdmin extends Command
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
-            'password' => ['required', 'string', 'confirmed', Password::defaults()],
+            'password' => ['required', 'string', 'confirmed', new PasswordInput, Password::defaults()],
         ]);
 
         if ($validator->fails()) {

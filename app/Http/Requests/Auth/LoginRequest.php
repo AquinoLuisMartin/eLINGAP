@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Rules\PasswordInput;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Http\FormRequest;
@@ -21,7 +22,7 @@ class LoginRequest extends FormRequest
     {
         return [
             'email' => ['required', 'string', 'max:255'],
-            'password' => ['required', 'string'],
+            'password' => ['required', 'string', new PasswordInput],
             'remember' => ['boolean'],
         ];
     }

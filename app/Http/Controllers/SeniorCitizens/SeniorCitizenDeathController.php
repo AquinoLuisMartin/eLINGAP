@@ -25,7 +25,7 @@ class SeniorCitizenDeathController extends Controller
                 $senior = SeniorCitizen::query()->lockForUpdate()->findOrFail($seniorCitizen->id);
                 abort_if($senior->status === SeniorCitizenStatus::Deceased, 409, 'Death has already been declared.');
                 $document = $request->file('death_document');
-                $path = $document->store('senior-documents');
+                $path = $document->store('senior-documents', 'local');
                 $oldStatus = $senior->status->value;
                 $senior->update(['status' => SeniorCitizenStatus::Deceased, 'died_on' => $validated['died_on'], 'death_declared_at' => now(), 'death_declared_by' => $request->user()->id]);
                 $senior->documents()->create(['document_type' => 'DEATH_CERTIFICATE', 'path' => $path, 'original_name' => $document->getClientOriginalName(), 'mime_type' => $document->getMimeType(), 'size' => $document->getSize(), 'uploaded_by' => $request->user()->id]);
@@ -34,7 +34,7 @@ class SeniorCitizenDeathController extends Controller
             });
         } catch (Throwable $exception) {
             if ($path) {
-                Storage::delete($path);
+                Storage::disk('local')->delete($path);
             }
             throw $exception;
         }

@@ -12,7 +12,7 @@ class UpdateSeniorCitizenRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
-        if ($this->filled('contact_number') && $mobile = SmsText::mobile($this->input('contact_number'))) {
+        if (is_string($this->input('contact_number')) && $mobile = SmsText::mobile($this->input('contact_number'))) {
             $this->merge(['contact_number' => $mobile]);
         }
     }
