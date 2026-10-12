@@ -53,6 +53,7 @@ class ApplicationController extends Controller
                 ->where('status', 'VERIFIED')->searchable($search)
                 ->orderBy('last_name')->limit(25)->get() : collect(),
             'programs' => Program::query()
+                ->whereNull('benefit_code')
                 ->select(['id', 'name'])
                 ->whereIn('status', ['ACTIVE', 'UPCOMING'])
                 ->orderBy('name')

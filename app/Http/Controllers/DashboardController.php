@@ -5,14 +5,21 @@ namespace App\Http\Controllers;
 use App\Enums\ApplicationStatus;
 use App\Enums\SeniorCitizenStatus;
 use App\Models\Application;
+use App\Models\BenefitEntitlement;
 use App\Models\SeniorCitizen;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __invoke(): View
+    public function __invoke(Request $request): View|RedirectResponse
     {
+        if ($request->user()->isAdmin()) {
+            return redirect()->route('administration.dashboard');
+        }
+
         Gate::authorize('viewAny', SeniorCitizen::class);
         $active = SeniorCitizen::query()->where('status', SeniorCitizenStatus::Verified->value);
         $ageGroups = [
@@ -25,6 +32,7 @@ class DashboardController extends Controller
         return view('dashboard.index', [
             'activeCount' => (clone $active)->count(),
             'readyCount' => Application::query()->where('status', ApplicationStatus::Approved->value)->count(),
+            'benefitCounts' => BenefitEntitlement::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
             'milestoneCount' => (clone $active)->where(function ($query) {
                 foreach ([80, 90, 100] as $age) {
                     $query->orWhereBetween('birth_date', [today()->subYears($age), today()->subYears($age - 1)->subDay()]);

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['created_by', 'barangay_id', 'message', 'recipient_count', 'excluded_count'])]
+#[Fillable(['created_by', 'barangay_id', 'message', 'recipient_count', 'excluded_count', 'benefit_schedule_id', 'approval_hash'])]
 class SmsBlast extends Model
 {
     public function creator(): BelongsTo

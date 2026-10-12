@@ -1,4 +1,4 @@
-<section class="page-intro"><div><p class="section-kicker">Registry management</p><h2>Senior Records Registry</h2><p class="section-subtitle">{{ number_format($this->summary['seniors']) }} registered seniors across {{ number_format($this->barangayCounts->count()) }} barangays.</p></div><a class="primary-button" href="{{ route('senior-citizens.create') }}"><x-admin.icon name="plus" size="17" /> Add New Senior</a></section>
+<section class="page-intro"><div><p class="section-kicker">Registry monitoring</p><h2>Senior Records Registry</h2><p class="section-subtitle">{{ number_format($this->summary['seniors']) }} registered seniors across {{ number_format($this->barangayCounts->count()) }} barangays.</p></div></section>
 <div class="stat-strip">
     @foreach ($this->registryCounts as $label => $total)
         <div class="mini-stat" wire:key="registry-count-{{ $loop->index }}"><span class="mini-stat-dot blue"></span><div><small>{{ $label }}</small><strong>{{ number_format($total) }}</strong></div></div>
@@ -15,9 +15,9 @@
         @forelse ($this->filteredRecords as $record)
             <tr wire:key="record-{{ $record->id }}"><td>{{ $record->osca_id_number ?? $record->registration_number }}</td><td>{{ $record->full_name }}</td><td>{{ $record->barangay?->name ?? 'Unassigned' }}</td><td>{{ $record->birth_date->age }}</td><td><span class="status-badge {{ $record->status->value === 'VERIFIED' ? 'active' : 'pending' }}">{{ ucfirst(strtolower($record->status->value)) }}</span></td><td>{{ $record->updated_at->format('M j, Y') }}</td><td><a class="text-button" href="{{ route('senior-citizens.show', $record) }}">View</a></td></tr>
         @empty
-            <tr><td colspan="7"><div class="empty-log-state"><strong>No matching senior records</strong><span>Add a record or adjust your search and status filter.</span></div></td></tr>
+            <tr><td colspan="7"><div class="empty-log-state"><strong>No matching senior records</strong><span>Adjust your search and status filter. Senior registration is managed by OSCA staff.</span></div></td></tr>
         @endforelse
     </tbody></table></div>
-    {{ $this->filteredRecords->links() }}
+    {{ $this->filteredRecords->links('administration.dashboard.pagination') }}
     <div class="table-footer"><span>Showing {{ $this->filteredRecords->firstItem() ?? 0 }}-{{ $this->filteredRecords->lastItem() ?? 0 }} of {{ number_format($this->filteredRecords->total()) }} matching records</span></div>
 </div>

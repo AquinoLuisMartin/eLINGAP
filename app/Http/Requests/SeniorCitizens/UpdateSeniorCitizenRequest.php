@@ -3,18 +3,18 @@
 namespace App\Http\Requests\SeniorCitizens;
 
 use App\Models\SeniorCitizen;
-use App\Services\Sms\SmsText;
+use App\Services\SeniorCitizens\SeniorRegistrationInput;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class UpdateSeniorCitizenRequest extends FormRequest
 {
+    use RepresentativeRules;
+
     protected function prepareForValidation(): void
     {
-        if (is_string($this->input('contact_number')) && $mobile = SmsText::mobile($this->input('contact_number'))) {
-            $this->merge(['contact_number' => $mobile]);
-        }
+        $this->normalizeContacts();
     }
 
     public function authorize(): bool
@@ -24,8 +24,6 @@ class UpdateSeniorCitizenRequest extends FormRequest
 
     public function rules(): array
     {
-        $seniorCitizen = $this->route('senior_citizen');
-
         return [
             'barangay_id' => ['required', 'integer', Rule::exists('barangays', 'id')->where('is_active', true)],
             'first_name' => ['required', 'string', 'max:100'],
@@ -34,11 +32,12 @@ class UpdateSeniorCitizenRequest extends FormRequest
             'name_suffix' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['required', 'date', 'before_or_equal:'.now()->subYears(60)->toDateString()],
             'sex' => ['required', 'string', 'in:MALE,FEMALE,OTHER'],
-            'civil_status' => ['nullable', 'string', 'max:30'],
+            'civil_status' => ['nullable', 'string', 'in:SINGLE,MARRIED,WIDOWED'],
             'address' => ['required', 'string', 'max:1000'],
             'contact_number' => ['nullable', 'string', 'regex:/^\+639\d{9}$/'],
-            'osca_id_number' => ['nullable', 'string', 'max:50', 'unique:senior_citizens,osca_id_number,'.$seniorCitizen?->id],
+            'osca_id_number' => ['missing'],
             'photo' => ['nullable', 'image', 'mimes:jpeg,png', 'dimensions:ratio=1/1', 'max:2048'],
+            ...$this->representativeRules(),
         ];
     }
 
@@ -52,10 +51,15 @@ class UpdateSeniorCitizenRequest extends FormRequest
                 ->where('birth_date', $this->input('birth_date'))
                 ->whereRaw('lower(first_name) = ?', [mb_strtolower($this->input('first_name'))])
                 ->whereRaw('lower(last_name) = ?', [mb_strtolower($this->input('last_name'))])
-                ->whereNotIn('status', ['ARCHIVED', 'DECEASED'])->exists();
+                ->exists();
             if ($duplicate) {
                 $validator->errors()->add('first_name', 'A senior citizen with this name and birth date already exists.');
             }
         }];
+    }
+
+    public function messages(): array
+    {
+        return SeniorRegistrationInput::messages();
     }
 }

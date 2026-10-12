@@ -10,7 +10,7 @@ class StoreBeneficiaryRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('create', Beneficiary::class) ?? false;
+        return ! $this->route('program')->benefit_code && ($this->user()?->can('create', Beneficiary::class) ?? false);
     }
 
     public function rules(): array

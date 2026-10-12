@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\SeniorCitizen;
 use App\Models\User;
@@ -38,6 +39,7 @@ class InputSecurityTest extends TestCase
 
         $this->assertDatabaseCount('senior_citizens', $operation === 'update' ? 1 : 0);
         $this->assertDatabaseEmpty('sms_messages');
-        $this->assertDatabaseEmpty('audit_logs');
+        $this->assertSame(0, AuditLog::where('action', 'not like', 'access.%')->count());
+        $this->assertDatabaseCount('audit_logs', 1);
     }
 }

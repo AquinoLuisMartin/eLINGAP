@@ -10,34 +10,31 @@
     <a href="{{ route('senior-citizens.index', ['status' => 'VERIFIED']) }}" class="primary-button">View senior registry</a>
 </section>
 
+<section class="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Benefit status totals">
+    @foreach (\App\Enums\BenefitStatus::cases() as $state)
+        <a href="{{ route('benefits.workspace') }}" class="metric-card"><p class="metric-label">{{ $state->label() }} benefits</p><p class="metric-value">{{ number_format($benefitCounts[$state->value] ?? 0) }}</p><p class="text-sm text-slate-500">Open schedules and reports</p></a>
+    @endforeach
+</section>
 <section class="metric-grid">
     <a href="{{ route('senior-citizens.index', ['status' => 'VERIFIED']) }}" class="metric-card">
-        <div class="metric-icon blue"><x-admin.icon name="users" size="19" /></div>
-        <div class="metric-label">Total Active Seniors</div>
-        <div class="metric-value">{{ number_format($activeCount) }}</div>
+        <p class="metric-label">Total Active Seniors</p>
+        <p class="metric-value">{{ number_format($activeCount) }}</p>
         <div class="metric-bottom"><span>Verified registry records</span></div>
-        <div class="metric-progress blue"><i style="width: {{ $activeCount ? 100 : 0 }}%;"></i></div>
     </a>
     <a href="{{ route('applications.index', ['status' => 'APPROVED']) }}" class="metric-card">
-        <div class="metric-icon mint"><x-admin.icon name="clipboard-list" size="19" /></div>
-        <div class="metric-label">Approved Applications</div>
-        <div class="metric-value">{{ number_format($readyCount) }}</div>
+        <p class="metric-label">Approved Applications</p>
+        <p class="metric-value">{{ number_format($readyCount) }}</p>
         <div class="metric-bottom"><span>Ready for processing</span></div>
-        <div class="metric-progress mint"><i style="width: {{ $readyCount ? 100 : 0 }}%;"></i></div>
     </a>
     <div class="metric-card">
-        <div class="metric-icon amber"><x-admin.icon name="calendar-days" size="19" /></div>
-        <div class="metric-label">Upcoming Milestones</div>
-        <div class="metric-value">{{ number_format($milestoneCount) }}</div>
+        <p class="metric-label">Upcoming Milestones</p>
+        <p class="metric-value">{{ number_format($milestoneCount) }}</p>
         <div class="metric-bottom"><span>80, 90 and 100-year milestones</span></div>
-        <div class="metric-progress amber"><i style="width: {{ $milestoneCount ? 100 : 0 }}%;"></i></div>
     </div>
     <div class="metric-card">
-        <div class="metric-icon violet"><x-admin.icon name="archive" size="19" /></div>
-        <div class="metric-label">Barangays Covered</div>
-        <div class="metric-value">{{ number_format($barangays->count()) }}</div>
+        <p class="metric-label">Barangays Covered</p>
+        <p class="metric-value">{{ number_format($barangays->count()) }}</p>
         <div class="metric-bottom"><span>Active areas in the registry</span></div>
-        <div class="metric-progress violet"><i style="width: {{ $barangays->count() ? 100 : 0 }}%;"></i></div>
     </div>
 </section>
 
@@ -101,7 +98,7 @@
             @forelse ($statuses as $status => $count)
                 <div class="task-row">
                     <span class="task-icon mint"><x-admin.icon name="clipboard-list" size="15" /></span>
-                    <div><strong><x-badge :status="$status" /></strong><small>Registry records</small></div>
+                    <div><span><x-badge :status="$status" /></span><small>Registry records</small></div>
                     <strong>{{ number_format($count) }}</strong>
                 </div>
             @empty

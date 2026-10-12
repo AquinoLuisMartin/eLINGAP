@@ -16,7 +16,7 @@ class StorePayoutScheduleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'program_id' => ['required', 'integer', Rule::exists('programs', 'id')->whereIn('status', ['ACTIVE', 'UPCOMING'])],
+            'program_id' => ['required', 'integer', Rule::exists('programs', 'id')->whereNull('benefit_code')->whereIn('status', ['ACTIVE', 'UPCOMING'])],
             'reference_number' => ['required', 'string', 'max:40', 'unique:payout_schedules,reference_number'],
             'scheduled_on' => ['required', 'date'],
             'amount' => ['required', 'numeric', 'min:0.01'],

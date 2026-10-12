@@ -7,33 +7,28 @@
             <h2>Senior citizen masterlist</h2>
             <p class="section-subtitle">Manage senior citizen records and registration status across OSCA Santa Maria.</p>
         </div>
+        @can('create', \App\Models\SeniorCitizen::class)
         <a class="primary-button" href="{{ route('senior-citizens.create') }}">
             <x-admin.icon name="plus" size="17" /> Register senior citizen
         </a>
+        @endcan
     </section>
 
-    <div class="stat-strip">
+    <dl class="stat-strip" aria-label="Registry totals">
         @foreach ($counts as $label => $count)
             <div class="mini-stat">
                 <span class="mini-stat-dot {{ ['blue', 'mint', 'violet', 'amber'][$loop->index % 4] }}" aria-hidden="true"></span>
-                <div><small>{{ $label }}</small><strong>{{ number_format($count) }}</strong></div>
+                <div><dt class="text-xs text-slate-500">{{ $label }}</dt><dd class="text-lg font-medium">{{ number_format($count) }}</dd></div>
             </div>
         @endforeach
-    </div>
+    </dl>
 
     <section class="panel">
         <form method="GET" action="{{ route('senior-citizens.index') }}" class="registry-filters">
             <label class="field-label">Search
                 <input name="search" value="{{ request('search') }}" placeholder="OSCA ID or name">
             </label>
-            <label class="field-label">Barangay
-                <select name="barangay_id">
-                    <option value="">All barangays</option>
-                    @foreach ($barangays as $barangay)
-                        <option value="{{ $barangay->id }}" @selected(request('barangay_id') == $barangay->id)>{{ $barangay->name }}</option>
-                    @endforeach
-                </select>
-            </label>
+            @include('senior-citizens._barangay-filter', ['barangays' => $barangays])
             <label class="field-label">Age
                 <select name="age">
                     <option value="">All ages</option>

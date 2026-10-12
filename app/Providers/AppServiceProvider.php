@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Hashing\PasswordHasher;
+use App\Http\Middleware\AuditActivity;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -36,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
         Model::shouldBeStrict(! $this->app->isProduction());
 
         Livewire::addPersistentMiddleware([
+            AuditActivity::class,
             AuthenticateSession::class,
             EnsureUserIsActive::class,
             EnsureUserHasRole::class,

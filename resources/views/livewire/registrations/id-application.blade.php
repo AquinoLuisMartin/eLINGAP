@@ -1,0 +1,103 @@
+<div @class(['fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/50 p-3 sm:p-6' => $modal])
+    x-data="{
+        draftKey: {{ \Illuminate\Support\Js::from('elingap-id-names-'.auth()->id()) }},
+        nameFields: ['first_name', 'middle_name', 'last_name', 'name_suffix'],
+        clearNames() {
+            try { sessionStorage.removeItem(this.draftKey); } catch {}
+        },
+        restoreNames() {
+            try {
+                const draft = JSON.parse(sessionStorage.getItem(this.draftKey) || '{}');
+                for (const field of this.nameFields) {
+                    if (typeof draft[field] === 'string') this.$wire.$set('form.' + field, draft[field].slice(0, field === 'name_suffix' ? 20 : 100), false);
+                }
+            } catch {}
+        },
+        saveNames(event) {
+            if (!this.nameFields.includes(event.target.dataset.draftName)) return;
+            try {
+                const draft = {};
+                for (const field of this.nameFields) draft[field] = this.$wire.form[field];
+                draft[event.target.dataset.draftName] = event.target.value;
+                sessionStorage.setItem(this.draftKey, JSON.stringify(draft));
+            } catch {}
+        }
+    }" x-init="restoreNames()" @input="saveNames($event)" @registration-cancelled.window="clearNames()"
+    @if ($modal) role="dialog" aria-modal="true" aria-labelledby="id-application-title" x-trap.inert.noscroll="true" @keydown.escape.window="$wire.cancel()" @endif>
+    <div class="mx-auto w-full max-w-4xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900" @if ($modal) style="max-height: 90dvh; overflow-y: auto" @endif>
+        <header class="flex items-start justify-between gap-4 border-b border-slate-200 p-5 sm:p-6 dark:border-slate-700">
+            <div><p class="section-kicker">Central senior registration</p><h2 id="id-application-title" class="mt-1 text-xl font-semibold sm:text-2xl">New ID Application</h2><p class="mt-2 max-w-xl text-sm text-slate-500">Apply once for an OSCA ID and registration in eLINGAP. Staff will verify the record before issuing the ID.</p></div>
+            <button type="button" wire:click="cancel" class="icon-button shrink-0" aria-label="Close ID application"><x-admin.icon name="x" size="20" /></button>
+        </header>
+        <nav aria-label="ID application progress" class="border-b border-slate-200 px-3 py-5 sm:px-8 dark:border-slate-700">
+            <ol class="flex">
+                @foreach ([1 => 'Personal Info', 2 => 'Address & Applicant', 3 => 'Document Checklist'] as $number => $label)
+                    <li wire:key="registration-step-{{ $number }}" class="relative flex flex-1 flex-col items-center gap-2 text-center" @if ($step === $number) aria-current="step" @endif>
+                        @if ($number < 3)<span aria-hidden="true" @class(['absolute left-1/2 top-5 h-px w-full', 'bg-osca-primary' => $step > $number, 'bg-slate-200 dark:bg-slate-700' => $step <= $number])></span>@endif
+                        <span @class(['relative z-10 flex size-10 items-center justify-center rounded-full border-2 text-sm font-medium', 'border-osca-primary bg-osca-primary text-white' => $step >= $number, 'border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900' => $step < $number])>{{ $number }}</span>
+                        <span @class(['relative px-1 text-xs font-semibold sm:text-sm', 'text-osca-primary dark:text-blue-300' => $step === $number, 'text-slate-500' => $step !== $number])>{{ $label }}</span>
+                    </li>
+                @endforeach
+            </ol>
+        </nav>
+        <form wire:submit="{{ $step === 3 ? 'submit' : 'next' }}" novalidate>
+            <div class="space-y-5 p-5 sm:p-6">
+                <div class="flex items-center justify-between gap-3"><h3 class="text-lg font-semibold">{{ [1 => 'Personal information', 2 => 'Address and applicant', 3 => 'Documents and review'][$step] }}</h3><p class="text-xs text-slate-500">Step {{ $step }} of 3</p></div>
+                @if ($step === 1)
+                    <p class="text-sm text-slate-500">Enter the senior's details as shown on their identification documents. Applicants must be at least 60 years old.</p>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        @foreach (['first_name' => 'First name', 'last_name' => 'Last name', 'middle_name' => 'Middle name', 'name_suffix' => 'Name suffix'] as $field => $label)
+                            <x-registration-field wire:key="personal-field-{{ $field }}" :name="'form.'.$field" :label="$label" :required="in_array($field, ['first_name', 'last_name'])"><input id="form-{{ $field }}" data-draft-name="{{ $field }}" wire:model="form.{{ $field }}" maxlength="{{ $field === 'name_suffix' ? 20 : 100 }}" autocomplete="{{ ['first_name' => 'given-name', 'last_name' => 'family-name', 'middle_name' => 'additional-name'][$field] ?? 'off' }}"></x-registration-field>
+                        @endforeach
+                        <x-registration-field name="form.birth_date" label="Birth date" required>
+                            <input id="form-birth_date" type="date" wire:model.live="form.birth_date" max="{{ today()->subYears(60)->toDateString() }}" aria-describedby="registration-age">
+                            <span id="registration-age" class="text-sm font-normal" role="status" aria-live="polite">
+                                @if ($this->age !== null)
+                                    Age: {{ $this->age }} years.
+                                    @if ($this->age >= 60) Meets the 60-year age requirement.
+                                    @else The applicant must be at least 60 years old. @endif
+                                @else
+                                    Enter a valid birth date to calculate the senior's age.
+                                @endif
+                            </span>
+                        </x-registration-field>
+                        <x-registration-field name="form.sex" label="Sex" required><select id="form-sex" wire:model="form.sex"><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option><option value="OTHER">Other</option></select></x-registration-field>
+                        <x-registration-field name="form.civil_status" label="Civil status"><select id="form-civil_status" wire:model="form.civil_status"><option value="">Select civil status</option><option value="SINGLE">Single</option><option value="MARRIED">Married</option><option value="WIDOWED">Widowed</option></select></x-registration-field>
+                    </div>
+                @elseif ($step === 2)
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <x-registration-field name="form.barangay_id" label="Barangay" required><select id="form-barangay_id" wire:model="form.barangay_id"><option value="">Select barangay</option>@foreach ($barangays as $barangay)<option wire:key="registration-barangay-{{ $barangay->id }}" value="{{ $barangay->id }}">{{ $barangay->name }}</option>@endforeach</select></x-registration-field>
+                        <x-registration-field name="form.contact_number" label="Senior mobile number" hint="Provide the senior's number or an authorized representative's number for SMS."><input id="form-contact_number" type="tel" wire:model="form.contact_number" autocomplete="tel" maxlength="30" placeholder="09xx xxx xxxx"></x-registration-field>
+                        <x-registration-field name="form.address" label="House and street address" required class="sm:col-span-2"><textarea id="form-address" class="resize-none" wire:model="form.address" maxlength="1000" rows="2" autocomplete="street-address"></textarea></x-registration-field>
+                        <x-registration-field name="form.applicant_type" label="Who is applying?" required class="sm:col-span-2"><select id="form-applicant_type" wire:model.live="form.applicant_type"><option value="SELF">Senior applying personally</option><option value="REPRESENTATIVE">Authorized representative</option></select></x-registration-field>
+                    </div>
+                    @if ($form['applicant_type'] === 'SELF')<label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="representativeContact"> Add an authorized representative for SMS or future claiming</label>@endif
+                    @if ($representativeContact || $this->needsRepresentative())
+                        <fieldset class="space-y-4 rounded-lg border border-slate-200 p-4 dark:border-slate-700"><legend class="px-2 text-sm font-semibold">Authorized representative</legend><p class="text-sm text-slate-500">Authorization proof will be uploaded in the next step.</p><div class="grid gap-4 sm:grid-cols-2">
+                            @foreach (['representative_name' => 'Full name', 'representative_relationship' => 'Relationship to senior', 'representative_contact' => 'Mobile number'] as $field => $label)
+                                <x-registration-field wire:key="representative-field-{{ $field }}" :name="'form.'.$field" :label="$label" required><input id="form-{{ $field }}" wire:model="form.{{ $field }}" type="{{ $field === 'representative_contact' ? 'tel' : 'text' }}" maxlength="{{ $field === 'representative_name' ? 180 : ($field === 'representative_relationship' ? 100 : 30) }}"></x-registration-field>
+                            @endforeach
+                        </div></fieldset>
+                    @endif
+                @else
+                    <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-700 dark:bg-slate-800">
+                        <h3 class="font-semibold">Application summary</h3><dl class="mt-3 grid gap-3 sm:grid-cols-2"><div><dt class="text-slate-500">Senior</dt><dd>{{ $form['first_name'] }} {{ $form['middle_name'] }} {{ $form['last_name'] }} {{ $form['name_suffix'] }}</dd></div><div><dt class="text-slate-500">Birth date</dt><dd>{{ $form['birth_date'] }}</dd></div><div><dt class="text-slate-500">Barangay</dt><dd>{{ $barangays->firstWhere('id', (int) $form['barangay_id'])?->name }}</dd></div><div><dt class="text-slate-500">Applicant</dt><dd>{{ $form['applicant_type'] === 'REPRESENTATIVE' ? $form['representative_name'] : 'Senior personally' }}</dd></div></dl>
+                    </div>
+                    <div class="grid gap-5 sm:grid-cols-2">
+                        <x-registration-field name="photo" label="ID photo" hint="Optional for intake. Square JPEG or PNG, up to 2 MB."><input id="photo" type="file" wire:model="photo" accept=".jpg,.jpeg,.png"></x-registration-field>
+                        <x-registration-field name="identificationFile" label="Supporting identification" hint="Optional identification or birth-date proof. PDF, JPEG or PNG, up to 5 MB."><input id="identificationFile" type="file" wire:model="identificationFile" accept=".pdf,.jpg,.jpeg,.png"></x-registration-field>
+                        @if ($this->needsRepresentative())<x-registration-field name="authorizationFile" label="Proof of authorization" required hint="Required for the recorded representative. PDF, JPEG or PNG, up to 5 MB." class="sm:col-span-2"><input id="authorizationFile" type="file" wire:model="authorizationFile" accept=".pdf,.jpg,.jpeg,.png"></x-registration-field>@endif
+                    </div>
+                    @if ($photo && !$errors->has('photo'))<img src="{{ $photo->temporaryUrl() }}" alt="Uploaded ID photo preview" class="size-24 rounded-lg border object-cover">@endif
+                    <p wire:loading wire:target="photo,authorizationFile,identificationFile" class="text-sm text-slate-500" role="status">Uploading document...</p>
+                    <label class="flex items-start gap-2 text-sm"><input type="checkbox" wire:model="informationReviewed" class="mt-1"> <span>I reviewed the application information for submission. Final verification and ID issuance will be completed by OSCA staff.</span></label>
+                    @error('informationReviewed')<p class="text-sm text-red-700 dark:text-red-300" role="alert">{{ $message }}</p>@enderror
+                @endif
+            </div>
+            <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:px-6 dark:border-slate-700 dark:bg-slate-800">
+                <button type="button" class="secondary-button" wire:click="{{ $step > 1 ? 'back' : 'cancel' }}" wire:loading.attr="disabled">{{ $step > 1 ? 'Back' : 'Cancel' }}</button>
+                <div class="flex items-center gap-3"><span wire:loading wire:target="next,submit" class="text-sm text-slate-500" role="status">{{ $step === 3 ? 'Saving application...' : 'Checking details...' }}</span><button type="submit" class="primary-button disabled:cursor-not-allowed disabled:opacity-50" wire:loading.attr="disabled" @disabled($step === 1 && ($this->age === null || $this->age < 60))>{{ $step === 3 ? 'Submit ID Application' : 'Continue' }}<x-admin.icon name="chevron-right" size="16" /></button></div>
+            </footer>
+        </form>
+    </div>
+</div>

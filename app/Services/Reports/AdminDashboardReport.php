@@ -5,13 +5,34 @@ namespace App\Services\Reports;
 use App\Enums\PayoutStatus;
 use App\Enums\SeniorCitizenStatus;
 use App\Enums\SmsStatus;
+use App\Models\AuditLog;
 use App\Models\Beneficiary;
+use App\Models\BenefitEntitlement;
+use App\Models\BenefitPayment;
+use App\Models\LoginLog;
 use App\Models\Payout;
 use App\Models\SeniorCitizen;
 use App\Models\SmsMessage;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class AdminDashboardReport
 {
+    public function monitoring(): array
+    {
+        $logins = LoginLog::query()->whereIn('event', ['LOGIN', 'LOGIN_FAILED'])
+            ->whereBetween('created_at', [today(), today()->endOfDay()])
+            ->selectRaw('success, count(*) as total')->groupBy('success')->pluck('total', 'success');
+
+        return [
+            'successful_sign_ins' => (int) ($logins[1] ?? 0),
+            'failed_sign_ins' => (int) ($logins[0] ?? 0),
+            'audit_events_today' => AuditLog::query()->whereBetween('created_at', [today(), today()->endOfDay()])->count(),
+            'sms_queued' => SmsMessage::query()->where('status', SmsStatus::Queued)->count(),
+            'sms_failed' => SmsMessage::query()->where('status', SmsStatus::Failed)->count(),
+        ];
+    }
+
     public function summary(): array
     {
         $statuses = SeniorCitizen::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
@@ -24,7 +45,10 @@ class AdminDashboardReport
             'seniors' => (int) $statuses->sum(),
             'verified' => (int) ($statuses[SeniorCitizenStatus::Verified->value] ?? 0),
             'pending' => (int) ($statuses[SeniorCitizenStatus::Pending->value] ?? 0),
-            'beneficiaries' => Beneficiary::query()->where('status', 'ACTIVE')->count(),
+            'beneficiaries' => DB::query()->fromSub(
+                Beneficiary::query()->where('status', 'ACTIVE')->select('senior_citizen_id')
+                    ->union(BenefitEntitlement::query()->select('senior_citizen_id')), 'benefit_recipients'
+            )->count(),
             'sms_sent' => $sent,
             'sms_attempted' => $attempted,
             'sms_rate' => $attempted > 0 ? round($sent / $attempted * 100, 1) : null,
@@ -55,9 +79,25 @@ class AdminDashboardReport
             $buckets[$index]['released'] += (float) $row->released;
         }
 
+        $plans = BenefitEntitlement::query()->join('benefit_schedules', 'benefit_entitlements.benefit_schedule_id', '=', 'benefit_schedules.id')
+            ->whereIn('benefit_schedules.status', ['APPROVED', 'CLOSED'])
+            ->whereBetween('benefit_schedules.scheduled_at', [now()->startOfYear(), now()->endOfYear()])
+            ->selectRaw('benefit_schedules.scheduled_at, sum(benefit_entitlements.amount) as total')
+            ->groupBy('benefit_schedules.scheduled_at')->toBase()->get();
+        $payments = BenefitPayment::query()->whereNull('reversed_at')
+            ->whereBetween('paid_at', [now()->startOfYear(), now()->endOfYear()])
+            ->selectRaw('paid_at, sum(amount) as total')->groupBy('paid_at')->toBase()->get();
+        foreach (['planned' => $plans, 'released' => $payments] as $key => $totals) {
+            foreach ($totals as $row) {
+                $month = Carbon::parse($key === 'planned' ? $row->scheduled_at : $row->paid_at)->setTimezone(config('app.timezone'))->month - 1;
+                $index = $quarterly ? intdiv($month, 3) : $month;
+                $buckets[$index][$key] += (float) $row->total;
+            }
+        }
+
         $planned = array_sum(array_column($buckets, 'planned'));
         $released = array_sum(array_column($buckets, 'released'));
-        $maximum = max(1, ...array_column($buckets, 'planned'));
+        $maximum = max(1, ...array_column($buckets, 'planned'), ...array_column($buckets, 'released'));
         $scale = $maximum <= 1 ? 1 : ceil($maximum / 4 / (10 ** floor(log10($maximum / 4)))) * (10 ** floor(log10($maximum / 4))) * 4;
 
         return ['buckets' => $buckets, 'planned' => $planned, 'released' => $released, 'scale' => $scale, 'completion' => $planned > 0 ? round($released / $planned * 100, 1) : null];

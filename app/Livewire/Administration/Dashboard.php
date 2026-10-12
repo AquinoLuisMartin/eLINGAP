@@ -5,6 +5,7 @@ namespace App\Livewire\Administration;
 use App\Enums\LoginEvent;
 use App\Enums\UserRole;
 use App\Models\Barangay;
+use App\Models\BenefitPayment;
 use App\Models\Payout;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
@@ -26,7 +27,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-#[Title('eLINGAP — System Admin Dashboard')]
+#[Title('eLINGAP')]
 class Dashboard extends Component
 {
     use WithPagination;
@@ -200,6 +201,12 @@ class Dashboard extends Component
     }
 
     #[Computed]
+    public function monitoring(): array
+    {
+        return app(AdminDashboardReport::class)->monitoring();
+    }
+
+    #[Computed]
     public function distribution(): array
     {
         return app(AdminDashboardReport::class)->distribution($this->period);
@@ -243,11 +250,13 @@ class Dashboard extends Component
     #[Computed]
     public function programs(): LengthAwarePaginator
     {
+        $benefitReleased = BenefitPayment::query()->join('benefit_entitlements', 'benefit_payments.benefit_entitlement_id', '=', 'benefit_entitlements.id')
+            ->whereColumn('benefit_entitlements.program_id', 'programs.id')->whereNull('benefit_payments.reversed_at')->selectRaw('coalesce(sum(benefit_payments.amount), 0)');
         $released = Payout::query()->join('payout_schedules', 'payouts.payout_schedule_id', '=', 'payout_schedules.id')
             ->whereColumn('payout_schedules.program_id', 'programs.id')->where('payouts.status', 'RELEASED')->selectRaw('coalesce(sum(payouts.amount), 0)');
 
-        return Program::query()->select(['id', 'name', 'agency', 'budget', 'starts_on', 'ends_on', 'status'])
-            ->selectSub($released, 'released_amount')->withCount('beneficiaries')
+        return Program::query()->select(['id', 'name', 'agency', 'budget', 'starts_on', 'ends_on', 'status', 'benefit_code'])
+            ->selectSub($released, 'released_amount')->selectSub($benefitReleased, 'benefit_released_amount')->withCount(['beneficiaries', 'benefitEntitlements'])
             ->when(trim($this->search) !== '', fn ($query) => $query->where(fn ($query) => $query
                 ->whereRaw('lower(name) like ?', ['%'.mb_strtolower(trim($this->search)).'%'])
                 ->orWhereRaw('lower(agency) like ?', ['%'.mb_strtolower(trim($this->search)).'%'])))

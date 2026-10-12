@@ -22,6 +22,7 @@ use App\Http\Controllers\SeniorCitizens\SeniorCitizenDeathController;
 use App\Http\Controllers\Sms\SmsBlastController;
 use App\Http\Controllers\Sms\SmsMessageController;
 use App\Http\Controllers\Sms\SmsTemplateController;
+use App\Http\Middleware\AuditActivity;
 use App\Http\Middleware\EnsurePreviewIsLocal;
 use Illuminate\Support\Facades\Route;
 
@@ -60,25 +61,8 @@ Route::middleware(EnsurePreviewIsLocal::class)->group(function () {
 
     Route::redirect('staff-preview', 'masterlist')->name('staff.preview');
 
-    Route::get('registrations-preview', function () {
-        return view('registrations.index', [
-            'user' => ['name' => 'Maria A.', 'role' => 'OSCA Staff'],
-            'applications' => [
-                ['reference' => 'APP-26-1045', 'lastName' => 'Reyes', 'firstName' => 'Caridad', 'middleInitial' => 'M.', 'barangay' => 'Cay Pombo', 'submitted' => 'Oct 3, 2026', 'status' => 'Under Review', 'stage' => 'under_review', 'applicantType' => 'Proxy / Representative', 'mobile' => '09271234567', 'representative' => 'Ana Reyes', 'notes' => 'Centenarian (101). Proxy application via granddaughter.', 'badge' => 'New ID'],
-                ['reference' => 'APP-26-1046', 'lastName' => 'Santos', 'firstName' => 'Margarita', 'middleInitial' => 'D.', 'barangay' => 'Santa Clara', 'submitted' => 'Oct 2, 2026', 'status' => 'Under Review', 'stage' => 'under_review', 'applicantType' => 'Walk-in (Self)', 'mobile' => '09181234567', 'representative' => '—', 'notes' => 'New registration with complete supporting documents.', 'badge' => 'New ID'],
-                ['reference' => 'APP-26-1044', 'lastName' => 'Navarro', 'firstName' => 'Carmen', 'middleInitial' => 'A.', 'barangay' => 'Santa Clara', 'submitted' => 'Sep 30, 2026', 'status' => 'Approved/For Printing', 'stage' => 'approved', 'applicantType' => 'Walk-in (Self)', 'mobile' => '09191234567', 'representative' => '—', 'notes' => 'Approved and queued for physical ID printing.', 'badge' => 'New ID'],
-                ['reference' => 'APP-26-1043', 'lastName' => 'Mendoza', 'firstName' => 'Antonio', 'middleInitial' => 'L.', 'barangay' => 'Balasing', 'submitted' => 'Sep 29, 2026', 'status' => 'Approved/For Printing', 'stage' => 'approved', 'applicantType' => 'Proxy / Representative', 'mobile' => '09201234567', 'representative' => 'Ana Mendoza', 'notes' => 'Documents verified by OSCA staff.', 'badge' => 'New ID'],
-                ['reference' => 'APP-26-1042', 'lastName' => 'Garcia', 'firstName' => 'Lourdes', 'middleInitial' => 'R.', 'barangay' => 'San Jose Patag', 'submitted' => 'Sep 28, 2026', 'status' => 'Ready for Claiming', 'stage' => 'ready', 'applicantType' => 'Proxy / Representative', 'mobile' => '09211234567', 'representative' => 'Marco Garcia', 'notes' => 'ID is ready for claiming by authorized representative.', 'badge' => 'New ID'],
-                ['reference' => 'APP-26-1047', 'lastName' => 'Gomez', 'firstName' => 'Florentino', 'middleInitial' => 'A.', 'barangay' => 'Tumana', 'submitted' => 'Sep 30, 2026', 'status' => 'Released', 'stage' => 'released', 'applicantType' => 'Walk-in (Self)', 'mobile' => '09311234567', 'representative' => '—', 'notes' => 'ID released and archived.', 'badge' => 'New ID'],
-                ['reference' => 'APP-26-1041', 'lastName' => 'Dela Cruz', 'firstName' => 'Ramon', 'middleInitial' => 'F.', 'barangay' => 'Guyong', 'submitted' => 'Sep 25, 2026', 'status' => 'Released', 'stage' => 'released', 'applicantType' => 'Proxy / Representative', 'mobile' => '09411234567', 'representative' => 'Mila Dela Cruz', 'notes' => 'ID released and archived.', 'badge' => 'New ID'],
-            ],
-        ]);
-    })->name('registrations.preview');
+    Route::redirect('registrations-preview', '/registrations')->name('registrations.preview');
 
-    // Frontend-only preview route. Replace with the backend route when registrations are wired.
-    Route::view('registrations', 'registrations.index', [
-        'applications' => [],
-    ])->name('registrations.preview.page');
 });
 
 Route::middleware('guest')->group(function () {
@@ -90,13 +74,18 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:10,1,password-reset')->name('password.update');
 });
 
-Route::middleware(['auth', 'auth.session', 'active'])->group(function () {
+Route::middleware(['auth', 'auth.session', 'active', AuditActivity::class])->group(function () {
+    Route::view('registrations', 'registrations.index')->name('registrations.index');
+    Route::view('benefits', 'benefits.page')->name('benefits.workspace');
+    Route::view('benefits/programs', 'benefits.page')->name('benefits.programs');
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
     Route::resource('senior-citizens', SeniorCitizenController::class)->except(['destroy']);
     Route::post('senior-citizens/{senior_citizen}/death', [SeniorCitizenDeathController::class, 'store'])->name('senior-citizens.death.store');
     Route::patch('senior-citizens/{senior_citizen}/death', [SeniorCitizenDeathController::class, 'correct'])->name('senior-citizens.death.correct');
     Route::get('senior-citizens/{senior_citizen}/photo', [SeniorCitizenController::class, 'photo'])->name('senior-citizens.photo');
+    Route::get('senior-citizens/{senior_citizen}/id-card', [SeniorCitizenController::class, 'idCard'])->name('senior-citizens.id-card');
+    Route::get('senior-citizens/{senior_citizen}/documents/{document}', [SeniorCitizenController::class, 'document'])->name('senior-citizens.document');
     Route::resource('programs', ProgramController::class)->only(['index', 'show']);
     Route::view('applications/verify', 'applications.verify')->name('applications.verify');
     Route::resource('applications', ApplicationController::class)->only(['index', 'create', 'store', 'show']);
@@ -129,10 +118,9 @@ Route::middleware(['auth', 'auth.session', 'active'])->group(function () {
     Route::get('reports/workspace/{type}', [StaffReportController::class, 'show'])->name('reports.workspace');
     Route::get('reports/workspace/{type}/export', [StaffReportController::class, 'export'])->name('reports.export');
 
-    // OSCA Staff side (existing placeholder views; no new UI).
-    Route::middleware('role:'.UserRole::OscaStaff->value)->group(function () {
-        Route::get('dashboard', DashboardController::class)->name('dashboard');
-    });
+    Route::get('dashboard', DashboardController::class)
+        ->middleware('role:'.UserRole::OscaStaff->value.','.UserRole::Admin->value)
+        ->name('dashboard');
 
     // Admin side.
     Route::middleware('role:'.UserRole::Admin->value)->prefix('administration')->name('administration.')->group(function () {

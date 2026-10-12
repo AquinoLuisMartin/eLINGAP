@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use App\Rules\PasswordInput;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Database\Eloquent\Builder;
@@ -9,6 +10,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
@@ -21,9 +23,21 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'max:255', Rule::when(
+                fn () => is_string($this->input('email')) && str_contains($this->input('email'), '@'),
+                ['email:rfc'],
+                ['regex:/^[a-z0-9._-]+(?: [a-z0-9._-]+)*$/i'],
+            )],
             'password' => ['required', 'string', new PasswordInput],
             'remember' => ['boolean'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'email.regex' => 'Enter your exact username using letters, numbers, dots, underscores, dashes, and any spaces recorded in your username.',
+            'email.email' => 'Enter a valid email address.',
         ];
     }
 
@@ -49,7 +63,12 @@ class LoginRequest extends FormRequest
             'password' => $this->string('password')->toString(),
         ];
 
-        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
+        if (! Auth::attemptWhen($credentials, function (User $user): bool {
+            $identity = $this->identity();
+
+            return Str::lower($user->username) === $identity
+                || ($user->email !== null && Str::lower($user->email) === $identity);
+        }, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             return false;

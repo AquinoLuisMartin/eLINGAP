@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eLINGAP — System Admin Dashboard</title>
+    <title>eLINGAP</title>
     <link rel="icon" type="image/png" href="{{ asset('images/eLINGAP.png') }}">
     {{-- Apply saved theme before paint to avoid light/dark flash --}}
     <script>

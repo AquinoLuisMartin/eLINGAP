@@ -1,0 +1,4 @@
+textarea,
+.admin-shell .admin-content textarea {
+    resize: none;
+}

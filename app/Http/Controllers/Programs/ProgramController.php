@@ -32,9 +32,12 @@ class ProgramController extends Controller
         return redirect()->route('programs.show', $program)->with('status', 'Program created.');
     }
 
-    public function show(Program $program): View
+    public function show(Program $program): View|RedirectResponse
     {
         Gate::authorize('view', $program);
+        if ($program->benefit_code) {
+            return redirect()->route('benefits.programs');
+        }
 
         return view('programs.show', ['program' => $program->loadCount('applications')]);
     }

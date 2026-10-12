@@ -1,0 +1,59 @@
+select:not([multiple]):not([size]),
+.admin-shell .admin-content select:not([multiple]):not([size]) {
+    appearance: none;
+    min-width: 0;
+    min-height: 44px;
+    max-width: 100%;
+    border: 1px solid var(--line, var(--color-osca-border));
+    border-radius: 8px;
+    padding: 10px 40px 10px 12px;
+    color: var(--ink, var(--color-osca-ink));
+    background-color: var(--paper, var(--color-osca-muted));
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-transform: none;
+    cursor: pointer;
+}
+
+select:not([multiple]):not([size]):focus,
+.admin-shell .admin-content select:not([multiple]):not([size]):focus,
+.staff-shell .admin-content .barangay-filter-trigger:focus-visible {
+    border-color: var(--blue, var(--color-osca-primary));
+    outline: none;
+    box-shadow: 0 0 0 1px var(--blue, var(--color-osca-primary));
+}
+
+select:disabled,
+.admin-shell .admin-content select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+select option {
+    color: var(--ink, var(--color-osca-ink));
+    background-color: var(--white, white);
+    font-weight: 400;
+}
+
+@media (forced-colors: active) {
+    select:not([multiple]):not([size]),
+    .admin-shell .admin-content select:not([multiple]):not([size]) {
+        appearance: auto;
+        background-image: none;
+    }
+
+    select:focus,
+    .admin-shell .admin-content select:focus,
+    .staff-shell .admin-content .barangay-filter-trigger:focus-visible {
+        outline: 2px solid Highlight;
+        outline-offset: 2px;
+    }
+}
+

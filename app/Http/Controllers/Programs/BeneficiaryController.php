@@ -15,9 +15,12 @@ use Illuminate\View\View;
 
 class BeneficiaryController extends Controller
 {
-    public function index(Request $request, Program $program): View
+    public function index(Request $request, Program $program): View|RedirectResponse
     {
         Gate::authorize('view', $program);
+        if ($program->benefit_code) {
+            return redirect()->route('benefits.workspace');
+        }
 
         $search = $request->validate(['senior_search' => ['nullable', 'string', 'max:100']])['senior_search'] ?? null;
 

@@ -25,7 +25,7 @@ class StoreApplicationRequest extends FormRequest
             'program_id' => [
                 'required',
                 'integer',
-                Rule::exists('programs', 'id')->whereIn('status', ['ACTIVE', 'UPCOMING']),
+                Rule::exists('programs', 'id')->whereNull('benefit_code')->whereIn('status', ['ACTIVE', 'UPCOMING']),
             ],
             'applied_on' => ['required', 'date'],
             'remarks' => ['nullable', 'string', 'max:5000'],

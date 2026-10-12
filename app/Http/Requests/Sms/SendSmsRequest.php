@@ -39,7 +39,7 @@ class SendSmsRequest extends FormRequest
                 return;
             }
             $senior = SeniorCitizen::query()->find($this->integer('senior_citizen_id'));
-            if ($senior && SmsText::mobile($senior->contact_number) !== $this->input('recipient_number')) {
+            if ($senior && $senior->smsContact() !== $this->input('recipient_number')) {
                 $validator->errors()->add('recipient_number', 'The number does not match this senior citizen.');
             }
         }];

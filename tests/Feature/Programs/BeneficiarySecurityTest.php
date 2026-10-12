@@ -3,6 +3,7 @@
 namespace Tests\Feature\Programs;
 
 use App\Models\Application;
+use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
@@ -60,7 +61,8 @@ class BeneficiarySecurityTest extends TestCase
         } else {
             $response->assertInvalid(['application_id' => 'The selected application id is invalid.']);
             $this->assertDatabaseEmpty('beneficiaries');
-            $this->assertDatabaseEmpty('audit_logs');
+            $this->assertSame(0, AuditLog::where('action', 'not like', 'access.%')->count());
+            $this->assertDatabaseCount('audit_logs', 1);
         }
     }
 }

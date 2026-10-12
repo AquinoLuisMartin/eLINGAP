@@ -29,7 +29,8 @@ class DashboardDataTest extends TestCase
             ->assertSet('summary.seniors', 0)
             ->assertSet('summary.beneficiaries', 0)
             ->assertSet('summary.sms_rate', null)
-            ->assertSee('No scheduled payouts')
+            ->assertSet('monitoring.failed_sign_ins', 0)
+            ->assertSee('Account and system overview')
             ->assertSee('No audit activity recorded yet.')
             ->assertDontSee('18,427')
             ->call('navigate', 'configuration')->assertSee('No configuration recorded')
@@ -56,8 +57,8 @@ class DashboardDataTest extends TestCase
             ->assertSet('summary.sms_rate', 50.0)
             ->assertSet('summary.sms_queued', 1)
             ->assertSet('summary.sms_failed', 1)
-            ->assertSee('Test Barangay')
-            ->assertSee('50.0%');
+            ->assertSee('System monitoring')
+            ->assertDontSee('Registry by Barangay');
     }
 
     public function test_chart_groups_schedule_amounts_and_excludes_voided_and_other_years(): void
@@ -76,14 +77,37 @@ class DashboardDataTest extends TestCase
             ->assertSet('distribution.completion', 33.3)
             ->assertSet('distribution.buckets.0.released', 1000.0)
             ->assertSet('distribution.buckets.1.planned', 2000.0)
-            ->assertSee('View exact amounts')
+            ->assertDontSee('Released vs. Scheduled Payouts')
             ->set('period', 'Quarterly')
             ->assertSet('distribution.buckets.0.planned', 3000.0)
             ->assertSet('distribution.buckets.1.planned', 0.0)
-            ->set('chartType', 'Bar')->assertSeeHtml('payout-bar-pair');
+            ->set('chartType', 'Bar');
 
         $this->assertCount(4, $component->get('distribution')['buckets']);
         $component->call('navigate', 'programs')->assertSee('250%')->assertSee('10,000.00');
+    }
+
+    public function test_admin_overview_monitors_accounts_and_only_todays_sign_in_attempts(): void
+    {
+        $this->travelTo(now()->setDate(2026, 10, 12)->startOfDay());
+        $admin = User::factory()->admin()->create();
+        User::factory()->inactive()->create();
+        LoginLog::create(['event' => 'LOGIN', 'success' => true]);
+        LoginLog::create(['event' => 'LOGIN_FAILED', 'success' => false]);
+        LoginLog::create(['event' => 'LOGOUT', 'success' => true]);
+        LoginLog::create(['event' => 'LOGIN_FAILED', 'success' => false])->forceFill(['created_at' => now()->subDay()])->save();
+        AuditLog::create(['action' => 'program.created']);
+        $this->message('QUEUED');
+        $this->message('FAILED');
+
+        Livewire::actingAs($admin)->test(Dashboard::class)
+            ->assertSet('userCounts.total', 2)
+            ->assertSet('userCounts.active', 1)
+            ->assertSet('userCounts.suspended', 1)
+            ->assertSet('monitoring', ['successful_sign_ins' => 1, 'failed_sign_ins' => 1, 'audit_events_today' => 1, 'sms_queued' => 1, 'sms_failed' => 1])
+            ->assertSeeHtml('href="'.route('administration.users.create').'"')
+            ->assertSee('Senior Records Registry')->assertSee('Benefits &amp; Programs', false)
+            ->call('navigate', 'users')->assertSee('User Accounts');
     }
 
     public function test_registry_filters_database_records_and_resets_its_page(): void
@@ -116,7 +140,7 @@ class DashboardDataTest extends TestCase
 
         $component = Livewire::actingAs($admin)->test(Dashboard::class)
             ->call('navigate', 'system-logs')
-            ->assertSee('program.created')->assertSee('LOGIN_FAILED')
+            ->assertSee('Created a program')->assertSee('Failed sign-in attempt')
             ->assertDontSee('private-test-payload')->assertDontSee('private-test-username');
 
         $this->assertSame(3, $component->get('filteredLogs')->total());
@@ -147,11 +171,39 @@ class DashboardDataTest extends TestCase
 
         $component = Livewire::actingAs(User::factory()->admin()->create())->test(Dashboard::class)
             ->call('navigate', 'system-logs')->call('gotoPage', 2, 'logsPage')
-            ->set('logCategory', 'Login Events')->assertSee('LOGIN');
+            ->set('logCategory', 'Login Events')->assertSee('Signed in');
 
         $this->assertSame(1, $component->get('filteredLogs')->currentPage());
         $component->call('navigate', 'programs')->set('search', 'TEST AGENCY')->assertSee('Test Program')->assertSee('No budget set');
         $component->set('search', 'missing')->assertSee('No matching programs');
+    }
+
+    public function test_log_actions_distinguish_registration_from_viewing_its_form(): void
+    {
+        AuditLog::create(['action' => 'senior_citizen.created']);
+        AuditLog::create(['action' => 'access.senior-citizens.create']);
+        AuditLog::create(['action' => 'custom.record_updated']);
+
+        Livewire::actingAs(User::factory()->admin()->create())->test(Dashboard::class)
+            ->call('navigate', 'system-logs')
+            ->assertSee('Registered a new senior citizen')
+            ->assertSee('Viewed the senior citizen registration form')
+            ->assertSee('Custom record updated');
+    }
+
+    public function test_admin_pagination_moves_between_log_pages(): void
+    {
+        for ($index = 0; $index < 16; $index++) {
+            AuditLog::create(['action' => 'program.created']);
+        }
+
+        $component = Livewire::actingAs(User::factory()->admin()->create())->test(Dashboard::class)
+            ->call('navigate', 'system-logs')
+            ->assertSee('Page 1 of 2')
+            ->call('nextPage', 'logsPage')->assertSee('Page 2 of 2');
+
+        $this->assertCount(1, $component->get('filteredLogs')->items());
+        $component->call('previousPage', 'logsPage')->assertSee('Page 1 of 2');
     }
 
     public function test_broadcasts_and_configuration_show_only_recorded_safe_data(): void

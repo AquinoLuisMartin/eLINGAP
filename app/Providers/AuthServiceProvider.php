@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use App\Models\Application;
 use App\Models\Beneficiary;
+use App\Models\BenefitEntitlement;
+use App\Models\BenefitPayment;
+use App\Models\BenefitSchedule;
 use App\Models\Payout;
 use App\Models\PayoutSchedule;
 use App\Models\Program;
@@ -12,6 +15,7 @@ use App\Models\SmsMessage;
 use App\Models\SmsTemplate;
 use App\Models\User;
 use App\Policies\ApplicationPolicy;
+use App\Policies\BenefitPolicy;
 use App\Policies\PayoutPolicy;
 use App\Policies\ProgramPolicy;
 use App\Policies\ReportPolicy;
@@ -24,6 +28,9 @@ use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvid
 class AuthServiceProvider extends ServiceProvider
 {
     protected $policies = [
+        BenefitSchedule::class => BenefitPolicy::class,
+        BenefitEntitlement::class => BenefitPolicy::class,
+        BenefitPayment::class => BenefitPolicy::class,
         SeniorCitizen::class => SeniorCitizenPolicy::class,
         Program::class => ProgramPolicy::class,
         Application::class => ApplicationPolicy::class,

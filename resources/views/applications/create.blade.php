@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('content')
-<a class="text-sm text-osca-primary underline" href="{{ route('applications.index') }}">Back to applications</a><h1 class="my-4 text-3xl font-bold">New benefit application</h1>
+<a class="text-sm text-osca-primary underline" href="{{ route('applications.index') }}">Back to applications</a><h2 class="my-4 text-3xl font-semibold">New benefit application</h2>
 <p class="mb-5 text-slate-600">This workflow links a verified senior citizen to an existing benefit program.</p>
 <form method="GET" class="mb-5 flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4"><label>Find a verified senior <input name="senior_search" value="{{ request('senior_search') }}" required class="mt-1 block rounded border p-2" placeholder="Name or OSCA ID"></label><button class="rounded border px-4 py-2">Search</button></form>
 <form method="POST" action="{{ route('applications.store') }}" id="application-wizard" class="max-w-3xl rounded-lg border bg-white p-5">@csrf

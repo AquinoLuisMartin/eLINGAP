@@ -70,11 +70,11 @@ class RoleRoutingTest extends TestCase
             ->assertOk();
     }
 
-    public function test_admin_cannot_access_staff_dashboard(): void
+    public function test_admin_dashboard_entry_redirects_to_administration(): void
     {
         $this->actingAs($this->admin)
             ->get(route('dashboard'))
-            ->assertForbidden();
+            ->assertRedirect(route('administration.dashboard'));
     }
 
     public function test_staff_can_access_application_verify_route(): void

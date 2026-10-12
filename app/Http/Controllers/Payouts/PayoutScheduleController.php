@@ -28,7 +28,7 @@ class PayoutScheduleController extends Controller
     {
         Gate::authorize('create', PayoutSchedule::class);
 
-        return view('payouts.schedules.create', ['programs' => Program::query()->orderBy('name')->get(['id', 'name'])]);
+        return view('payouts.schedules.create', ['programs' => Program::query()->whereNull('benefit_code')->orderBy('name')->get(['id', 'name'])]);
     }
 
     public function store(StorePayoutScheduleRequest $request): RedirectResponse

@@ -14,7 +14,6 @@ class ProductionSecurityTest extends TestCase
     #[TestWith(['/masterlist'])]
     #[TestWith(['/staff-preview'])]
     #[TestWith(['/registrations-preview'])]
-    #[TestWith(['/registrations'])]
     #[TestWith(['/messaging'])]
     public function test_preview_pages_are_unavailable_in_production(string $path): void
     {

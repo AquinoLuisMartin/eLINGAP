@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('content')
-<h1>Create program</h1>
+<h2>Create program</h2>
 @include('components.alert')
 <form method="POST" action="{{ route('administration.programs.store') }}">
     @csrf

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('content')
-<h1>Programs</h1>
+<h2>Programs</h2>
 @include('components.alert')
 @can('create', App\Models\Program::class)<p><a href="{{ route('administration.programs.create') }}">Create program</a></p>@endcan
 <ul>

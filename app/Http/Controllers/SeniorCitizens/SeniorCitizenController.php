@@ -8,13 +8,14 @@ use App\Http\Requests\SeniorCitizens\StoreSeniorCitizenRequest;
 use App\Http\Requests\SeniorCitizens\UpdateSeniorCitizenRequest;
 use App\Models\AuditLog;
 use App\Models\Barangay;
+use App\Models\Program;
 use App\Models\SeniorCitizen;
+use App\Services\SeniorCitizens\SeniorRegistration;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Throwable;
@@ -62,36 +63,9 @@ class SeniorCitizenController extends Controller
         return view('senior-citizens.create', ['barangays' => Barangay::query()->where('is_active', true)->orderBy('name')->get()]);
     }
 
-    public function store(StoreSeniorCitizenRequest $request): RedirectResponse
+    public function store(StoreSeniorCitizenRequest $request, SeniorRegistration $registration): RedirectResponse
     {
-        $photoPath = null;
-        try {
-            $seniorCitizen = DB::transaction(function () use ($request, &$photoPath) {
-                $seniorCitizen = SeniorCitizen::create([
-                    ...$request->safe()->except('photo'),
-                    'registration_number' => 'SC-'.Str::ulid(),
-                ]);
-
-                if ($photo = $request->file('photo')) {
-                    $photoPath = $photo->store('senior-photos', 'local');
-                    $seniorCitizen->documents()->create(['document_type' => 'PHOTO', 'path' => $photoPath, 'original_name' => $photo->getClientOriginalName(), 'mime_type' => $photo->getMimeType(), 'size' => $photo->getSize(), 'uploaded_by' => $request->user()->id]);
-                }
-
-                $seniorCitizen->histories()->create([
-                    'changed_by' => $request->user()->id,
-                    'action' => 'created',
-                    'changes' => $seniorCitizen->only(['registration_number', 'status']),
-                ]);
-                $this->recordAudit($request, 'senior_citizen.created', $seniorCitizen, null, $seniorCitizen->only(['registration_number', 'status']));
-
-                return $seniorCitizen;
-            });
-        } catch (Throwable $exception) {
-            if ($photoPath) {
-                Storage::disk('local')->delete($photoPath);
-            }
-            throw $exception;
-        }
+        $seniorCitizen = $registration->create($request->validated());
 
         return redirect()->route('senior-citizens.show', $seniorCitizen)->with('status', 'Senior citizen record created.');
     }
@@ -103,6 +77,8 @@ class SeniorCitizenController extends Controller
         return view('senior-citizens.show', [
             'seniorCitizen' => $seniorCitizen->load(['barangay', 'histories.changedBy', 'beneficiaries.program']),
             'photo' => $seniorCitizen->documents()->where('document_type', 'PHOTO')->latest('id')->first(),
+            'documents' => $seniorCitizen->documents()->where('document_type', '!=', 'PHOTO')->latest('id')->get(['id', 'document_type', 'created_at']),
+            'milestoneAges' => Program::query()->whereNotNull('benefit_code')->get(['benefit_rules'])->flatMap(fn ($program) => array_keys($program->benefit_rules['milestones'] ?? []))->unique()->sort()->values(),
         ]);
     }
 
@@ -118,6 +94,17 @@ class SeniorCitizenController extends Controller
         return $response;
     }
 
+    public function idCard(SeniorCitizen $seniorCitizen): View
+    {
+        Gate::authorize('view', $seniorCitizen);
+        abort_unless($seniorCitizen->status === SeniorCitizenStatus::Verified && $seniorCitizen->id_generated_at && $seniorCitizen->osca_id_number, 422, 'Verify the senior and record ID issuance before printing.');
+
+        return view('senior-citizens.id-card', [
+            'senior' => $seniorCitizen->load('barangay'),
+            'hasPhoto' => $seniorCitizen->documents()->where('document_type', 'PHOTO')->exists(),
+        ]);
+    }
+
     public function edit(SeniorCitizen $seniorCitizen): View
     {
         Gate::authorize('update', $seniorCitizen);
@@ -128,19 +115,38 @@ class SeniorCitizenController extends Controller
         ]);
     }
 
+    public function document(SeniorCitizen $seniorCitizen, int $document): BinaryFileResponse
+    {
+        Gate::authorize('view', $seniorCitizen);
+        $file = $seniorCitizen->documents()->findOrFail($document);
+        $extension = match ($file->mime_type) {
+            'application/pdf' => 'pdf', 'image/png' => 'png', 'image/webp' => 'webp', default => 'jpg',
+        };
+        $response = response()->download(Storage::disk('local')->path($file->path), 'supporting-document.'.$extension, ['Content-Type' => $file->mime_type]);
+        $response->setPrivate();
+        $response->headers->addCacheControlDirective('no-store');
+
+        return $response;
+    }
+
     public function update(UpdateSeniorCitizenRequest $request, SeniorCitizen $seniorCitizen): RedirectResponse
     {
         $photoPath = null;
+        $authorizationPath = null;
         try {
-            DB::transaction(function () use ($request, $seniorCitizen, &$photoPath) {
+            DB::transaction(function () use ($request, $seniorCitizen, &$photoPath, &$authorizationPath) {
                 $seniorCitizen = SeniorCitizen::query()->lockForUpdate()->findOrFail($seniorCitizen->id);
                 abort_if($seniorCitizen->status === SeniorCitizenStatus::Deceased, 409, 'A deceased record cannot be edited.');
-                $data = $request->safe()->except('photo');
+                $data = $request->safe()->except(['photo', 'authorization_file']);
                 $oldValues = $seniorCitizen->only(array_keys($data));
                 $seniorCitizen->update($data);
                 if ($photo = $request->file('photo')) {
                     $photoPath = $photo->store('senior-photos', 'local');
                     $seniorCitizen->documents()->create(['document_type' => 'PHOTO', 'path' => $photoPath, 'original_name' => $photo->getClientOriginalName(), 'mime_type' => $photo->getMimeType(), 'size' => $photo->getSize(), 'uploaded_by' => $request->user()->id]);
+                }
+                if ($proof = $request->file('authorization_file')) {
+                    $authorizationPath = $proof->store('senior-documents', 'local');
+                    $seniorCitizen->documents()->create(['document_type' => 'AUTHORIZATION', 'path' => $authorizationPath, 'original_name' => $proof->getClientOriginalName(), 'mime_type' => $proof->getMimeType(), 'size' => $proof->getSize(), 'uploaded_by' => $request->user()->id]);
                 }
                 $seniorCitizen->histories()->create([
                     'changed_by' => $request->user()->id,
@@ -152,6 +158,9 @@ class SeniorCitizenController extends Controller
         } catch (Throwable $exception) {
             if ($photoPath) {
                 Storage::disk('local')->delete($photoPath);
+            }
+            if ($authorizationPath) {
+                Storage::disk('local')->delete($authorizationPath);
             }
             throw $exception;
         }

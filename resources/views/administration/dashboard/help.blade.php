@@ -2,7 +2,7 @@
 <div class="panel"><div class="panel-heading"><div><h3>Administrator Workflows</h3><p>Complete forms validate and save changes to the database.</p></div></div>
 <div class="activity-list">
     <a class="task-row" href="{{ route('senior-citizens.create') }}">Register a senior citizen</a>
-    <a class="task-row" href="{{ route('administration.programs.create') }}">Create an assistance program</a>
+    <a class="task-row" href="{{ route('benefits.workspace') }}">Review benefit reports and payments</a>
     <a class="task-row" href="{{ route('sms.blasts.create') }}">Create an SMS broadcast</a>
     <a class="task-row" href="{{ route('administration.users.index') }}">Manage user accounts</a>
 </div></div>

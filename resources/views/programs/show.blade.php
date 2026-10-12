@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('content')
-<h1>{{ $program->name }}</h1>
+<h2>{{ $program->name }}</h2>
 @include('components.alert')
 <p>{{ $program->agency }} | {{ $program->status }}</p>
 <p>Budget: {{ number_format((float) $program->budget, 2) }}</p>

@@ -12,6 +12,7 @@ use App\Models\SeniorCitizen;
 use App\Models\SmsBlast;
 use App\Models\SmsMessage;
 use App\Models\SmsTemplate;
+use App\Services\Benefits\BenefitSms;
 use App\Services\Sms\SmsService;
 use App\Services\Sms\SmsText;
 use Illuminate\Http\RedirectResponse;
@@ -41,7 +42,7 @@ class SmsBlastController extends Controller
         $total = SeniorCitizen::query()->when($filters['barangay_id'] ?? null, fn ($query, $id) => $query->where('barangay_id', $id))->count();
         $this->recipients($filters['barangay_id'] ?? null)->chunkById(200, function ($seniors) use (&$eligible) {
             foreach ($seniors as $senior) {
-                if (SmsText::mobile($senior->contact_number)) {
+                if ($senior->smsContact()) {
                     $eligible++;
                 }
             }
@@ -59,7 +60,7 @@ class SmsBlastController extends Controller
             $sent = 0;
             $this->recipients($barangayId)->chunkById(200, function ($seniorCitizens) use ($request, $smsService, $blast, &$sent): void {
                 foreach ($seniorCitizens as $seniorCitizen) {
-                    if ($number = SmsText::mobile($seniorCitizen->contact_number)) {
+                    if ($number = $seniorCitizen->smsContact()) {
                         $smsService->queue($number, $request->string('message')->toString(), $request->user()->id, $seniorCitizen->id, $blast->id);
                         $sent++;
                     }
@@ -92,9 +93,12 @@ class SmsBlastController extends Controller
             abort_unless($locked->status === SmsStatus::Failed, 409, 'Only failed messages can be retried.');
             if ($locked->senior_citizen_id) {
                 abort_unless($locked->seniorCitizen?->status?->value === 'VERIFIED', 422, 'Recipient is no longer eligible.');
-                $number = SmsText::mobile($locked->seniorCitizen->contact_number);
+                $number = $locked->seniorCitizen->smsContact();
                 abort_unless($number, 422, 'Recipient has no valid mobile number.');
                 $locked->recipient_number = $number;
+            }
+            if ($locked->benefit_entitlement_id) {
+                abort_unless(app(BenefitSms::class)->eligible($locked->benefitEntitlement, $locked->blast?->benefit_schedule_id), 422, 'The payout recipient is no longer eligible for the original schedule.');
             }
             $number = SmsText::mobile($locked->recipient_number);
             abort_unless($number, 422, 'Recipient has no valid mobile number.');
@@ -112,7 +116,7 @@ class SmsBlastController extends Controller
 
     private function recipients(?int $barangayId)
     {
-        return SeniorCitizen::query()->select(['id', 'contact_number'])->where('status', 'VERIFIED')
+        return SeniorCitizen::query()->select(['id', 'contact_number', 'representative_contact'])->where('status', 'VERIFIED')
             ->when($barangayId, fn ($query) => $query->where('barangay_id', $barangayId));
     }
 }

@@ -137,7 +137,7 @@
         </table>
     </div>
 
-    {{ $this->filteredUsers->links() }}
+    {{ $this->filteredUsers->links('administration.dashboard.pagination') }}
 
     <div class="table-footer">
         <span>Showing {{ count($this->filteredUsers) }} of {{ $this->filteredUsers->total() }} users</span>

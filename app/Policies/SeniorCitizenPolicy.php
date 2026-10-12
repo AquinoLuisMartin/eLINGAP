@@ -20,7 +20,7 @@ class SeniorCitizenPolicy
 
     public function create(User $user): bool
     {
-        return $this->viewAny($user);
+        return $user->isOscaStaff();
     }
 
     public function update(User $user, SeniorCitizen $seniorCitizen): bool

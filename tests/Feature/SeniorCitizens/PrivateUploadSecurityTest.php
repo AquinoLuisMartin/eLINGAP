@@ -24,8 +24,8 @@ class PrivateUploadSecurityTest extends TestCase
 
         $response = $this->actingAs($staff)->post(route('senior-citizens.store'), [
             'barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant',
-            'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address',
-            'photo' => UploadedFile::fake()->image('photo.png', 100, 100),
+            'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'contact_number' => '09171234567',
+            'photo' => UploadedFile::fake()->createWithContent('photo.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+nmfwAAAAASUVORK5CYII=')),
         ]);
 
         $senior = SeniorCitizen::sole();

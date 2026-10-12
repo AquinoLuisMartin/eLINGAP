@@ -7,4 +7,4 @@
         default => 'bg-amber-100 text-amber-800',
     };
 @endphp
-<span {{ $attributes->class(['inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold', $classes]) }}><span aria-hidden="true">●</span>{{ ucfirst(strtolower($value)) }}</span>
+<span {{ $attributes->class(['inline-flex items-center rounded px-2 py-1 text-xs font-normal', $classes]) }}>{{ ucfirst(strtolower($value)) }}</span>

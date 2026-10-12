@@ -1,0 +1,58 @@
+input[type='file'],
+.admin-shell .admin-content input[type='file'] {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    overflow: hidden;
+    border: 1px solid var(--line, var(--color-osca-border));
+    border-radius: 8px;
+    padding: 0 12px 0 0;
+    color: var(--ink, var(--color-osca-ink));
+    background: var(--paper, var(--color-osca-muted));
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+    cursor: pointer;
+}
+
+input[type='file']::file-selector-button {
+    min-height: 42px;
+    margin-right: 12px;
+    border: 0;
+    border-right: 1px solid var(--line, var(--color-osca-border));
+    border-radius: 7px 0 0 7px;
+    padding: 10px 14px;
+    color: var(--ink, var(--color-osca-ink));
+    background: var(--white, white);
+    font: inherit;
+    cursor: pointer;
+}
+
+input[type='file']:hover::file-selector-button {
+    color: var(--blue, var(--color-osca-primary));
+    background: var(--paper, var(--color-osca-muted));
+}
+
+input[type='file']:focus-visible,
+.admin-shell .admin-content input[type='file']:focus-visible {
+    border-color: var(--blue, var(--color-osca-primary));
+    outline: none;
+    box-shadow: 0 0 0 1px var(--blue, var(--color-osca-primary));
+}
+
+input[type='file']:disabled,
+.admin-shell .admin-content input[type='file']:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+input[type='file']:disabled::file-selector-button { cursor: not-allowed; }
+
+@media (forced-colors: active) {
+    input[type='file']:focus-visible,
+    .admin-shell .admin-content input[type='file']:focus-visible {
+        outline: 2px solid Highlight;
+        outline-offset: 2px;
+    }
+}

@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Support;
+
+use Illuminate\Support\Str;
+
+final class SystemEventLabel
+{
+    public static function for(string $event, string $category = 'Audit Trail'): string
+    {
+        if ($category === 'SMS Dispatch') {
+            return 'SMS delivery: '.Str::lower($event);
+        }
+
+        return match ($event) {
+            'senior_citizen.created' => 'Registered a new senior citizen',
+            'senior_citizen.updated' => 'Updated a senior citizen record',
+            'senior_citizen.verified' => 'Verified a senior citizen record',
+            'senior_citizen.id_generated' => 'Issued an OSCA ID',
+            'senior_citizen.archived' => 'Archived a senior citizen record',
+            'senior_citizen.deceased_declared' => 'Recorded a senior citizen death',
+            'senior_citizen.deceased_corrected' => 'Corrected a senior citizen death record',
+            'senior_citizen.classifications_verified' => 'Verified senior citizen classifications',
+            'benefit.claimed', 'payout.released' => 'Released a benefit payment',
+            'benefit.payment_reversed', 'payout.reversed' => 'Reversed a benefit payment',
+            'benefit.schedule_created' => 'Created a benefit payout schedule',
+            'benefit.schedule_approved' => 'Approved a benefit payout schedule',
+            'benefit.recipients_prepared' => 'Prepared eligible benefit recipients',
+            'benefit.recipient_reviewed' => 'Reviewed a benefit recipient',
+            'program.created' => 'Created a program',
+            'application.created' => 'Submitted an application',
+            'application.status_changed' => 'Changed an application status',
+            'beneficiary.enrolled' => 'Enrolled a program beneficiary',
+            'report.exported' => 'Exported a report',
+            'sms.broadcast' => 'Queued an SMS broadcast',
+            'sms.retried' => 'Retried an SMS delivery',
+            'LOGIN' => 'Signed in',
+            'LOGOUT' => 'Signed out',
+            'LOGIN_FAILED' => 'Failed sign-in attempt',
+            'PASSWORD_CHANGED' => 'Changed account password',
+            'PASSWORD_RESET' => 'Reset account password',
+            'access.senior-citizens.create' => 'Viewed the senior citizen registration form',
+            'access.registrations.index' => 'Viewed senior ID applications',
+            default => self::fallback($event),
+        };
+    }
+
+    private static function fallback(string $event): string
+    {
+        $access = Str::startsWith($event, 'access.');
+        $name = $access ? Str::after($event, 'access.') : $event;
+
+        return ($access ? 'Accessed: ' : '').Str::ucfirst(str_replace(['.', '_', '-'], ' ', $name));
+    }
+}

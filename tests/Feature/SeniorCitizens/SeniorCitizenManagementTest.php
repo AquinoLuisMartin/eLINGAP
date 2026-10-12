@@ -105,7 +105,7 @@ class SeniorCitizenManagementTest extends TestCase
             'last_name' => 'Santos',
             'birth_date' => '1948-01-01',
             'sex' => 'FEMALE',
-            'address' => 'Updated Address, Santa Maria',
+            'address' => 'Updated Address, Santa Maria', 'contact_number' => '09171234567',
         ]);
 
         $response->assertRedirect(route('senior-citizens.show', $seniorCitizen));
@@ -152,7 +152,7 @@ class SeniorCitizenManagementTest extends TestCase
         $this->actingAs($staff)->put(route('senior-citizens.update', $senior), [
             'barangay_id' => $senior->barangay_id, 'first_name' => $senior->first_name,
             'last_name' => $senior->last_name, 'birth_date' => $senior->birth_date->format('Y-m-d'),
-            'sex' => $senior->sex, 'address' => $senior->address,
+            'sex' => $senior->sex, 'address' => $senior->address, 'contact_number' => '09171234567',
             'photo' => UploadedFile::fake()->createWithContent('photo.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+nmfwAAAAASUVORK5CYII=')),
         ])->assertRedirect();
 
@@ -166,6 +166,40 @@ class SeniorCitizenManagementTest extends TestCase
         $senior = $this->seniorCitizen();
 
         $this->get(route('senior-citizens.photo', $senior))->assertRedirect(route('login'));
+    }
+
+    public function test_barangay_filter_limits_records_and_persists_across_pages(): void
+    {
+        $staff = $this->user('OSCA_STAFF');
+        $otherSenior = $this->seniorCitizen();
+        $barangay = Barangay::create(['name' => 'Test Barangay', 'code' => 'TEST']);
+        for ($index = 1; $index <= 16; $index++) {
+            $senior = $otherSenior->replicate();
+            $senior->fill(['barangay_id' => $barangay->id, 'registration_number' => 'SC-FILTER-'.$index]);
+            $senior->save();
+        }
+
+        $response = $this->actingAs($staff)->get(route('senior-citizens.index', ['barangay_id' => $barangay->id]));
+
+        $response->assertOk()->assertViewHas('seniorCitizens', function ($records) use ($barangay) {
+            $this->assertSame(16, $records->total());
+            $this->assertSame([$barangay->id], $records->pluck('barangay_id')->unique()->values()->all());
+            $this->assertStringContainsString('barangay_id='.$barangay->id, $records->nextPageUrl());
+
+            return true;
+        });
+        $this->get($response->viewData('seniorCitizens')->nextPageUrl())
+            ->assertViewHas('seniorCitizens', fn ($records) => $records->count() === 1 && $records->first()->barangay_id === $barangay->id);
+        $this->get(route('senior-citizens.index', ['barangay_id' => '']))
+            ->assertViewHas('seniorCitizens', fn ($records) => $records->total() === 17);
+    }
+
+    public function test_barangay_filter_rejects_unknown_barangay(): void
+    {
+        $staff = $this->user('OSCA_STAFF');
+
+        $this->actingAs($staff)->getJson(route('senior-citizens.index', ['barangay_id' => 999]))
+            ->assertUnprocessable()->assertJsonValidationErrors('barangay_id');
     }
 
     private function user(string $role): User

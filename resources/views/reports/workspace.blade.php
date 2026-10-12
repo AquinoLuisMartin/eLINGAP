@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('content')
 <a href="{{ route('reports.index') }}" class="text-sm text-osca-primary underline">Back to reports</a>
-<h1 class="mt-3 text-3xl font-bold">{{ $title }}</h1>
+<h2 class="mt-3 text-3xl font-semibold">{{ $title }}</h2>
 <p class="mb-6 text-slate-600">Office for Senior Citizens Affairs · Santa Maria, Bulacan</p>
 <form method="GET" class="mb-5 grid gap-3 rounded-lg border bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
     <label>Barangay <select name="barangay_id" class="mt-1 w-full rounded border p-2"><option value="">All barangays</option>@foreach ($barangays as $barangay)<option value="{{ $barangay->id }}" @selected(request('barangay_id') == $barangay->id)>{{ $barangay->name }}</option>@endforeach</select></label>

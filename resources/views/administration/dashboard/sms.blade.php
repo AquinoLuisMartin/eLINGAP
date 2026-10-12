@@ -12,4 +12,4 @@
     @empty
         <tr><td colspan="7"><div class="empty-log-state"><strong>No broadcasts recorded</strong><span>Create a broadcast to queue messages for eligible recipients.</span></div></td></tr>
     @endforelse
-</tbody></table></div>{{ $this->broadcasts->links() }}</div>
+</tbody></table></div>{{ $this->broadcasts->links('administration.dashboard.pagination') }}</div>

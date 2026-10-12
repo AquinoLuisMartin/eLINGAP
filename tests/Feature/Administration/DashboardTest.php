@@ -50,18 +50,18 @@ class DashboardTest extends TestCase
             ->assertSet('active', 'help');
     }
 
-    public function test_registry_links_to_the_persisted_creation_workflow(): void
+    public function test_admin_registry_does_not_offer_senior_registration(): void
     {
         Livewire::actingAs($this->adminUser)->test(Dashboard::class)
             ->call('navigate', 'records')
-            ->assertSeeHtml('href="'.route('senior-citizens.create').'"');
+            ->assertDontSeeHtml('href="'.route('senior-citizens.create').'"');
     }
 
     public function test_programs_link_to_the_persisted_creation_workflow(): void
     {
         Livewire::actingAs($this->adminUser)->test(Dashboard::class)
             ->call('navigate', 'programs')
-            ->assertSeeHtml('href="'.route('administration.programs.create').'"');
+            ->assertSeeHtml('href="'.route('benefits.programs').'"');
     }
 
     public function test_can_toggle_user_status(): void

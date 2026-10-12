@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $title ?? 'eLINGAP — OSCA Portal' }}</title>
+    <title>eLINGAP</title>
     <link rel="icon" type="image/png" href="{{ asset('images/eLINGAP.png') }}">
     <script>
         (function () {
@@ -14,8 +14,14 @@
     </script>
     @vite(['resources/css/admin.css', 'resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
+    @if (session('clear-registration-names'))
+        <script>
+            try { sessionStorage.removeItem({{ \Illuminate\Support\Js::from('elingap-id-names-'.auth()->id()) }}); } catch {}
+        </script>
+    @endif
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     @php($user = auth()->user()->loadMissing('role'))
     @php($lastLoginAt = array_key_exists('last_login_at', $user->getAttributes()) ? $user->last_login_at : null)
     <div class="admin-shell staff-shell" x-data="{
@@ -46,10 +52,11 @@
                 @foreach ([
                     ['Dashboard', 'dashboard', 'layout-dashboard', 'dashboard'],
                     ['Senior Records Registry', 'senior-citizens.index', 'users', 'senior-citizens.*'],
-                    ['Registrations', 'applications.index', 'clipboard-list', 'applications.*'],
+                    ['Registrations', 'registrations.index', 'clipboard-list', 'registrations.*'],
                     ['Payouts', 'payouts.index', 'archive', 'payouts.*'],
                     ['Messaging', 'sms.blasts.index', 'message-square', 'sms.*'],
                     ['Reports', 'reports.index', 'bar-chart-3', 'reports.*'],
+                    ['Benefits Workspace', 'benefits.workspace', 'heart-pulse', 'benefits.*'],
                 ] as [$label, $route, $icon, $pattern])
                     <a class="nav-item {{ request()->routeIs($pattern) ? 'is-active' : '' }}" href="{{ route($route) }}" title="{{ $label }}" @if(request()->routeIs($pattern)) aria-current="page" @endif>
                         <x-admin.icon :name="$icon" size="18" />
@@ -60,12 +67,12 @@
 
             </nav>
 
-            <button class="sidebar-footer" type="button" aria-expanded="false" aria-haspopup="menu" @click="profileOpen = !profileOpen" :aria-expanded="profileOpen">
-                <div class="profile-avatar">{{ mb_substr($user->first_name, 0, 1).mb_substr($user->last_name, 0, 1) }}</div>
-                <div class="profile-copy">
+            <button class="sidebar-footer" type="button" aria-expanded="false" @click="profileOpen = !profileOpen" aria-controls="osca-account-panel" :aria-expanded="profileOpen">
+                <span class="profile-avatar">{{ mb_substr($user->first_name, 0, 1).mb_substr($user->last_name, 0, 1) }}</span>
+                <span class="profile-copy">
                     <strong>{{ $user->first_name }} - {{ $user->role->name->label() }}</strong>
                     <small>OSCA Staff Portal</small>
-                </div>
+                </span>
                 <span class="icon-button sidebar-logout" aria-label="Open account menu" title="Open account menu">
                     <x-admin.icon name="chevron-right" size="17" />
                 </span>
@@ -73,7 +80,7 @@
         </aside>
 
         <div class="profile-menu-backdrop" x-show="profileOpen" x-transition.opacity @click="profileOpen = false" style="display: none;"></div>
-        <aside class="profile-menu" role="menu" x-show="profileOpen" x-transition @click.stop style="display: none;">
+        <aside id="osca-account-panel" class="profile-menu" aria-label="Account details" x-show="profileOpen" x-transition @click.stop style="display: none;">
             <div class="profile-menu-header">
                 <div class="profile-menu-avatar">{{ mb_substr($user->first_name, 0, 1).mb_substr($user->last_name, 0, 1) }}</div>
                 <div>
@@ -112,30 +119,32 @@
                         <x-admin.icon name="menu" size="20" />
                     </button>
                     <div>
-                        <span class="eyebrow">OSCA Staff Portal</span>
+                        <span class="eyebrow">{{ request()->routeIs('administration.*') ? 'System Administration' : 'OSCA Staff Portal' }}</span>
                         <h1>{{ match (true) {
+                            request()->routeIs('administration.users.*') => 'User Accounts',
                             request()->routeIs('senior-citizens.*') => 'Senior Records Registry',
-                            request()->routeIs('applications.*') => 'Registrations',
+                            request()->routeIs('registrations.*') => 'Registrations',
+                            request()->routeIs('applications.*') => 'Historical Applications',
                             request()->routeIs('payouts.*') => 'Payouts',
                             request()->routeIs('sms.*') => 'Messaging',
                             request()->routeIs('reports.*') => 'Reports',
                             request()->routeIs('programs.*') => 'Benefits & Programs',
+                            request()->routeIs('benefits.*') => 'Benefits Workspace',
                             default => 'Dashboard',
                         } }}</h1>
                     </div>
                 </div>
                 <div class="header-actions">
                     <span class="header-date"><x-admin.icon name="calendar-days" size="16" />{{ now()->format('l, F j, Y') }}</span>
-                    <span class="online-status"><i></i>Online</span>
                     <button type="button" class="theme-toggle icon-button" @click="toggleTheme()" :aria-label="theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'">
                         <span x-show="theme === 'light'"><x-admin.icon name="moon" size="18" /></span>
                         <span x-show="theme === 'dark'" x-cloak><x-admin.icon name="sun" size="18" /></span>
                     </button>
-                    <button type="button" class="profile-avatar" @click="profileOpen = !profileOpen" aria-label="Open account menu" aria-haspopup="menu" :aria-expanded="profileOpen">{{ mb_substr($user->first_name, 0, 1).mb_substr($user->last_name, 0, 1) }}</button>
+                    <button type="button" class="profile-avatar" @click="profileOpen = !profileOpen" aria-label="Open account menu" aria-controls="osca-account-panel" :aria-expanded="profileOpen">{{ mb_substr($user->first_name, 0, 1).mb_substr($user->last_name, 0, 1) }}</button>
                 </div>
             </header>
 
-            <main class="admin-content">
+            <main id="main-content" class="admin-content" tabindex="-1">
                 @include('components.alert')
                 @yield('content')
             </main>

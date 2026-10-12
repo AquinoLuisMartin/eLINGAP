@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('content')
-<h1>{{ $application->application_number }}</h1>
+<h2>{{ $application->application_number }}</h2>
 @include('components.alert')
 <p>Applicant: {{ $application->seniorCitizen->full_name }}</p>
 <p>Program: {{ $application->program->name }}</p>
@@ -15,6 +15,6 @@
 </form>
 @endif
 @endcan
-<h2>Status history</h2>
+<h3>Status history</h3>
 <ul>@foreach ($application->statusHistories as $history)<li>{{ $history->to_status }} - {{ $history->created_at->format('Y-m-d H:i') }}</li>@endforeach</ul>
 @endsection
