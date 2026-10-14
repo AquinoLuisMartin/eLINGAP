@@ -1,5 +1,6 @@
 @extends('layouts.app')
 @section('content')
+<x-workspace-navigation section="payouts" />
 <a href="{{ route('payouts.index') }}" class="text-sm text-osca-primary underline">Back to payouts</a>
 <h2 class="mt-3 text-3xl font-semibold">Payout for {{ $payout->seniorCitizen->full_name }}</h2>
 <dl class="my-6 grid gap-4 rounded-lg border bg-white p-5 sm:grid-cols-2"><div><dt class="text-sm text-slate-600">OSCA ID</dt><dd>{{ $payout->seniorCitizen->osca_id_number ?: '—' }}</dd></div><div><dt class="text-sm text-slate-600">Barangay</dt><dd>{{ $payout->seniorCitizen->barangay->name }}</dd></div><div><dt class="text-sm text-slate-600">Program</dt><dd>{{ $payout->schedule->program->name }}</dd></div><div><dt class="text-sm text-slate-600">Amount</dt><dd class="font-medium">{{ \App\Support\PhilippineCurrency::format($payout->amount) }}</dd></div><div><dt class="text-sm text-slate-600">Status</dt><dd><x-badge :status="$payout->status" /></dd></div><div><dt class="text-sm text-slate-600">Scheduled</dt><dd>{{ $payout->schedule->scheduled_on }}</dd></div></dl>

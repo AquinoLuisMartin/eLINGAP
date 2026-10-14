@@ -7,11 +7,6 @@
             <h2>Senior citizen masterlist</h2>
             <p class="section-subtitle">Manage senior citizen records and registration status across OSCA Santa Maria.</p>
         </div>
-        @can('create', \App\Models\SeniorCitizen::class)
-        <a class="primary-button" href="{{ route('senior-citizens.create') }}">
-            <x-admin.icon name="plus" size="17" /> Register senior citizen
-        </a>
-        @endcan
     </section>
 
     <dl class="stat-strip" aria-label="Registry totals">
@@ -71,7 +66,7 @@
                             <td>{{ $seniorCitizen->birth_date->age }}</td>
                             <td>{{ $seniorCitizen->barangay->name }}</td>
                             <td><x-badge :status="$seniorCitizen->status" /></td>
-                            <td><a class="text-button" href="{{ route('senior-citizens.show', $seniorCitizen) }}" aria-label="View {{ $seniorCitizen->full_name }}">View <x-admin.icon name="chevron-right" size="15" /></a></td>
+                            <td><a class="text-button" href="{{ route('senior-citizens.show', [$seniorCitizen, 'from' => 'registry', ...request()->only(['search', 'barangay_id', 'status', 'age', 'page'])]) }}" aria-label="View {{ $seniorCitizen->full_name }}">View <x-admin.icon name="chevron-right" size="15" /></a></td>
                         </tr>
                     @empty
                         <tr><td colspan="8" class="p-6 text-center">No senior citizen records match these filters.</td></tr>

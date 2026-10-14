@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>eLINGAP</title>
-    <link rel="icon" type="image/png" href="{{ asset('images/eLINGAP.png') }}">
+    <x-favicon />
     <script>
         (function () {
             var theme = localStorage.getItem('elingap-theme') === 'dark' ? 'dark' : 'light';
@@ -27,6 +27,7 @@
     <div class="admin-shell staff-shell" x-data="{
         sidebarOpen: false,
         profileOpen: false,
+        profileTrigger: null,
         theme: localStorage.getItem('elingap-theme') === 'dark' ? 'dark' : 'light',
         toggleTheme() {
             this.theme = this.theme === 'light' ? 'dark' : 'light';
@@ -35,8 +36,8 @@
             document.documentElement.classList.toggle('theme-light', this.theme === 'light');
             document.documentElement.style.colorScheme = this.theme;
         }
-    }" :class="theme === 'dark' ? 'theme-dark' : 'theme-light'" @keydown.escape.window="profileOpen = false; sidebarOpen = false">
-        <aside id="osca-navigation" class="admin-sidebar" :class="{ 'is-expanded': sidebarOpen }" @mouseenter="if (window.matchMedia('(min-width: 761px)').matches) sidebarOpen = true" @mouseleave="if (window.matchMedia('(min-width: 761px)').matches) sidebarOpen = false" @focusin="sidebarOpen = true" @focusout="if (!$el.contains($event.relatedTarget)) sidebarOpen = false">
+    }" :class="theme === 'dark' ? 'theme-dark' : 'theme-light'" @keydown.escape.window="if (profileOpen) profileTrigger?.focus(); profileOpen = false; sidebarOpen = false">
+        <aside id="osca-navigation" class="admin-sidebar" :class="{ 'is-expanded': sidebarOpen }" @mouseenter="if (window.matchMedia('(min-width: 761px)').matches) sidebarOpen = true" @mouseleave="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains(document.activeElement)) sidebarOpen = false" @focusin="sidebarOpen = true" @focusout="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains($event.relatedTarget) && !$el.matches(':hover')) sidebarOpen = false">
             <div class="sidebar-brand">
                 <div class="brand-mark">
                     <img class="brand-logo" src="{{ asset('images/eLINGAP.png') }}" alt="eLINGAP Logo">
@@ -51,23 +52,28 @@
                 <p class="nav-label">Workspace</p>
                 @foreach ([
                     ['Dashboard', 'dashboard', 'layout-dashboard', 'dashboard'],
-                    ['Senior Records Registry', 'senior-citizens.index', 'users', 'senior-citizens.*'],
+                    ['Senior Registry', 'senior-citizens.index', 'users', 'senior-citizens.*'],
                     ['Registrations', 'registrations.index', 'clipboard-list', 'registrations.*'],
                     ['Payouts', 'payouts.index', 'archive', 'payouts.*'],
                     ['Messaging', 'sms.blasts.index', 'message-square', 'sms.*'],
                     ['Reports', 'reports.index', 'bar-chart-3', 'reports.*'],
                     ['Benefits Workspace', 'benefits.workspace', 'heart-pulse', 'benefits.*'],
                 ] as [$label, $route, $icon, $pattern])
-                    <a class="nav-item {{ request()->routeIs($pattern) ? 'is-active' : '' }}" href="{{ route($route) }}" title="{{ $label }}" @if(request()->routeIs($pattern)) aria-current="page" @endif>
+                    @php($isActive = request()->routeIs($pattern) || match ($route) {
+                        'senior-citizens.index' => request()->routeIs('senior-id.*'),
+                        'payouts.index' => request()->routeIs('payout-schedules.*'),
+                        default => false,
+                    })
+                    <a class="nav-item {{ $isActive ? 'is-active' : '' }}" href="{{ route($route) }}" title="{{ $label }}" @if($isActive) aria-current="page" @endif>
                         <x-admin.icon :name="$icon" size="18" />
                         <span>{{ $label }}</span>
-                        @if (request()->routeIs($pattern)) <i class="active-dot"></i> @endif
+                        @if ($isActive) <i class="active-dot"></i> @endif
                     </a>
                 @endforeach
 
             </nav>
 
-            <button class="sidebar-footer" type="button" aria-expanded="false" @click="profileOpen = !profileOpen" aria-controls="osca-account-panel" :aria-expanded="profileOpen">
+            <button class="sidebar-footer" type="button" @click="profileTrigger = $event.currentTarget; profileOpen = !profileOpen" aria-controls="osca-account-panel" :aria-expanded="profileOpen">
                 <span class="profile-avatar">{{ mb_substr($user->first_name, 0, 1).mb_substr($user->last_name, 0, 1) }}</span>
                 <span class="profile-copy">
                     <strong>{{ $user->first_name }} - {{ $user->role->name->label() }}</strong>
@@ -80,7 +86,7 @@
         </aside>
 
         <div class="profile-menu-backdrop" x-show="profileOpen" x-transition.opacity @click="profileOpen = false" style="display: none;"></div>
-        <aside id="osca-account-panel" class="profile-menu" aria-label="Account details" x-show="profileOpen" x-transition @click.stop style="display: none;">
+        <aside id="osca-account-panel" class="profile-menu" aria-label="Account details" x-show="profileOpen" x-transition @click.stop @click.outside="profileOpen = false" style="display: none;">
             <div class="profile-menu-header">
                 <div class="profile-menu-avatar">{{ mb_substr($user->first_name, 0, 1).mb_substr($user->last_name, 0, 1) }}</div>
                 <div>
@@ -122,10 +128,11 @@
                         <span class="eyebrow">{{ request()->routeIs('administration.*') ? 'System Administration' : 'OSCA Staff Portal' }}</span>
                         <h1>{{ match (true) {
                             request()->routeIs('administration.users.*') => 'User Accounts',
+                            request()->routeIs('senior-id.*') => 'Senior Citizen IDs',
                             request()->routeIs('senior-citizens.*') => 'Senior Records Registry',
                             request()->routeIs('registrations.*') => 'Registrations',
                             request()->routeIs('applications.*') => 'Historical Applications',
-                            request()->routeIs('payouts.*') => 'Payouts',
+                            request()->routeIs('payouts.*', 'payout-schedules.*') => 'Payouts',
                             request()->routeIs('sms.*') => 'Messaging',
                             request()->routeIs('reports.*') => 'Reports',
                             request()->routeIs('programs.*') => 'Benefits & Programs',
@@ -136,11 +143,11 @@
                 </div>
                 <div class="header-actions">
                     <span class="header-date"><x-admin.icon name="calendar-days" size="16" />{{ now()->format('l, F j, Y') }}</span>
-                    <button type="button" class="theme-toggle icon-button" @click="toggleTheme()" :aria-label="theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'">
+                    <button type="button" class="theme-toggle icon-button" @click="toggleTheme()" :aria-label="theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'" :aria-pressed="theme === 'dark'">
                         <span x-show="theme === 'light'"><x-admin.icon name="moon" size="18" /></span>
                         <span x-show="theme === 'dark'" x-cloak><x-admin.icon name="sun" size="18" /></span>
                     </button>
-                    <button type="button" class="profile-avatar" @click="profileOpen = !profileOpen" aria-label="Open account menu" aria-controls="osca-account-panel" :aria-expanded="profileOpen">{{ mb_substr($user->first_name, 0, 1).mb_substr($user->last_name, 0, 1) }}</button>
+                    <button type="button" class="profile-avatar" @click="profileTrigger = $event.currentTarget; profileOpen = !profileOpen" aria-label="Open account menu" aria-controls="osca-account-panel" :aria-expanded="profileOpen">{{ mb_substr($user->first_name, 0, 1).mb_substr($user->last_name, 0, 1) }}</button>
                 </div>
             </header>
 

@@ -9,17 +9,8 @@
             <div><dt class="text-sm text-slate-500">ID issued</dt><dd>{{ $senior->id_generated_at?->format('M j, Y') ?? 'Not recorded' }}</dd></div>
             <div><dt class="text-sm text-slate-500">OSCA ID</dt><dd>{{ $senior->osca_id_number ?? 'Not generated' }}</dd></div>
         </dl>
-        @if ($senior->id_generated_at && $senior->status->value === 'VERIFIED')
-            <a class="secondary-button" href="{{ route('senior-citizens.id-card', $senior) }}" target="_blank" rel="noopener">Open printable ID</a>
-        @endif
         @can('manage', \App\Models\BenefitSchedule::class)
-            @if (in_array($senior->status->value, ['PENDING', 'VERIFIED']))
-                @if (!$senior->verified_at || $senior->status->value === 'PENDING')
-                    <label class="mr-3 text-sm"><input type="checkbox" wire:model="documentsChecked"> Registration documents checked</label>
-                    <button type="button" class="primary-button" wire:click="verify" wire:loading.attr="disabled">Verify registration</button>
-                @elseif (!$senior->id_generated_at)
-                    <button type="button" class="primary-button" wire:click="issueId" wire:loading.attr="disabled">Generate OSCA ID</button>
-                @endif
+            @if ($senior->status->value === 'VERIFIED')
                 <form wire:submit="saveClassifications" class="mt-6 space-y-3">
                     <h3 class="font-semibold">Staff-verified classifications</h3>
                     <div class="grid gap-3 sm:grid-cols-2">

@@ -22,6 +22,7 @@ class SeniorCitizenManagementTest extends TestCase
         $barangay = Barangay::create(['name' => 'Poblacion', 'code' => 'POB']);
 
         $response = $this->actingAs($staff)->post(route('senior-citizens.store'), [
+            'requirements_status' => 'REVIEW', 'requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'review_reason' => 'Synthetic document needs checking',
             'barangay_id' => $barangay->id,
             'first_name' => 'Juan',
             'middle_name' => 'Dela',
@@ -46,6 +47,7 @@ class SeniorCitizenManagementTest extends TestCase
         $staff = $this->user('OSCA_STAFF');
 
         $this->actingAs($staff)->post(route('senior-citizens.store'), [
+            'requirements_status' => 'REVIEW', 'requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'review_reason' => 'Synthetic document needs checking',
             'barangay_id' => 999,
             'first_name' => 'Young',
             'last_name' => 'Applicant',
@@ -63,6 +65,7 @@ class SeniorCitizenManagementTest extends TestCase
         $staff = $this->user('OSCA_STAFF');
 
         $this->actingAs($staff)->post(route('senior-citizens.store'), [
+            'requirements_status' => 'REVIEW', 'requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'review_reason' => 'Synthetic document needs checking',
             'barangay_id' => $senior->barangay_id, 'first_name' => 'Maria', 'last_name' => 'Santos',
             'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'contact_number' => '12345',
         ])->assertSessionHasErrors(['first_name', 'contact_number']);

@@ -18,6 +18,7 @@
         sidebarOpen: false,
         adminOpen: true,
         profileOpen: false,
+        profileTrigger: null,
         notificationsOpen: false,
         theme: localStorage.getItem('elingap-theme') === 'dark' ? 'dark' : 'light',
         init() {
@@ -35,10 +36,10 @@
             this.applyTheme(this.theme === 'light' ? 'dark' : 'light');
         }
     }"
-    @keydown.escape.window="profileOpen = false; notificationsOpen = false">
+    @keydown.escape.window="if (profileOpen) profileTrigger?.focus(); profileOpen = false; notificationsOpen = false; sidebarOpen = false">
 
     {{-- Collapsible Sidebar --}}
-    <aside class="admin-sidebar" :class="{ 'is-expanded': sidebarOpen }" @mouseenter="sidebarOpen = true" @mouseleave="sidebarOpen = false">
+    <aside id="admin-navigation" class="admin-sidebar" :class="{ 'is-expanded': sidebarOpen }" @mouseenter="if (window.matchMedia('(min-width: 761px)').matches) sidebarOpen = true" @mouseleave="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains(document.activeElement)) sidebarOpen = false" @focusin="sidebarOpen = true" @focusout="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains($event.relatedTarget) && !$el.matches(':hover')) sidebarOpen = false">
         <div class="sidebar-brand">
             <div class="brand-mark">
                 <img class="brand-logo" src="{{ asset('images/eLINGAP.png') }}" alt="eLINGAP Logo" />
@@ -112,7 +113,7 @@
         </nav>
 
         {{-- Sidebar Footer Profile Toggle --}}
-        <button class="sidebar-footer" type="button" aria-expanded="false" aria-haspopup="menu" @click="profileOpen = !profileOpen">
+        <button class="sidebar-footer" type="button" aria-controls="admin-account-panel" :aria-expanded="profileOpen" @click="profileTrigger = $event.currentTarget; profileOpen = !profileOpen">
             <div class="profile-avatar">{{ mb_substr($this->currentUser->first_name, 0, 1).mb_substr($this->currentUser->last_name, 0, 1) }}</div>
             <div class="profile-copy">
                 <strong>{{ $this->currentUser->full_name }}</strong>
@@ -125,8 +126,8 @@
     </aside>
 
     {{-- Profile Flyout Menu --}}
-    <div class="profile-menu-backdrop" x-show="profileOpen" style="display: none;"></div>
-    <aside class="profile-menu" role="menu" x-show="profileOpen" @click.stop style="display: none;">
+    <div class="profile-menu-backdrop" x-show="profileOpen" @click="profileOpen = false" style="display: none;"></div>
+    <aside id="admin-account-panel" class="profile-menu" aria-label="Account details" x-show="profileOpen" @click.stop @click.outside="profileOpen = false" style="display: none;">
         <div class="profile-menu-header">
             <div class="profile-menu-avatar">{{ mb_substr($this->currentUser->first_name, 0, 1).mb_substr($this->currentUser->last_name, 0, 1) }}</div>
             <div>
@@ -182,7 +183,7 @@
     <main class="admin-main">
         <header class="admin-header">
             <div class="header-title">
-                <button type="button" class="mobile-menu-button icon-button" @click="sidebarOpen = !sidebarOpen" aria-label="Toggle navigation">
+                <button type="button" class="mobile-menu-button icon-button" @click="sidebarOpen = !sidebarOpen" aria-label="Toggle navigation" aria-controls="admin-navigation" :aria-expanded="sidebarOpen">
                     <x-admin.icon name="menu" size="20" />
                 </button>
                 <div>
@@ -213,7 +214,7 @@
                     </button>
                 </div>
 
-                <button type="button" class="theme-toggle icon-button" @click="toggleTheme()" :aria-label="theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'" :title="theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'">
+                <button type="button" class="theme-toggle icon-button" @click="toggleTheme()" :aria-label="theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'" :aria-pressed="theme === 'dark'" :title="theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'">
                     <span x-show="theme === 'light'">
                         <x-admin.icon name="moon" size="18" />
                     </span>

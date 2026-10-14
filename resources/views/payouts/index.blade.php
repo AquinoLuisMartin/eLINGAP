@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('content')
-<div class="mb-6 flex flex-wrap items-center justify-between gap-3"><div><p class="text-sm font-normal text-osca-primary">Benefits</p><h2 class="text-3xl font-semibold">Payouts</h2><p class="text-slate-600">Review beneficiaries and record verified releases.</p></div><a class="text-osca-primary underline" href="{{ route('payout-schedules.index') }}">Payout schedules</a></div>
+<x-workspace-navigation section="payouts" />
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3"><div><p class="text-sm font-normal text-osca-primary">Benefits</p><h2 class="text-3xl font-semibold">Payouts</h2><p class="text-slate-600">Review beneficiaries and record verified releases.</p></div></div>
 <div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
     @foreach (['Total payouts' => $counts->sum(), 'Unclaimed' => $counts['PENDING'] ?? 0, 'Claimed' => $counts['RELEASED'] ?? 0, 'Claimed via proxy' => $proxyCount] as $label => $count)
         <div class="rounded-lg border bg-white p-4"><p class="text-sm text-slate-600">{{ $label }}</p><p class="text-2xl font-medium">{{ number_format($count) }}</p></div>

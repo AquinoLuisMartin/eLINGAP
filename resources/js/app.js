@@ -1,5 +1,11 @@
 import Alpine from 'alpinejs';
 import collapse from '@alpinejs/collapse';
+import idImageEditor from './id-image-editor';
+import signaturePad from './signature-pad';
+
+window.idImageEditor = idImageEditor;
+window.signaturePad = signaturePad;
+const modalTriggers = new WeakMap();
 
 // Landing page interactions
 
@@ -16,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initModal('search');
     initModal('login');
     initPasswordToggle();
+    initLoginSubmission();
     initBackToTop();
     initViewSwitcher();
     initEscapeClose();
@@ -155,6 +162,20 @@ function initModal(prefix) {
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal(modal);
     });
+    modal.addEventListener('keydown', event => {
+        if (event.key !== 'Tab') return;
+        const controls = [...modal.querySelectorAll('button:not(:disabled), input:not(:disabled):not([type="hidden"]), a[href], [tabindex="0"]')]
+            .filter(control => control.getClientRects().length);
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (!first) { event.preventDefault(); modal.focus(); return; }
+        if (event.shiftKey && (document.activeElement === first || !modal.contains(document.activeElement))) {
+            event.preventDefault(); last.focus();
+        } else if (!event.shiftKey && (document.activeElement === last || !modal.contains(document.activeElement))) {
+            event.preventDefault(); first.focus();
+        }
+    });
+    if (!modal.classList.contains('hidden')) openModal(modal, focusTarget);
 }
 
 function openModal(modal, focusTarget) {
@@ -162,12 +183,38 @@ function openModal(modal, focusTarget) {
     const menu = document.getElementById('mobile-menu');
     if (menu) menu.classList.add('hidden');
 
+    modalTriggers.set(modal, document.activeElement);
+    modal.dataset.bodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     modal.classList.remove('hidden');
-    if (focusTarget) setTimeout(() => focusTarget.focus(), 50);
+    requestAnimationFrame(() => {
+        if (!modal.classList.contains('hidden')) (focusTarget || modal).focus();
+    });
 }
 
 function closeModal(modal) {
     modal.classList.add('hidden');
+    document.body.style.overflow = modal.dataset.bodyOverflow || '';
+    modalTriggers.get(modal)?.focus();
+}
+
+function initLoginSubmission() {
+    const form = document.getElementById('login-form');
+    if (!form) return;
+    const button = document.getElementById('login-submit');
+    const setBusy = busy => {
+        button.disabled = busy;
+        form.setAttribute('aria-busy', String(busy));
+        button.querySelector('[data-login-label]').classList.toggle('hidden', busy);
+        const loading = button.querySelector('[data-login-loading]');
+        loading.classList.toggle('hidden', !busy);
+        loading.classList.toggle('inline-flex', busy);
+    };
+    form.addEventListener('submit', event => {
+        if (button.disabled) { event.preventDefault(); return; }
+        setBusy(true);
+    });
+    window.addEventListener('pageshow', () => setBusy(false));
 }
 
 function initPasswordToggle() {
@@ -232,7 +279,7 @@ function initEscapeClose() {
     window.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
         document.querySelectorAll('[role="dialog"]:not(.hidden)').forEach(modal => {
-            modal.classList.add('hidden');
+            closeModal(modal);
         });
     });
 }

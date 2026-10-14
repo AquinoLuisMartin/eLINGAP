@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['barangay_id', 'registration_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'sex', 'civil_status', 'address', 'contact_number', 'osca_id_number', 'status', 'verified_at', 'verified_by', 'died_on', 'death_declared_at', 'death_declared_by', 'applicant_type', 'representative_name', 'representative_relationship', 'representative_contact'])]
+#[Fillable(['barangay_id', 'registration_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'sex', 'civil_status', 'address', 'contact_number', 'osca_id_number', 'status', 'verified_at', 'verified_by', 'died_on', 'death_declared_at', 'death_declared_by', 'applicant_type', 'representative_name', 'representative_relationship', 'representative_contact', 'requirements_checks', 'review_reason'])]
 class SeniorCitizen extends Model
 {
     public function benefitEntitlements(): HasMany
@@ -28,6 +28,7 @@ class SeniorCitizen extends Model
     protected function casts(): array
     {
         return [
+            'requirements_checks' => 'array',
             'birth_date' => 'date',
             'verified_at' => 'datetime',
             'status' => SeniorCitizenStatus::class,

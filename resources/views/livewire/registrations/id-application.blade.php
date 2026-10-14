@@ -26,15 +26,15 @@
     @if ($modal) role="dialog" aria-modal="true" aria-labelledby="id-application-title" x-trap.inert.noscroll="true" @keydown.escape.window="$wire.cancel()" @endif>
     <div class="mx-auto w-full max-w-4xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900" @if ($modal) style="max-height: 90dvh; overflow-y: auto" @endif>
         <header class="flex items-start justify-between gap-4 border-b border-slate-200 p-5 sm:p-6 dark:border-slate-700">
-            <div><p class="section-kicker">Central senior registration</p><h2 id="id-application-title" class="mt-1 text-xl font-semibold sm:text-2xl">New ID Application</h2><p class="mt-2 max-w-xl text-sm text-slate-500">Apply once for an OSCA ID and registration in eLINGAP. Staff will verify the record before issuing the ID.</p></div>
+            <div><p class="section-kicker">Central senior registration</p><h2 id="id-application-title" class="mt-1 text-xl font-semibold sm:text-2xl">New ID Application</h2><p class="mt-2 max-w-xl text-sm text-slate-500">Check requirements, register the senior, and continue to ID preparation.</p></div>
             <button type="button" wire:click="cancel" class="icon-button shrink-0" aria-label="Close ID application"><x-admin.icon name="x" size="20" /></button>
         </header>
         <nav aria-label="ID application progress" class="border-b border-slate-200 px-3 py-5 sm:px-8 dark:border-slate-700">
-            <ol class="flex">
-                @foreach ([1 => 'Personal Info', 2 => 'Address & Applicant', 3 => 'Document Checklist'] as $number => $label)
+            <ol class="flex max-w-2xl gap-2">
+                @foreach ([0 => 'Requirements', 1 => 'Personal Info', 2 => 'Address & Applicant', 3 => 'Confirm & Save'] as $number => $label)
                     <li wire:key="registration-step-{{ $number }}" class="relative flex flex-1 flex-col items-center gap-2 text-center" @if ($step === $number) aria-current="step" @endif>
                         @if ($number < 3)<span aria-hidden="true" @class(['absolute left-1/2 top-5 h-px w-full', 'bg-osca-primary' => $step > $number, 'bg-slate-200 dark:bg-slate-700' => $step <= $number])></span>@endif
-                        <span @class(['relative z-10 flex size-10 items-center justify-center rounded-full border-2 text-sm font-medium', 'border-osca-primary bg-osca-primary text-white' => $step >= $number, 'border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900' => $step < $number])>{{ $number }}</span>
+                        <span @class(['relative z-10 flex size-10 items-center justify-center rounded-full border-2 text-sm font-medium', 'border-osca-primary bg-osca-primary text-white' => $step >= $number, 'border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900' => $step < $number])>{{ $number + 1 }}</span>
                         <span @class(['relative px-1 text-xs font-semibold sm:text-sm', 'text-osca-primary dark:text-blue-300' => $step === $number, 'text-slate-500' => $step !== $number])>{{ $label }}</span>
                     </li>
                 @endforeach
@@ -42,8 +42,22 @@
         </nav>
         <form wire:submit="{{ $step === 3 ? 'submit' : 'next' }}" novalidate>
             <div class="space-y-5 p-5 sm:p-6">
-                <div class="flex items-center justify-between gap-3"><h3 class="text-lg font-semibold">{{ [1 => 'Personal information', 2 => 'Address and applicant', 3 => 'Documents and review'][$step] }}</h3><p class="text-xs text-slate-500">Step {{ $step }} of 3</p></div>
-                @if ($step === 1)
+                <div class="flex flex-wrap items-center justify-between gap-3"><h3 class="text-lg font-semibold">{{ [0 => 'Check requirements first', 1 => 'Personal information', 2 => 'Address and applicant', 3 => 'Documents and confirmation'][$step] }}</h3><p class="text-xs text-slate-500">Step {{ $step + 1 }} of 4</p></div>
+                @if ($step === 0)
+                    <p class="max-w-2xl text-sm text-slate-500">Check the presented documents before entering the senior's information. Flag a record only when a document needs further review.</p>
+                    <fieldset class="space-y-3">
+                        <legend class="mb-3 text-sm font-semibold">Document checks</legend>
+                        @foreach (['identity' => 'Identity and age requirement checked', 'residency' => 'Residency requirement checked', 'authorization' => 'Representative authorization checked (when applicable)'] as $key => $label)
+                            <div wire:key="requirements-check-{{ $key }}"><label class="flex items-start gap-2 text-sm"><input type="checkbox" wire:model="form.requirements_checks.{{ $key }}" class="mt-1"> {{ $label }}</label>@error('form.requirements_checks.'.$key)<p role="alert" class="mt-1 text-sm text-red-700 dark:text-red-300">{{ $message }}</p>@enderror</div>
+                        @endforeach
+                    </fieldset>
+                    <x-registration-field name="form.requirements_status" label="Document assessment" required>
+                        <select id="form-requirements_status" wire:model.live="form.requirements_status" class="w-full sm:max-w-md"><option value="">Select assessment</option><option value="CHECKED">Requirements checked - ready to register</option><option value="REVIEW">Needs review - document concern</option></select>
+                    </x-registration-field>
+                    @if (($form['requirements_status'] ?? '') === 'REVIEW')
+                        <x-registration-field name="form.review_reason" label="Reason for review" required hint="Explain which document needs checking or correction."><textarea id="form-review_reason" wire:model="form.review_reason" rows="3" minlength="5" maxlength="500" class="w-full max-w-2xl"></textarea></x-registration-field>
+                    @endif
+                @elseif ($step === 1)
                     <p class="text-sm text-slate-500">Enter the senior's details as shown on their identification documents. Applicants must be at least 60 years old.</p>
                     <div class="grid gap-4 sm:grid-cols-2">
                         @foreach (['first_name' => 'First name', 'last_name' => 'Last name', 'middle_name' => 'Middle name', 'name_suffix' => 'Name suffix'] as $field => $label)
@@ -90,13 +104,14 @@
                     </div>
                     @if ($photo && !$errors->has('photo'))<img src="{{ $photo->temporaryUrl() }}" alt="Uploaded ID photo preview" class="size-24 rounded-lg border object-cover">@endif
                     <p wire:loading wire:target="photo,authorizationFile,identificationFile" class="text-sm text-slate-500" role="status">Uploading document...</p>
-                    <label class="flex items-start gap-2 text-sm"><input type="checkbox" wire:model="informationReviewed" class="mt-1"> <span>I reviewed the application information for submission. Final verification and ID issuance will be completed by OSCA staff.</span></label>
+                    <p class="text-sm text-slate-500">{{ $form['requirements_status'] === 'CHECKED' ? 'Requirements checked. Saving verifies this registration and continues to ID preparation.' : 'Needs review: '.$form['review_reason'].'. ID issuance stays blocked until the concern is resolved.' }}</p>
+                    <label class="flex items-start gap-2 text-sm"><input type="checkbox" wire:model="informationReviewed" class="mt-1"> <span>I confirmed that the entered information matches the presented documents and the assessment above.</span></label>
                     @error('informationReviewed')<p class="text-sm text-red-700 dark:text-red-300" role="alert">{{ $message }}</p>@enderror
                 @endif
             </div>
             <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:px-6 dark:border-slate-700 dark:bg-slate-800">
-                <button type="button" class="secondary-button" wire:click="{{ $step > 1 ? 'back' : 'cancel' }}" wire:loading.attr="disabled">{{ $step > 1 ? 'Back' : 'Cancel' }}</button>
-                <div class="flex items-center gap-3"><span wire:loading wire:target="next,submit" class="text-sm text-slate-500" role="status">{{ $step === 3 ? 'Saving application...' : 'Checking details...' }}</span><button type="submit" class="primary-button disabled:cursor-not-allowed disabled:opacity-50" wire:loading.attr="disabled" @disabled($step === 1 && ($this->age === null || $this->age < 60))>{{ $step === 3 ? 'Submit ID Application' : 'Continue' }}<x-admin.icon name="chevron-right" size="16" /></button></div>
+                <button type="button" class="secondary-button" wire:click="{{ $step > 0 ? 'back' : 'cancel' }}" wire:loading.attr="disabled">{{ $step > 0 ? 'Back' : 'Cancel' }}</button>
+                <div class="flex flex-wrap items-center gap-3"><span wire:loading wire:target="next,submit" class="text-sm text-slate-500" role="status">{{ $step === 3 ? 'Saving application...' : 'Checking details...' }}</span><button type="submit" class="primary-button disabled:cursor-not-allowed disabled:opacity-50" wire:loading.attr="disabled" @disabled($step === 1 && ($this->age === null || $this->age < 60))>{{ $step === 3 ? ($form['requirements_status'] === 'CHECKED' ? 'Save and prepare ID' : 'Save for review') : 'Continue' }}<x-admin.icon name="chevron-right" size="16" /></button></div>
             </footer>
         </form>
     </div>

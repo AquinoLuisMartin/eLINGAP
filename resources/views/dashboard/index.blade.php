@@ -7,34 +7,35 @@
         <h2>Staff dashboard</h2>
         <p class="section-subtitle">Current registry and processing activity across OSCA Santa Maria.</p>
     </div>
-    <a href="{{ route('senior-citizens.index', ['status' => 'VERIFIED']) }}" class="primary-button">View senior registry</a>
 </section>
 
-<section class="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Benefit status totals">
-    @foreach (\App\Enums\BenefitStatus::cases() as $state)
-        <a href="{{ route('benefits.workspace') }}" class="metric-card"><p class="metric-label">{{ $state->label() }} benefits</p><p class="metric-value">{{ number_format($benefitCounts[$state->value] ?? 0) }}</p><p class="text-sm text-slate-500">Open schedules and reports</p></a>
-    @endforeach
-</section>
-<section class="metric-grid">
-    <a href="{{ route('senior-citizens.index', ['status' => 'VERIFIED']) }}" class="metric-card">
-        <p class="metric-label">Total Active Seniors</p>
-        <p class="metric-value">{{ number_format($activeCount) }}</p>
-        <div class="metric-bottom"><span>Verified registry records</span></div>
-    </a>
-    <a href="{{ route('applications.index', ['status' => 'APPROVED']) }}" class="metric-card">
-        <p class="metric-label">Approved Applications</p>
-        <p class="metric-value">{{ number_format($readyCount) }}</p>
-        <div class="metric-bottom"><span>Ready for processing</span></div>
-    </a>
-    <div class="metric-card">
-        <p class="metric-label">Upcoming Milestones</p>
-        <p class="metric-value">{{ number_format($milestoneCount) }}</p>
-        <div class="metric-bottom"><span>80, 90 and 100-year milestones</span></div>
+<section class="mb-4 grid gap-3 xl:grid-cols-2" aria-label="Dashboard totals">
+    <div class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+        <h3 class="mb-3 text-base font-semibold">Benefits</h3>
+        <dl class="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+            @foreach (\App\Enums\BenefitStatus::cases() as $state)
+                <div class="min-w-0">
+                    <dt class="text-sm text-slate-500">{{ $state->label() }}</dt>
+                    <dd class="mt-1 text-2xl font-medium tabular-nums">{{ number_format($benefitCounts[$state->value] ?? 0) }}</dd>
+                </div>
+            @endforeach
+        </dl>
     </div>
-    <div class="metric-card">
-        <p class="metric-label">Barangays Covered</p>
-        <p class="metric-value">{{ number_format($barangays->count()) }}</p>
-        <div class="metric-bottom"><span>Active areas in the registry</span></div>
+    <div class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+        <h3 class="mb-3 text-base font-semibold">Registry overview</h3>
+        <dl class="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+            @foreach ([
+                'Active seniors' => [$activeCount, 'Verified records'],
+                'Approved applications' => [$readyCount, 'Ready for processing'],
+                'Upcoming milestones' => [$milestoneCount, 'Ages 80, 90 and 100'],
+                'Barangays covered' => [$barangays->count(), 'Active registry areas'],
+            ] as $label => [$count, $description])
+                <div class="min-w-0">
+                    <dt class="text-sm text-slate-500">{{ $label }}</dt>
+                    <dd class="mt-1 text-2xl font-medium tabular-nums">{{ number_format($count) }}<span class="mt-1 block text-xs font-normal text-slate-500">{{ $description }}</span></dd>
+                </div>
+            @endforeach
+        </dl>
     </div>
 </section>
 

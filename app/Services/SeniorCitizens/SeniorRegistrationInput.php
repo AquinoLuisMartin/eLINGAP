@@ -11,6 +11,21 @@ use Illuminate\Validation\Validator as InputValidator;
 
 class SeniorRegistrationInput
 {
+    public static function requirementsRules(array $input): array
+    {
+        $checked = ($input['requirements_status'] ?? null) === 'CHECKED';
+        $representative = ($input['applicant_type'] ?? 'SELF') === 'REPRESENTATIVE' || filled($input['representative_name'] ?? null) || filled($input['representative_contact'] ?? null);
+
+        return [
+            'requirements_status' => ['required', Rule::in(['CHECKED', 'REVIEW'])],
+            'requirements_checks' => ['required', 'array:identity,residency,authorization'],
+            'requirements_checks.identity' => [$checked ? 'accepted' : 'boolean', 'required'],
+            'requirements_checks.residency' => [$checked ? 'accepted' : 'boolean', 'required'],
+            'requirements_checks.authorization' => [$checked && $representative ? 'accepted' : 'boolean', 'required'],
+            'review_reason' => ['exclude_unless:requirements_status,REVIEW', 'required', 'string', 'min:5', 'max:500'],
+        ];
+    }
+
     public static function normalize(array $input): array
     {
         foreach (['contact_number', 'representative_contact'] as $field) {
@@ -41,6 +56,7 @@ class SeniorRegistrationInput
     public static function rules(array $input): array
     {
         return [
+            ...self::requirementsRules($input),
             'barangay_id' => ['required', 'integer', Rule::exists('barangays', 'id')->where('is_active', true)],
             'first_name' => ['required', 'string', 'max:100'], 'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'], 'name_suffix' => ['nullable', 'string', 'max:20'],
@@ -48,7 +64,7 @@ class SeniorRegistrationInput
             'sex' => ['required', 'string', 'in:MALE,FEMALE,OTHER'], 'civil_status' => ['nullable', 'string', 'in:SINGLE,MARRIED,WIDOWED'],
             'address' => ['required', 'string', 'max:1000'],
             'osca_id_number' => ['missing'],
-            'photo' => ['nullable', 'image', 'mimes:jpeg,png', 'dimensions:ratio=1/1', 'max:2048'],
+            'photo' => ['nullable', 'image', 'mimes:jpeg,png', 'dimensions:max_width=6000,max_height=6000', 'max:2048'],
             'identification_file' => ['nullable', File::types(['pdf', 'jpg', 'jpeg', 'png'])->max(5120)],
             ...self::representativeRules($input),
         ];

@@ -20,7 +20,22 @@ class SeniorCitizenPolicy
 
     public function create(User $user): bool
     {
-        return $user->isOscaStaff();
+        return $user->is_active && $user->isOscaStaff();
+    }
+
+    public function verify(User $user, SeniorCitizen $seniorCitizen): bool
+    {
+        return $user->is_active && $user->isOscaStaff();
+    }
+
+    public function manageId(User $user, SeniorCitizen $seniorCitizen): bool
+    {
+        return $user->is_active && $user->isOscaStaff();
+    }
+
+    public function configureId(User $user): bool
+    {
+        return $user->is_active && $user->isOscaStaff();
     }
 
     public function update(User $user, SeniorCitizen $seniorCitizen): bool

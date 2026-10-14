@@ -13,10 +13,16 @@ final class SystemEventLabel
         }
 
         return match ($event) {
+            'senior_citizen.requirements_review_requested' => 'Flagged registration requirements for review',
             'senior_citizen.created' => 'Registered a new senior citizen',
             'senior_citizen.updated' => 'Updated a senior citizen record',
             'senior_citizen.verified' => 'Verified a senior citizen record',
             'senior_citizen.id_generated' => 'Issued an OSCA ID',
+            'senior_citizen.qr_enabled' => 'Enabled permanent ID verification',
+            'senior_citizen.id_asset_updated' => 'Updated an ID photo or signature',
+            'senior_citizen.wet_signature_selected' => 'Selected wet signature for an ID',
+            'senior_citizen.id_print_generated' => 'Generated an ID print document',
+            'senior_id.officials_updated' => 'Updated ID officials and card assets',
             'senior_citizen.archived' => 'Archived a senior citizen record',
             'senior_citizen.deceased_declared' => 'Recorded a senior citizen death',
             'senior_citizen.deceased_corrected' => 'Corrected a senior citizen death record',

@@ -1,5 +1,6 @@
 @extends('layouts.app')
 @section('content')
+<x-workspace-navigation section="messaging" />
 <a href="{{ route('sms.blasts.index') }}" class="text-sm text-osca-primary underline">Back to messaging</a>
 <h2 class="mt-3 text-3xl font-semibold">New SMS broadcast</h2>
 <p class="mb-6 text-slate-600">Send a message to verified seniors with valid mobile numbers.</p>

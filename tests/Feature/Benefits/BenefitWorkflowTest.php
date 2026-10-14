@@ -22,6 +22,7 @@ use App\Services\Benefits\BenefitScheduling;
 use App\Services\Benefits\BenefitSms;
 use App\Services\Benefits\SeniorEligibilityRecord;
 use App\Services\Reports\AdminDashboardReport;
+use App\Services\SeniorCitizens\IdAssets;
 use App\Services\Sms\SmsGateway;
 use Database\Seeders\BenefitProgramSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -49,10 +50,12 @@ class BenefitWorkflowTest extends TestCase
 
     public function test_verification_and_id_are_both_required_without_separate_enrollment(): void
     {
+        Storage::fake('local');
         $senior = $this->senior(['status' => 'PENDING', 'verified_at' => null, 'id_generated_at' => null]);
         $records = app(SeniorEligibilityRecord::class);
         $records->verify($senior, true);
         $this->assertNotNull(app(BenefitEligibility::class)->reason($senior->fresh(), [], today()));
+        $this->idPhoto($senior);
         $records->issueId($senior->fresh());
         $this->assertNull(app(BenefitEligibility::class)->reason($senior->fresh(), [], today()));
         $this->assertDatabaseCount('applications', 0);
@@ -62,29 +65,39 @@ class BenefitWorkflowTest extends TestCase
 
     public function test_generated_osca_ids_use_the_issuance_year_and_database_sequence(): void
     {
+        Storage::fake('local');
         $first = $this->senior(['osca_id_number' => null, 'id_generated_at' => null]);
         $second = $this->senior(['osca_id_number' => null, 'id_generated_at' => null]);
         $records = app(SeniorEligibilityRecord::class);
+        $this->idPhoto($first);
+        $this->idPhoto($second);
         $records->issueId($first);
         $records->issueId($second);
 
-        $this->assertSame('26-0001', $first->fresh()->osca_id_number);
-        $this->assertSame('26-0002', $second->fresh()->osca_id_number);
+        $this->assertMatchesRegularExpression('/^26-\d{4,}$/', $first->fresh()->osca_id_number);
+        $firstSequence = (int) explode('-', $first->fresh()->osca_id_number)[1];
+        $this->assertSame($firstSequence + 1, (int) explode('-', $second->fresh()->osca_id_number)[1]);
+        $this->assertStringStartsWith('26-', $second->fresh()->osca_id_number);
         $this->assertDatabaseCount('osca_id_numbers', 2);
 
         $this->travelTo(now()->setDate(2027, 1, 1));
         $third = $this->senior(['osca_id_number' => null, 'id_generated_at' => null]);
+        $this->idPhoto($third);
         $records->issueId($third);
-        $this->assertSame('27-0003', $third->fresh()->osca_id_number);
+        $this->assertStringStartsWith('27-', $third->fresh()->osca_id_number);
+        $this->assertSame($firstSequence + 2, (int) explode('-', $third->fresh()->osca_id_number)[1]);
     }
 
     public function test_generated_osca_ids_skip_existing_numbers_and_do_not_change_existing_ids(): void
     {
+        Storage::fake('local');
         $reserved = DB::table('osca_id_numbers')->insertGetId(['issued_year' => 2026, 'created_at' => now()]);
         $existingNumber = sprintf('26-%04d', $reserved + 1);
         $existing = $this->senior(['osca_id_number' => $existingNumber, 'id_generated_at' => null]);
         $new = $this->senior(['osca_id_number' => null, 'id_generated_at' => null]);
         $records = app(SeniorEligibilityRecord::class);
+        $this->idPhoto($existing);
+        $this->idPhoto($new);
         $records->issueId($existing);
         $records->issueId($new);
 
@@ -320,7 +333,7 @@ class BenefitWorkflowTest extends TestCase
     {
         Storage::fake('local');
         $barangay = Barangay::create(['name' => 'Synthetic Barangay', 'code' => 'REP']);
-        $payload = ['barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Representative Applicant', 'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'address' => 'Synthetic address', 'applicant_type' => 'REPRESENTATIVE', 'representative_name' => 'Synthetic Representative', 'representative_relationship' => 'Child', 'representative_contact' => '09171234567'];
+        $payload = ['requirements_status' => 'REVIEW', 'requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'review_reason' => 'Synthetic document needs checking', 'barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Representative Applicant', 'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'address' => 'Synthetic address', 'applicant_type' => 'REPRESENTATIVE', 'representative_name' => 'Synthetic Representative', 'representative_relationship' => 'Child', 'representative_contact' => '09171234567'];
         $this->post(route('senior-citizens.store'), $payload)->assertSessionHasErrors('authorization_file');
         $this->post(route('senior-citizens.store'), [...$payload, 'authorization_file' => UploadedFile::fake()->createWithContent('authorization.pdf', "%PDF-1.4\nSynthetic authorization")])->assertSessionHasNoErrors();
         $senior = SeniorCitizen::sole();
@@ -442,8 +455,10 @@ class BenefitWorkflowTest extends TestCase
 
     public function test_id_printing_requires_verified_record_and_recorded_issuance(): void
     {
+        Storage::fake('local');
         $senior = $this->senior(['id_generated_at' => null]);
         $this->get(route('senior-citizens.id-card', $senior))->assertStatus(422);
+        $this->idPhoto($senior);
         app(SeniorEligibilityRecord::class)->issueId($senior);
         $this->get(route('senior-citizens.id-card', $senior))->assertOk()->assertSee($senior->osca_id_number)->assertHeader('Cache-Control', 'no-store, private');
         $senior->update(['status' => 'DECEASED']);
@@ -498,6 +513,11 @@ class BenefitWorkflowTest extends TestCase
             'sex' => 'FEMALE', 'address' => 'Synthetic address', 'contact_number' => '+639171234567',
             'status' => 'VERIFIED', 'verified_at' => '2026-01-01', 'osca_id_number' => 'ID-'.SeniorCitizen::count(), 'id_generated_at' => '2026-01-01', ...$attributes,
         ]));
+    }
+
+    private function idPhoto(SeniorCitizen $senior): void
+    {
+        app(IdAssets::class)->save($senior, UploadedFile::fake()->createWithContent('synthetic.jpg', file_get_contents(base_path('tests/Fixtures/id-photo.jpg'))), 'PHOTO');
     }
 
     private function program(string $code): Program

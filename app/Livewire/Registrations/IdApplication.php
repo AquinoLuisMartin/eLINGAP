@@ -22,7 +22,7 @@ class IdApplication extends Component
     private const PERSONAL_FIELDS = ['first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'sex', 'civil_status'];
 
     #[Locked]
-    public int $step = 1;
+    public int $step = 0;
 
     #[Locked]
     public bool $modal = false;
@@ -30,7 +30,10 @@ class IdApplication extends Component
     #[Locked]
     public ?int $registeredSeniorId = null;
 
-    public array $form = ['first_name' => '', 'middle_name' => '', 'last_name' => '', 'name_suffix' => '', 'birth_date' => '', 'sex' => '', 'civil_status' => '', 'barangay_id' => '', 'address' => '', 'contact_number' => '', 'applicant_type' => 'SELF', 'representative_name' => '', 'representative_relationship' => '', 'representative_contact' => ''];
+    #[Locked]
+    public array $returnContext = ['from' => 'registrations'];
+
+    public array $form = ['requirements_status' => '', 'requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'review_reason' => '', 'first_name' => '', 'middle_name' => '', 'last_name' => '', 'name_suffix' => '', 'birth_date' => '', 'sex' => '', 'civil_status' => '', 'barangay_id' => '', 'address' => '', 'contact_number' => '', 'applicant_type' => 'SELF', 'representative_name' => '', 'representative_relationship' => '', 'representative_contact' => ''];
 
     public $photo;
 
@@ -80,6 +83,7 @@ class IdApplication extends Component
     public function mount(bool $modal = false): void
     {
         $this->modal = $modal;
+        $this->returnContext = ['from' => 'registrations', ...request()->only(['search', 'stage', 'barangay_id', 'page'])];
     }
 
     public function boot(): void
@@ -117,6 +121,7 @@ class IdApplication extends Component
     {
         Gate::authorize('create', SeniorCitizen::class);
         $fields = match ($this->step) {
+            0 => ['requirements_status', 'requirements_checks', 'requirements_checks.identity', 'requirements_checks.residency', 'requirements_checks.authorization', 'review_reason'],
             1 => self::PERSONAL_FIELDS,
             2 => ['barangay_id', 'address', 'contact_number', 'applicant_type', 'representative_name', 'representative_relationship', 'representative_contact'],
             default => [],
@@ -130,7 +135,7 @@ class IdApplication extends Component
 
     public function back(): void
     {
-        $this->step = max(1, $this->step - 1);
+        $this->step = max(0, $this->step - 1);
         $this->resetValidation();
     }
 
@@ -148,7 +153,7 @@ class IdApplication extends Component
         Gate::authorize('create', SeniorCitizen::class);
         abort_unless($this->step === 3, 422);
         if ($this->registeredSeniorId) {
-            $this->redirectRoute('senior-citizens.show', $this->registeredSeniorId);
+            $this->redirectRoute('senior-id.show', [$this->registeredSeniorId, ...$this->returnContext]);
 
             return;
         }
@@ -157,14 +162,19 @@ class IdApplication extends Component
             $data = $this->validateInput();
         } catch (ValidationException $exception) {
             $keys = array_keys($exception->errors());
-            $this->step = collect($keys)->contains(fn ($key) => in_array($key, array_map(fn ($field) => 'form.'.$field, self::PERSONAL_FIELDS))) ? 1 : (collect($keys)->contains(fn ($key) => str_starts_with($key, 'form.')) ? 2 : 3);
+            $this->step = match (true) {
+                collect($keys)->contains(fn ($key) => str_starts_with($key, 'form.requirements_') || $key === 'form.review_reason') => 0,
+                collect($keys)->contains(fn ($key) => in_array($key, array_map(fn ($field) => 'form.'.$field, self::PERSONAL_FIELDS))) => 1,
+                collect($keys)->contains(fn ($key) => str_starts_with($key, 'form.')) => 2,
+                default => 3,
+            };
             throw $exception;
         }
         $senior = $registration->create($data);
         $this->registeredSeniorId = $senior->id;
         session()->flash('clear-registration-names', true);
-        session()->flash('status', 'ID application submitted. The central registration is pending staff verification.');
-        $this->redirectRoute('senior-citizens.show', $senior);
+        session()->flash('status', $senior->verified_at ? 'Requirements checked and registration verified. Prepare the ID.' : 'Registration saved for document review.');
+        $this->redirectRoute('senior-id.show', [$senior, ...$this->returnContext]);
     }
 
     public function render()

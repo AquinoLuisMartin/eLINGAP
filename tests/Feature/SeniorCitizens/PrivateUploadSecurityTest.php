@@ -23,6 +23,7 @@ class PrivateUploadSecurityTest extends TestCase
         $barangay = Barangay::create(['name' => 'Test barangay', 'code' => 'TEST']);
 
         $response = $this->actingAs($staff)->post(route('senior-citizens.store'), [
+            'requirements_status' => 'REVIEW', 'requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'review_reason' => 'Synthetic document needs checking',
             'barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant',
             'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'contact_number' => '09171234567',
             'photo' => UploadedFile::fake()->createWithContent('photo.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+nmfwAAAAASUVORK5CYII=')),

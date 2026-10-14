@@ -6,6 +6,7 @@ use App\Models\Barangay;
 use App\Models\SeniorCitizen;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -15,10 +16,13 @@ class Index extends Component
 
     public bool $applicationOpen = false;
 
+    #[Url(except: '')]
     public string $search = '';
 
+    #[Url(except: '')]
     public string $stage = '';
 
+    #[Url(as: 'barangay_id', except: '')]
     public string $barangayId = '';
 
     public function boot(): void

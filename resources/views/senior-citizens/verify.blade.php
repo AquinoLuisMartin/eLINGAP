@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verify Senior Citizen</title>
+    <x-favicon />
 </head>
 <body>
     <!-- Placeholder senior citizen verification page. -->

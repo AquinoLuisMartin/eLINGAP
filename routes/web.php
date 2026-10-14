@@ -17,8 +17,10 @@ use App\Http\Controllers\Reports\DemographicsReportController;
 use App\Http\Controllers\Reports\PayoutReportController;
 use App\Http\Controllers\Reports\ReportController;
 use App\Http\Controllers\Reports\StaffReportController;
+use App\Http\Controllers\SeniorCitizens\PublicIdVerificationController;
 use App\Http\Controllers\SeniorCitizens\SeniorCitizenController;
 use App\Http\Controllers\SeniorCitizens\SeniorCitizenDeathController;
+use App\Http\Controllers\SeniorCitizens\SeniorCitizenIdController;
 use App\Http\Controllers\Sms\SmsBlastController;
 use App\Http\Controllers\Sms\SmsMessageController;
 use App\Http\Controllers\Sms\SmsTemplateController;
@@ -29,6 +31,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
+
+Route::get('verify-id/{token}', PublicIdVerificationController::class)->middleware('throttle:60,1,id-verification')->name('id.verify');
 
 Route::middleware(EnsurePreviewIsLocal::class)->group(function () {
     // Frontend-only dashboard preview. The authenticated /dashboard routes remain unchanged.
@@ -79,6 +83,11 @@ Route::middleware(['auth', 'auth.session', 'active', AuditActivity::class])->gro
     Route::view('benefits', 'benefits.page')->name('benefits.workspace');
     Route::view('benefits/programs', 'benefits.page')->name('benefits.programs');
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+
+    Route::get('senior-id/officials', [SeniorCitizenIdController::class, 'officials'])->name('senior-id.officials');
+    Route::get('senior-citizens/{senior_citizen}/identification', [SeniorCitizenIdController::class, 'show'])->name('senior-id.show');
+    Route::get('senior-citizens/{senior_citizen}/identification/preview', [SeniorCitizenIdController::class, 'preview'])->name('senior-id.preview');
+    Route::post('senior-citizens/{senior_citizen}/identification/print', [SeniorCitizenIdController::class, 'print'])->middleware('throttle:20,1,id-print')->name('senior-id.print');
 
     Route::resource('senior-citizens', SeniorCitizenController::class)->except(['destroy']);
     Route::post('senior-citizens/{senior_citizen}/death', [SeniorCitizenDeathController::class, 'store'])->name('senior-citizens.death.store');

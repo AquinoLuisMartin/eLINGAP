@@ -10,6 +10,7 @@ use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
+use App\Services\SeniorCitizens\IdCardLayout;
 use App\Services\SeniorCitizens\SeniorRegistration;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -67,7 +68,7 @@ class SeniorCitizenController extends Controller
     {
         $seniorCitizen = $registration->create($request->validated());
 
-        return redirect()->route('senior-citizens.show', $seniorCitizen)->with('status', 'Senior citizen record created.');
+        return redirect()->route($seniorCitizen->verified_at ? 'senior-id.show' : 'senior-citizens.show', $seniorCitizen)->with('status', $seniorCitizen->verified_at ? 'Requirements checked and registration verified.' : 'Registration saved for requirements review.');
     }
 
     public function show(SeniorCitizen $seniorCitizen): View
@@ -94,15 +95,12 @@ class SeniorCitizenController extends Controller
         return $response;
     }
 
-    public function idCard(SeniorCitizen $seniorCitizen): View
+    public function idCard(SeniorCitizen $seniorCitizen, IdCardLayout $layout): View
     {
-        Gate::authorize('view', $seniorCitizen);
+        Gate::authorize('manageId', $seniorCitizen);
         abort_unless($seniorCitizen->status === SeniorCitizenStatus::Verified && $seniorCitizen->id_generated_at && $seniorCitizen->osca_id_number, 422, 'Verify the senior and record ID issuance before printing.');
 
-        return view('senior-citizens.id-card', [
-            'senior' => $seniorCitizen->load('barangay'),
-            'hasPhoto' => $seniorCitizen->documents()->where('document_type', 'PHOTO')->exists(),
-        ]);
+        return view('senior-citizens.ids.preview', ['card' => $layout->data($seniorCitizen)]);
     }
 
     public function edit(SeniorCitizen $seniorCitizen): View

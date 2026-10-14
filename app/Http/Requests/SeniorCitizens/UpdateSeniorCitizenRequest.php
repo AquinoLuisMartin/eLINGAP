@@ -36,7 +36,7 @@ class UpdateSeniorCitizenRequest extends FormRequest
             'address' => ['required', 'string', 'max:1000'],
             'contact_number' => ['nullable', 'string', 'regex:/^\+639\d{9}$/'],
             'osca_id_number' => ['missing'],
-            'photo' => ['nullable', 'image', 'mimes:jpeg,png', 'dimensions:ratio=1/1', 'max:2048'],
+            'photo' => [Rule::prohibitedIf(! $this->user()->can('manageId', $this->route('senior_citizen'))), 'nullable', 'image', 'mimes:jpeg,png', 'dimensions:max_width=6000,max_height=6000', 'max:2048'],
             ...$this->representativeRules(),
         ];
     }

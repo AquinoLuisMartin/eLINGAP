@@ -53,6 +53,18 @@ class LoginSecurityTest extends TestCase
         $this->assertDatabaseHas('login_logs', ['user_id' => $user->id, 'event' => LoginEvent::Login->value, 'success' => true]);
     }
 
+    public function test_login_accepts_the_checked_remember_me_value(): void
+    {
+        $password = Str::password();
+        $user = User::factory()->create(['password_hash' => $password]);
+
+        $response = $this->post(route('login'), ['email' => $user->email, 'password' => $password, 'remember' => '1']);
+
+        $response->assertRedirect(route('dashboard'));
+        $this->assertAuthenticatedAs($user);
+        $this->assertNotEmpty($user->fresh()->remember_token);
+    }
+
     public function test_login_uses_the_stored_username_and_not_the_display_name(): void
     {
         $password = Str::password();

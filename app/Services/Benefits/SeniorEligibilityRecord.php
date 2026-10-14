@@ -4,37 +4,49 @@ namespace App\Services\Benefits;
 
 use App\Models\BenefitSchedule;
 use App\Models\SeniorCitizen;
+use App\Services\SeniorCitizens\IdAssets;
+use App\Services\SeniorCitizens\IdCredential;
 use App\Services\SeniorCitizens\OscaIdNumber;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class SeniorEligibilityRecord
 {
+    public function __construct(private OscaIdNumber $numbers, private IdCredential $credentials, private IdAssets $assets) {}
+
     public function verify(SeniorCitizen $senior, bool $checked): void
     {
-        Gate::authorize('manage', BenefitSchedule::class);
+        Gate::authorize('verify', $senior);
         abort_unless($checked, 422, 'Confirm the registration documents first.');
         DB::transaction(function () use ($senior): void {
             $senior = SeniorCitizen::query()->lockForUpdate()->findOrFail($senior->id);
             abort_unless(in_array($senior->status->value, ['PENDING', 'VERIFIED']), 422);
+            abort_if($senior->died_on || $senior->death_declared_at, 422, 'A deceased record cannot be verified.');
             abort_unless($senior->smsContact(), 422, 'A senior or representative mobile number is required.');
-            if ($senior->applicant_type === 'REPRESENTATIVE') {
+            $representative = $senior->applicant_type === 'REPRESENTATIVE' || filled($senior->representative_name) || filled($senior->representative_contact);
+            if ($representative) {
                 abort_unless($senior->representative_name && $senior->representative_relationship && $senior->documents()->where('document_type', 'AUTHORIZATION')->exists(), 422, 'Representative authorization is required.');
             }
-            $senior->forceFill(['status' => 'VERIFIED', 'verified_at' => $senior->verified_at ?? now(), 'verified_by' => $senior->verified_by ?? auth()->id()])->save();
-            $senior->histories()->create(['changed_by' => auth()->id(), 'action' => 'verified', 'changes' => ['status' => 'VERIFIED']]);
+            if ($senior->status->value === 'VERIFIED' && $senior->verified_at) {
+                return;
+            }
+            $reason = $senior->review_reason;
+            $senior->forceFill(['status' => 'VERIFIED', 'verified_at' => now(), 'verified_by' => auth()->id(), 'review_reason' => null, 'requirements_checks' => ['identity' => true, 'residency' => true, 'authorization' => $representative]])->save();
+            $senior->histories()->create(['changed_by' => auth()->id(), 'action' => 'verified', 'changes' => ['status' => 'VERIFIED', 'resolved_review_reason' => $reason, 'requirements_checks' => $senior->requirements_checks]]);
             BenefitAudit::record('senior_citizen.verified', $senior);
         });
     }
 
     public function issueId(SeniorCitizen $senior): void
     {
-        Gate::authorize('manage', BenefitSchedule::class);
+        Gate::authorize('manageId', $senior);
         DB::transaction(function () use ($senior): void {
             $senior = SeniorCitizen::query()->lockForUpdate()->findOrFail($senior->id);
             abort_unless($senior->status->value === 'VERIFIED' && $senior->verified_at && $senior->smsContact(), 422, 'Verify the record before issuing its ID.');
             abort_if($senior->id_generated_at, 409, 'ID issuance is already recorded.');
-            $senior->forceFill(['osca_id_number' => $senior->osca_id_number ?: app(OscaIdNumber::class)->next(), 'id_generated_at' => now()])->save();
+            $this->assets->requirePhoto($senior);
+            $senior->forceFill(['osca_id_number' => $senior->osca_id_number ?: $this->numbers->next(), 'id_generated_at' => now()])->save();
+            $this->credentials->ensure($senior);
             $senior->histories()->create(['changed_by' => auth()->id(), 'action' => 'id_generated', 'changes' => ['issued_at' => now()->toIso8601String()]]);
             BenefitAudit::record('senior_citizen.id_generated', $senior);
         });

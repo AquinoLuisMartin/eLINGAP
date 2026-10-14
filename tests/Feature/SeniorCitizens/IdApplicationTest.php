@@ -9,7 +9,9 @@ use App\Models\SeniorCitizen;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
@@ -25,10 +27,10 @@ class IdApplicationTest extends TestCase
         $this->get(route('senior-citizens.create'))->assertRedirect(route('login'));
     }
 
-    public function test_existing_create_page_and_queue_use_the_same_three_step_application(): void
+    public function test_existing_create_page_and_queue_use_the_same_four_step_application(): void
     {
         $this->actingAs(User::factory()->create());
-        $this->get(route('senior-citizens.create'))->assertOk()->assertSeeLivewire(IdApplication::class)->assertSee('New ID Application')->assertSee('Document Checklist');
+        $this->get(route('senior-citizens.create'))->assertOk()->assertSeeLivewire(IdApplication::class)->assertSee('New ID Application')->assertSee('Requirements');
         $this->get(route('registrations.index'))->assertOk()->assertSeeLivewire(Index::class)->assertDontSee('APP-26-1048');
         Livewire::test(Index::class)->call('apply')->assertSet('applicationOpen', true)->assertSeeLivewire(IdApplication::class)
             ->dispatch('registration-cancelled')->assertSet('applicationOpen', false);
@@ -52,7 +54,7 @@ class IdApplicationTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $input = $this->input();
-        Livewire::test(IdApplication::class)->call('next')->assertSet('step', 1)->assertHasErrors(['form.first_name', 'form.birth_date'])
+        $this->application()->call('next')->assertSet('step', 1)->assertHasErrors(['form.first_name', 'form.birth_date'])
             ->set('form', $input)->call('next')->assertHasNoErrors()->assertSet('step', 2)
             ->set('form.address', '')->call('next')->assertSet('step', 2)->assertHasErrors('form.address')
             ->set('form.address', 'Synthetic address')->call('next')->assertSet('step', 3)->assertHasNoErrors()
@@ -65,11 +67,11 @@ class IdApplicationTest extends TestCase
     {
         $staff = User::factory()->create();
         $this->actingAs($staff);
-        $component = Livewire::test(IdApplication::class)->set('form', $this->input())->call('next')->call('next')
+        $component = $this->application()->set('form', $this->input())->call('next')->call('next')
             ->call('submit')->assertHasErrors('informationReviewed')
             ->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
         $senior = SeniorCitizen::sole();
-        $component->assertRedirect(route('senior-citizens.show', $senior));
+        $component->assertRedirect(route('senior-id.show', [$senior, 'from' => 'registrations']));
         $this->assertTrue(session('clear-registration-names'));
         $this->assertSame('PENDING', $senior->status->value);
         $this->assertNull($senior->verified_at);
@@ -79,7 +81,7 @@ class IdApplicationTest extends TestCase
         $this->assertDatabaseCount('applications', 0);
         $this->assertDatabaseCount('beneficiaries', 0);
         $this->assertDatabaseHas('audit_logs', ['action' => 'senior_citizen.created', 'auditable_id' => $senior->id, 'user_id' => $staff->id]);
-        $component->call('submit')->assertRedirect(route('senior-citizens.show', $senior));
+        $component->call('submit')->assertRedirect(route('senior-id.show', [$senior, 'from' => 'registrations']));
         $this->assertDatabaseCount('senior_citizens', 1);
     }
 
@@ -87,7 +89,7 @@ class IdApplicationTest extends TestCase
     {
         Storage::fake('local');
         $this->actingAs(User::factory()->create());
-        $component = Livewire::test(IdApplication::class)->set('form', [...$this->input(), 'contact_number' => '', 'applicant_type' => 'REPRESENTATIVE'])
+        $component = $this->application()->set('form', [...$this->input(), 'contact_number' => '', 'applicant_type' => 'REPRESENTATIVE'])
             ->call('next')->call('next')->assertSet('step', 2)->assertHasErrors(['form.representative_name', 'form.representative_contact'])
             ->set('form.representative_name', 'Synthetic Representative')->set('form.representative_relationship', 'Child')->set('form.representative_contact', '09171234567')
             ->call('next')->assertSet('step', 3)->assertHasNoErrors()
@@ -95,7 +97,7 @@ class IdApplicationTest extends TestCase
             ->set('authorizationFile', UploadedFile::fake()->createWithContent('proof.pdf', "%PDF-1.4\nSynthetic proof"))
             ->call('submit')->assertHasNoErrors();
         $senior = SeniorCitizen::sole();
-        $component->assertRedirect(route('senior-citizens.show', $senior));
+        $component->assertRedirect(route('senior-id.show', [$senior, 'from' => 'registrations']));
         $this->assertSame('+639171234567', $senior->representative_contact);
         $document = $senior->documents()->sole();
         $this->assertSame('AUTHORIZATION', $document->document_type);
@@ -109,7 +111,7 @@ class IdApplicationTest extends TestCase
         config(['filesystems.default' => 'public']);
         $this->actingAs(User::factory()->create());
         $photo = UploadedFile::fake()->createWithContent('photo.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+nmfwAAAAASUVORK5CYII='));
-        Livewire::test(IdApplication::class)->set('form', [...$this->input(), 'status' => 'VERIFIED', 'verified_at' => now()->toDateTimeString(), 'id_generated_at' => now()->toDateTimeString()])
+        $this->application()->set('form', [...$this->input(), 'status' => 'VERIFIED', 'verified_at' => now()->toDateTimeString(), 'id_generated_at' => now()->toDateTimeString()])
             ->call('next')->call('next')->set('photo', $photo)->set('identificationFile', UploadedFile::fake()->createWithContent('id.pdf', "%PDF-1.4\nSynthetic identification"))
             ->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
         $senior = SeniorCitizen::sole();
@@ -126,7 +128,7 @@ class IdApplicationTest extends TestCase
     {
         Storage::fake('local');
         $this->actingAs(User::factory()->create());
-        Livewire::test(IdApplication::class)->set('form', $this->input())->call('next')->call('next')
+        $this->application()->set('form', $this->input())->call('next')->call('next')
             ->set('identificationFile', UploadedFile::fake()->create('large.pdf', 5121, 'application/pdf'))
             ->set('informationReviewed', true)->call('submit')->assertHasErrors('identificationFile')
             ->set('identificationFile', UploadedFile::fake()->createWithContent('script.html', '<script>alert(1)</script>'))->call('submit')->assertHasErrors('identificationFile');
@@ -137,8 +139,8 @@ class IdApplicationTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $input = $this->input();
-        $component = Livewire::test(IdApplication::class)->set('form', $input)->call('next')->call('next');
-        SeniorCitizen::create([...$input, 'registration_number' => 'SYNTHETIC-EXISTING', 'status' => 'DECEASED']);
+        $component = $this->application()->set('form', $input)->call('next')->call('next');
+        SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'registration_number' => 'SYNTHETIC-EXISTING', 'status' => 'DECEASED']);
         $component->set('informationReviewed', true)->call('submit')->assertHasErrors('form.first_name')->assertSet('step', 1);
         $this->assertDatabaseCount('senior_citizens', 1);
     }
@@ -147,9 +149,9 @@ class IdApplicationTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $input = $this->input();
-        $pending = SeniorCitizen::create([...$input, 'first_name' => '<script>synthetic</script>', 'registration_number' => 'SYNTHETIC-PENDING']);
-        $verified = SeniorCitizen::create([...$input, 'registration_number' => 'SYNTHETIC-VERIFIED', 'status' => 'VERIFIED']);
-        $issued = SeniorCitizen::create([...$input, 'registration_number' => 'SYNTHETIC-ISSUED', 'status' => 'VERIFIED']);
+        $pending = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'first_name' => '<script>synthetic</script>', 'registration_number' => 'SYNTHETIC-PENDING']);
+        $verified = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'registration_number' => 'SYNTHETIC-VERIFIED', 'status' => 'VERIFIED']);
+        $issued = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'registration_number' => 'SYNTHETIC-ISSUED', 'status' => 'VERIFIED']);
         $issued->forceFill(['id_generated_at' => now()])->save();
         Livewire::test(Index::class)->assertSee($pending->registration_number)->assertDontSee('<script>synthetic</script>', false)
             ->set('stage', 'VERIFIED')->assertSee($verified->registration_number)->assertDontSee($pending->registration_number)->assertDontSee($issued->registration_number)
@@ -167,7 +169,7 @@ class IdApplicationTest extends TestCase
     public function test_removing_optional_representative_clears_their_details(): void
     {
         $this->actingAs(User::factory()->create());
-        Livewire::test(IdApplication::class)->set('form', $this->input())->set('representativeContact', true)
+        $this->application()->set('form', $this->input())->set('representativeContact', true)
             ->set('form.representative_name', 'Synthetic Representative')->set('form.representative_contact', '09171234567')
             ->set('representativeContact', false)->assertSet('form.representative_name', '')->assertSet('form.representative_contact', '')->assertSet('authorizationFile', null);
     }
@@ -177,7 +179,7 @@ class IdApplicationTest extends TestCase
         $this->travelTo(now()->setDate(2026, 10, 12)->startOfDay());
         $this->actingAs(User::factory()->create());
 
-        Livewire::test(IdApplication::class)
+        $this->application()
             ->set('form.birth_date', '1966-10-13')->assertSee('Age: 59 years.')->assertHasErrors('form.birth_date')
             ->set('form.birth_date', '1966-10-12')->assertSee('Age: 60 years.')->assertSee('Meets the 60-year age requirement.')->assertHasNoErrors();
     }
@@ -189,7 +191,7 @@ class IdApplicationTest extends TestCase
         $this->travelTo(now()->setDate(2026, 10, 12)->startOfDay());
         $this->actingAs(User::factory()->create());
 
-        Livewire::test(IdApplication::class)->set('form', [...$this->input(), 'birth_date' => $birthDate])
+        $this->application()->set('form', [...$this->input(), 'birth_date' => $birthDate])
             ->call('next')->assertSet('step', 2)->call('next')
             ->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
 
@@ -202,7 +204,7 @@ class IdApplicationTest extends TestCase
         $this->actingAs(User::factory()->create());
         $input = $this->input();
 
-        Livewire::test(IdApplication::class)->set('form', $input)->call('next')->call('next')
+        $this->application()->set('form', $input)->call('next')->call('next')
             ->set('form', [...$input, 'birth_date' => '1966-10-13'])->set('informationReviewed', true)
             ->call('submit')->assertHasErrors('form.birth_date')->assertSet('step', 1);
 
@@ -218,7 +220,7 @@ class IdApplicationTest extends TestCase
         $this->travelTo(now()->setDate(2026, 10, 12)->startOfDay());
         $this->actingAs(User::factory()->create());
 
-        Livewire::test(IdApplication::class)->set('form', [...$this->input(), 'birth_date' => $birthDate])
+        $this->application()->set('form', [...$this->input(), 'birth_date' => $birthDate])
             ->assertDontSee('Age:')->call('next')->assertHasErrors('form.birth_date')->assertSet('step', 1);
 
         $this->assertDatabaseCount('senior_citizens', 0);
@@ -230,7 +232,7 @@ class IdApplicationTest extends TestCase
     public function test_civil_status_choices_are_saved(string $status): void
     {
         $this->actingAs(User::factory()->create());
-        Livewire::test(IdApplication::class)->set('form', [...$this->input(), 'civil_status' => $status])
+        $this->application()->set('form', [...$this->input(), 'civil_status' => $status])
             ->call('next')->call('next')->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
         $this->assertSame($status, SeniorCitizen::sole()->civil_status);
     }
@@ -239,16 +241,24 @@ class IdApplicationTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $input = $this->input();
-        Livewire::test(IdApplication::class)->set('form', [...$input, 'civil_status' => 'INVALID'])->call('next')->assertSet('step', 1)->assertHasErrors('form.civil_status');
-        $senior = SeniorCitizen::create([...$input, 'registration_number' => 'SYNTHETIC-CIVIL-STATUS', 'civil_status' => 'SINGLE']);
+        $this->application()->set('form', [...$input, 'civil_status' => 'INVALID'])->call('next')->assertSet('step', 1)->assertHasErrors('form.civil_status');
+        $senior = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'registration_number' => 'SYNTHETIC-CIVIL-STATUS', 'civil_status' => 'SINGLE']);
         $this->put(route('senior-citizens.update', $senior), [...$input, 'civil_status' => 'INVALID'])->assertSessionHasErrors('civil_status');
         $this->assertSame('SINGLE', $senior->fresh()->civil_status);
+    }
+
+    private function application(): Testable
+    {
+        return Livewire::test(IdApplication::class)
+            ->set('form.requirements_status', 'REVIEW')
+            ->set('form.review_reason', 'Synthetic document needs checking')
+            ->call('next')->assertHasNoErrors()->assertSet('step', 1);
     }
 
     private function input(): array
     {
         $barangay = Barangay::create(['name' => 'Synthetic Barangay', 'code' => 'SYN']);
 
-        return ['first_name' => 'Synthetic', 'middle_name' => '', 'last_name' => 'Applicant', 'name_suffix' => '', 'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'civil_status' => '', 'barangay_id' => $barangay->id, 'address' => 'Synthetic address', 'contact_number' => '09171234567', 'applicant_type' => 'SELF', 'representative_name' => '', 'representative_relationship' => '', 'representative_contact' => ''];
+        return ['requirements_status' => 'REVIEW', 'requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'review_reason' => 'Synthetic document needs checking', 'first_name' => 'Synthetic', 'middle_name' => '', 'last_name' => 'Applicant', 'name_suffix' => '', 'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'civil_status' => '', 'barangay_id' => $barangay->id, 'address' => 'Synthetic address', 'contact_number' => '09171234567', 'applicant_type' => 'SELF', 'representative_name' => '', 'representative_relationship' => '', 'representative_contact' => ''];
     }
 }

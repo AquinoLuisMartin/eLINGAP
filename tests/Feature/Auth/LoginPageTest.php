@@ -14,6 +14,7 @@ class LoginPageTest extends TestCase
             ->assertSee('name="_token"', false)
             ->assertSee('name="email" type="text"', false)
             ->assertSee('name="password" type="password"', false)
+            ->assertSee('name="remember" value="1"', false)
             ->assertDontSee('fixed inset-0 z-50 hidden bg-slate-900/50', false);
     }
 }
