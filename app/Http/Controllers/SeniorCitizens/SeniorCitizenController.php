@@ -30,10 +30,14 @@ class SeniorCitizenController extends Controller
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
             'barangay_id' => ['nullable', 'integer', 'exists:barangays,id'],
-            'status' => ['nullable', 'in:PENDING,VERIFIED,ARCHIVED,DECEASED'],
+            'status' => ['nullable', 'in:PENDING,VERIFIED,ARCHIVED,DECEASED,TRANSFERRED'],
             'age' => ['nullable', 'in:60-69,70-79,80+'],
+            'program_id' => ['nullable', 'integer', 'exists:programs,id'],
+            'benefit' => ['nullable', 'in:PENSIONER,NATIONAL_PENSION,LOCAL_PENSION,NONE'],
+            'sort' => ['nullable', 'in:id,last_name,first_name,middle_name,benefits'],
+            'direction' => ['nullable', 'in:asc,desc'],
         ]);
-        $query = SeniorCitizen::query()->with('barangay')
+        $query = SeniorCitizen::query()->with(['barangay', 'activeAssignments.program'])
             ->when($filters['search'] ?? null, fn ($query, $search) => $query->searchable($search))
             ->when($filters['barangay_id'] ?? null, fn ($query, $id) => $query->where('barangay_id', $id))
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
@@ -43,10 +47,27 @@ class SeniorCitizenController extends Controller
                     '70-79' => $query->whereBetween('birth_date', [today()->subYears(80)->addDay(), today()->subYears(70)]),
                     '80+' => $query->where('birth_date', '<=', today()->subYears(80)),
                 };
+            })
+            ->when($filters['program_id'] ?? null, fn ($query, $programId) => $query->whereHas('activeAssignments', fn ($assignments) => $assignments->where('program_id', $programId)))
+            ->when($filters['benefit'] ?? null, function ($query, $benefit) {
+                match ($benefit) {
+                    'PENSIONER' => $query->where(fn ($pensions) => $pensions->where('has_national_pension', true)->orWhere('has_local_pension', true)),
+                    'NATIONAL_PENSION' => $query->where('has_national_pension', true),
+                    'LOCAL_PENSION' => $query->where('has_local_pension', true),
+                    'NONE' => $query->whereDoesntHave('activeAssignments')->where('has_national_pension', false)->where('has_local_pension', false),
+                };
             });
+        $sort = $filters['sort'] ?? 'id';
+        $direction = $filters['direction'] ?? ($sort === 'id' ? 'desc' : 'asc');
+        if ($sort === 'benefits') {
+            $query->orderBy(Program::query()->select('name')->whereHas('beneficiaries', fn ($assignments) => $assignments->whereColumn('senior_citizen_id', 'senior_citizens.id')->where('status', 'ACTIVE'))->orderBy('name')->limit(1), $direction)
+                ->orderBy('has_national_pension', $direction)->orderBy('has_local_pension', $direction);
+        } else {
+            $query->orderBy($sort, $direction);
+        }
 
         return view('senior-citizens.index', [
-            'seniorCitizens' => (clone $query)->latest('id')->paginate(15)->withQueryString(),
+            'seniorCitizens' => (clone $query)->orderBy('id')->paginate(15)->withQueryString(),
             'counts' => [
                 'Total registry' => (clone $query)->count(),
                 'Age 60–69' => (clone $query)->where('birth_date', '>', today()->subYears(70))->count(),
@@ -54,6 +75,7 @@ class SeniorCitizenController extends Controller
                 'Age 80+' => (clone $query)->where('birth_date', '<=', today()->subYears(80))->count(),
             ],
             'barangays' => Barangay::query()->orderBy('name')->get(['id', 'name']),
+            'programs' => Program::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -76,10 +98,11 @@ class SeniorCitizenController extends Controller
         Gate::authorize('view', $seniorCitizen);
 
         return view('senior-citizens.show', [
-            'seniorCitizen' => $seniorCitizen->load(['barangay', 'histories.changedBy', 'beneficiaries.program']),
+            'seniorCitizen' => $seniorCitizen->load(['barangay', 'histories.changedBy', 'beneficiaries.program', 'transfers.recorder']),
             'photo' => $seniorCitizen->documents()->where('document_type', 'PHOTO')->latest('id')->first(),
             'documents' => $seniorCitizen->documents()->where('document_type', '!=', 'PHOTO')->latest('id')->get(['id', 'document_type', 'created_at']),
             'milestoneAges' => Program::query()->whereNotNull('benefit_code')->get(['benefit_rules'])->flatMap(fn ($program) => array_keys($program->benefit_rules['milestones'] ?? []))->unique()->sort()->values(),
+            'barangays' => Barangay::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -134,7 +157,7 @@ class SeniorCitizenController extends Controller
         try {
             DB::transaction(function () use ($request, $seniorCitizen, &$photoPath, &$authorizationPath) {
                 $seniorCitizen = SeniorCitizen::query()->lockForUpdate()->findOrFail($seniorCitizen->id);
-                abort_if($seniorCitizen->status === SeniorCitizenStatus::Deceased, 409, 'A deceased record cannot be edited.');
+                abort_if(in_array($seniorCitizen->status, [SeniorCitizenStatus::Deceased, SeniorCitizenStatus::Transferred], true), 409, 'A deceased or transferred record cannot be edited.');
                 $data = $request->safe()->except(['photo', 'authorization_file']);
                 $oldValues = $seniorCitizen->only(array_keys($data));
                 $seniorCitizen->update($data);
@@ -171,7 +194,7 @@ class SeniorCitizenController extends Controller
         Gate::authorize('delete', $seniorCitizen);
         DB::transaction(function () use ($request, $seniorCitizen): void {
             $seniorCitizen = SeniorCitizen::query()->lockForUpdate()->findOrFail($seniorCitizen->id);
-            abort_if($seniorCitizen->status === SeniorCitizenStatus::Deceased, 409, 'A deceased record cannot be archived.');
+            abort_if(in_array($seniorCitizen->status, [SeniorCitizenStatus::Deceased, SeniorCitizenStatus::Transferred], true), 409, 'A deceased or transferred record cannot be archived.');
             $old = $seniorCitizen->status->value;
             $seniorCitizen->update(['status' => 'ARCHIVED']);
             $seniorCitizen->histories()->create(['changed_by' => $request->user()->id, 'action' => 'archived', 'changes' => ['from' => $old]]);

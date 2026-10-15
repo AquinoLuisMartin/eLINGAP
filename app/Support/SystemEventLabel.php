@@ -24,6 +24,8 @@ final class SystemEventLabel
             'senior_citizen.id_print_generated' => 'Generated an ID print document',
             'senior_id.officials_updated' => 'Updated ID officials and card assets',
             'senior_citizen.archived' => 'Archived a senior citizen record',
+            'senior_citizen.transferred' => 'Recorded a senior citizen transfer',
+            'senior_citizen.cancellation_certificate_generated' => 'Generated a Certificate of Cancellation',
             'senior_citizen.deceased_declared' => 'Recorded a senior citizen death',
             'senior_citizen.deceased_corrected' => 'Corrected a senior citizen death record',
             'senior_citizen.classifications_verified' => 'Verified senior citizen classifications',

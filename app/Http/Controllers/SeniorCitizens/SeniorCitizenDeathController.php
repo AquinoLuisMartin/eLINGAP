@@ -49,11 +49,12 @@ class SeniorCitizenDeathController extends Controller
         DB::transaction(function () use ($request, $seniorCitizen, $validated): void {
             $senior = SeniorCitizen::query()->lockForUpdate()->findOrFail($seniorCitizen->id);
             abort_unless($senior->status === SeniorCitizenStatus::Deceased, 409, 'This record has no death declaration.');
-            $senior->update(['status' => SeniorCitizenStatus::Pending, 'died_on' => null, 'death_declared_at' => null, 'death_declared_by' => null, 'verified_at' => null, 'verified_by' => null]);
+            $status = $senior->transfers()->where('type', 'EXTERNAL')->exists() ? SeniorCitizenStatus::Transferred : SeniorCitizenStatus::Pending;
+            $senior->update(['status' => $status, 'died_on' => null, 'death_declared_at' => null, 'death_declared_by' => null, 'verified_at' => null, 'verified_by' => null]);
             $senior->histories()->create(['changed_by' => $request->user()->id, 'action' => 'deceased_corrected', 'changes' => ['reason' => $validated['reason']]]);
-            AuditLog::create(['user_id' => $request->user()->id, 'action' => 'senior_citizen.deceased_corrected', 'auditable_type' => SeniorCitizen::class, 'auditable_id' => $senior->id, 'new_values' => ['status' => SeniorCitizenStatus::Pending->value, 'reason' => $validated['reason']], 'ip_address' => $request->ip()]);
+            AuditLog::create(['user_id' => $request->user()->id, 'action' => 'senior_citizen.deceased_corrected', 'auditable_type' => SeniorCitizen::class, 'auditable_id' => $senior->id, 'new_values' => ['status' => $status->value, 'reason' => $validated['reason']], 'ip_address' => $request->ip()]);
         });
 
-        return back()->with('status', 'Death declaration corrected; record requires verification.');
+        return back()->with('status', 'Death declaration corrected. Local records require verification; transferred registrations remain cancelled.');
     }
 }

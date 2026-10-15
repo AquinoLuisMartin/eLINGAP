@@ -40,7 +40,7 @@ class StaffReport
     private function seniors(string $type, array $filters): Builder
     {
         return SeniorCitizen::query()->with('barangay')
-            ->when($type === 'archived', fn ($query) => $query->whereIn('status', ['ARCHIVED', 'DECEASED']))
+            ->when($type === 'archived', fn ($query) => $query->whereIn('status', ['ARCHIVED', 'DECEASED', 'TRANSFERRED']))
             ->when($type === 'milestones', function ($query) use ($filters) {
                 $age = (int) ($filters['milestone'] ?? 80);
                 $query->where('status', 'VERIFIED')->where('birth_date', '<=', today()->subYears($age));

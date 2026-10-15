@@ -6,7 +6,7 @@
 </div>
 <div class="panel table-panel" wire:loading.class="data-refreshing" wire:target="search,recordFilter,previousPage,nextPage,gotoPage">
     <div class="table-tools"><div class="filter-pills">
-        @foreach (['All', 'PENDING', 'VERIFIED', 'ARCHIVED', 'DECEASED'] as $filter)
+        @foreach (['All', 'PENDING', 'VERIFIED', 'ARCHIVED', 'DECEASED', 'TRANSFERRED'] as $filter)
             <button wire:key="record-filter-{{ $filter }}" type="button" class="{{ $recordFilter === $filter ? 'selected' : '' }}" wire:click="$set('recordFilter', '{{ $filter }}')">{{ ucfirst(strtolower($filter)) }}</button>
         @endforeach
     </div></div>

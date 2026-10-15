@@ -1,10 +1,8 @@
 import Alpine from 'alpinejs';
 import collapse from '@alpinejs/collapse';
 import idImageEditor from './id-image-editor';
-import signaturePad from './signature-pad';
 
 window.idImageEditor = idImageEditor;
-window.signaturePad = signaturePad;
 const modalTriggers = new WeakMap();
 
 // Landing page interactions

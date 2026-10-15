@@ -89,7 +89,7 @@ class IdApplicationTest extends TestCase
     {
         Storage::fake('local');
         $this->actingAs(User::factory()->create());
-        $component = $this->application()->set('form', [...$this->input(), 'contact_number' => '', 'applicant_type' => 'REPRESENTATIVE'])
+        $component = $this->application()->set('form', [...$this->input(), 'applicant_type' => 'REPRESENTATIVE'])
             ->call('next')->call('next')->assertSet('step', 2)->assertHasErrors(['form.representative_name', 'form.representative_contact'])
             ->set('form.representative_name', 'Synthetic Representative')->set('form.representative_relationship', 'Child')->set('form.representative_contact', '09171234567')
             ->call('next')->assertSet('step', 3)->assertHasNoErrors()

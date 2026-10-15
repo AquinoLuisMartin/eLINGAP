@@ -50,19 +50,17 @@
     <textarea id="address" name="address" required class="mt-1 w-full rounded border p-2">{{ old('address', $seniorCitizen->address ?? '') }}</textarea>
 </div>
 <div>
-    <label for="contact_number" class="block font-medium">Philippine mobile number</label>
-    <input id="contact_number" name="contact_number" type="tel" inputmode="tel" placeholder="09xx xxx xxxx" value="{{ old('contact_number', $seniorCitizen->contact_number ?? '') }}" class="mt-1 w-full rounded border p-2">
+    <label for="contact_number" class="block font-medium">Philippine mobile number *</label>
+    <input id="contact_number" name="contact_number" required type="tel" inputmode="tel" placeholder="09xx xxx xxxx" value="{{ old('contact_number', $seniorCitizen->contact_number ?? '') }}" class="mt-1 w-full rounded border p-2">
 </div>
 <div>
     <label for="osca_id_number" class="block font-medium">OSCA ID number</label>
     <input id="osca_id_number" value="{{ $seniorCitizen->osca_id_number ?? '' }}" readonly placeholder="Assigned automatically when the ID is issued" class="mt-1 w-full rounded border p-2">
 </div>
-@if(auth()->user()->isOscaStaff())
-<div><label for="photo" class="block font-normal">ID photo (JPEG or PNG, up to 2MB)</label><input id="photo" type="file" name="photo" accept=".jpg,.jpeg,.png" class="mt-1 w-full rounded border p-2"><p class="mt-2 text-sm text-slate-500">Adjust the square crop in ID preparation before issuance.</p></div>
-@endif
+
 <fieldset class="space-y-4 rounded-lg border p-4">
     <legend class="px-2 font-semibold">Applicant and authorized representative</legend>
-    <p class="text-sm text-slate-500">A mobile number for the senior or representative is required. Representative details and authorization proof are required when a representative applies or receives SMS.</p>
+    <p class="text-sm text-slate-500">A contact number for the senior is required for every registration. Representative details and authorization proof are required when a representative applies or receives SMS.</p>
     <label class="block text-sm">Applicant type
         <select name="applicant_type" class="mt-1 w-full rounded border p-2">
             <option value="SELF" @selected(old('applicant_type', $seniorCitizen->applicant_type ?? 'SELF') === 'SELF')>Senior personally</option>

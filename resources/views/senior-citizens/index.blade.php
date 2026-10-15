@@ -44,14 +44,34 @@
                 <button type="submit" class="primary-button"><x-admin.icon name="sliders-horizontal" size="16" /> Filter</button>
                 <a href="{{ route('senior-citizens.index') }}" class="secondary-button">Reset</a>
             </div>
+            <label class="field-label">Program or benefit
+                <select name="program_id"><option value="">All programs</option>@foreach ($programs as $program)<option value="{{ $program->id }}" @selected(request('program_id') == $program->id)>{{ $program->name }}</option>@endforeach</select>
+            </label>
+            <label class="field-label">Pension / assignment
+                <select name="benefit"><option value="">All benefits</option>@foreach (['PENSIONER' => 'Pensioner', 'NATIONAL_PENSION' => 'National pension', 'LOCAL_PENSION' => 'Local pension', 'NONE' => 'No assigned benefits'] as $value => $label)<option value="{{ $value }}" @selected(request('benefit') === $value)>{{ $label }}</option>@endforeach</select>
+            </label>
+            <label class="field-label">Sort by
+                <select name="sort">@foreach (['id' => 'Registration', 'last_name' => 'Last name', 'first_name' => 'First name', 'middle_name' => 'Middle name', 'benefits' => 'Programs and benefits'] as $value => $label)<option value="{{ $value }}" @selected(request('sort', 'id') === $value)>{{ $label }}</option>@endforeach</select>
+            </label>
+            <label class="field-label">Order<select name="direction"><option value="asc" @selected(request('direction') === 'asc')>Ascending</option><option value="desc" @selected(request('direction', 'desc') === 'desc')>Descending</option></select></label>
         </form>
 
         <p class="section-subtitle mb-3" role="status">{{ number_format($seniorCitizens->total()) }} results</p>
+        @can('configureId', \App\Models\SeniorCitizen::class)
+            <form id="batch-id-print" method="POST" action="{{ route('senior-id.batch-print') }}" target="_blank" class="mb-4 flex flex-wrap items-end gap-3">
+                @csrf
+                <label class="field-label">Paper<select name="paper"><option value="short">Short</option><option value="long">Long</option><option value="a4">A4</option></select></label>
+                <label class="field-label">Print purpose<select name="purpose"><option value="FIRST_PRINT">First print</option><option value="REPRINT">Reprint</option><option value="REPLACEMENT">Replacement</option></select></label>
+                <button type="submit" class="secondary-button">Print selected IDs (up to 4)</button>
+                <p class="text-xs text-slate-500">Select issued IDs below. Four complete IDs fit on one sheet at actual size.</p>
+            </form>
+        @endcan
         <div class="table-scroll">
             <table class="min-w-160" aria-label="Senior citizen masterlist">
                 <thead>
                     <tr>
-                        @foreach (['OSCA ID', 'Last name', 'First name', 'Middle name', 'Age', 'Barangay', 'Status', 'Actions'] as $heading)
+                        <th scope="col">Print</th>
+                        @foreach (['OSCA ID', 'Last name', 'First name', 'Middle name', 'Age', 'Barangay', 'Programs and benefits', 'Status', 'Actions'] as $heading)
                             <th scope="col">{{ $heading }}</th>
                         @endforeach
                     </tr>
@@ -59,17 +79,23 @@
                 <tbody>
                     @forelse ($seniorCitizens as $seniorCitizen)
                         <tr>
+                            <td>@can('configureId', \App\Models\SeniorCitizen::class)@if($seniorCitizen->id_generated_at && $seniorCitizen->verified_at && in_array($seniorCitizen->status->value, ['VERIFIED', 'ARCHIVED']))<input type="checkbox" form="batch-id-print" name="senior_ids[]" value="{{ $seniorCitizen->id }}" aria-label="Print ID for {{ $seniorCitizen->full_name }}">@endif @endcan</td>
                             <td>{{ $seniorCitizen->osca_id_number ?: '—' }}</td>
                             <td>{{ $seniorCitizen->last_name }}</td>
                             <td>{{ $seniorCitizen->first_name }}</td>
                             <td>{{ $seniorCitizen->middle_name ?: '—' }}</td>
                             <td>{{ $seniorCitizen->birth_date->age }}</td>
                             <td>{{ $seniorCitizen->barangay->name }}</td>
+                            <td>
+                                @foreach ($seniorCitizen->activeAssignments as $assignment)<p>{{ $assignment->program->name }}</p>@endforeach
+                                @if ($seniorCitizen->has_national_pension || $seniorCitizen->has_local_pension)<p>Pensioner ({{ implode(', ', array_filter([$seniorCitizen->has_national_pension ? 'National' : null, $seniorCitizen->has_local_pension ? 'Local' : null])) }})</p>
+                                @elseif ($seniorCitizen->activeAssignments->isEmpty())<span class="text-slate-500">None assigned</span>@endif
+                            </td>
                             <td><x-badge :status="$seniorCitizen->status" /></td>
-                            <td><a class="text-button" href="{{ route('senior-citizens.show', [$seniorCitizen, 'from' => 'registry', ...request()->only(['search', 'barangay_id', 'status', 'age', 'page'])]) }}" aria-label="View {{ $seniorCitizen->full_name }}">View <x-admin.icon name="chevron-right" size="15" /></a></td>
+                            <td><a class="text-button" href="{{ route('senior-citizens.show', [$seniorCitizen, 'from' => 'registry', ...request()->only(['search', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])]) }}" aria-label="View {{ $seniorCitizen->full_name }}">View <x-admin.icon name="chevron-right" size="15" /></a></td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" class="p-6 text-center">No senior citizen records match these filters.</td></tr>
+                        <tr><td colspan="10" class="p-6 text-center">No senior citizen records match these filters.</td></tr>
                     @endforelse
                 </tbody>
             </table>

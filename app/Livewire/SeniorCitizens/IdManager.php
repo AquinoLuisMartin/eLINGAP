@@ -30,8 +30,6 @@ class IdManager extends Component
 
     public $photoOriginal;
 
-    public $signature;
-
     public bool $reviewed = false;
 
     public string $notice = '';
@@ -79,26 +77,9 @@ class IdManager extends Component
         return true;
     }
 
-    public function saveSignature(IdAssets $assets): bool
+    public function next(): void
     {
-        $this->validate(['signature' => ['required', 'image', 'mimes:jpeg,png', 'max:2048']]);
-        $assets->save($this->senior(), $this->signature, 'SIGNATURE');
-        $this->reset('signature', 'reviewed');
-        $this->notice = 'Signature saved. The printed name remains beneath the signing area.';
-
-        return true;
-    }
-
-    public function useWetSignature(IdAssets $assets): void
-    {
-        $assets->useWetSignature($this->senior());
-        $this->reviewed = false;
-        $this->notice = 'The signing area will be left blank for signing after printing.';
-    }
-
-    public function next(IdAssets $assets): void
-    {
-        $assets->requirePhoto($this->senior());
+        $this->senior();
         $this->step = 2;
         $this->reviewed = false;
         $this->resetValidation();
@@ -120,12 +101,11 @@ class IdManager extends Component
         $this->notice = 'ID issued. The OSCA number, original issuance date and QR are now permanent.';
     }
 
-    public function prepareExisting(IdCredential $credentials, IdAssets $assets): void
+    public function prepareExisting(IdCredential $credentials): void
     {
         $this->validate(['reviewed' => ['accepted']]);
         abort_unless($this->step === 2, 422);
         $senior = $this->senior();
-        $assets->requirePhoto($senior);
         $credentials->createForIssued($senior);
         $this->step = 3;
         $this->notice = 'Ready to print. The existing ID number and original issuance date were preserved.';
@@ -146,7 +126,7 @@ class IdManager extends Component
         return view('livewire.senior-citizens.id-manager', [
             'senior' => $senior,
             'documents' => $senior->documents()->where('document_type', '!=', 'PHOTO')->latest('id')->get(['id', 'document_type']),
-            'card' => $senior->status !== SeniorCitizenStatus::Deceased && ! $senior->died_on && ! $senior->death_declared_at ? $layout->data($senior, true) : null,
+            'card' => ! in_array($senior->status, [SeniorCitizenStatus::Deceased, SeniorCitizenStatus::Transferred], true) && ! $senior->died_on && ! $senior->death_declared_at ? $layout->data($senior, true) : null,
             'credentialExists' => SeniorCitizenIdCredential::query()->where('senior_citizen_id', $senior->id)->exists(),
             'history' => AuditLog::query()->where('auditable_type', SeniorCitizen::class)->where('auditable_id', $senior->id)
                 ->whereIn('action', ['senior_citizen.id_generated', 'senior_citizen.qr_enabled', 'senior_citizen.id_print_generated', 'senior_citizen.id_asset_updated', 'senior_citizen.wet_signature_selected'])

@@ -27,18 +27,17 @@ class IdIssuanceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_issuance_requires_a_saved_square_photo_and_review(): void
+    public function test_issuance_requires_review_without_a_digital_photo(): void
     {
         Storage::fake('local');
         $this->travelTo(now()->setDate(2026, 10, 13));
         $this->actingAs(User::factory()->create());
         $senior = $this->senior();
-        Livewire::test(IdManager::class, ['seniorId' => $senior->id])->call('next')->assertHasErrors('photo');
+        Livewire::test(IdManager::class, ['seniorId' => $senior->id])->call('next')->assertHasNoErrors()->assertSet('step', 2);
         $this->assertDatabaseCount('senior_citizen_id_credentials', 0);
         $this->assertNull($senior->fresh()->id_generated_at);
 
-        Livewire::test(IdManager::class, ['seniorId' => $senior->id])->set('photo', $this->image())->call('savePhoto')
-            ->assertHasNoErrors()->call('next')->assertSet('step', 2)->call('issue')->assertHasErrors('reviewed')
+        Livewire::test(IdManager::class, ['seniorId' => $senior->id])->call('next')->assertSet('step', 2)->call('issue')->assertHasErrors('reviewed')
             ->set('reviewed', true)->call('issue')->assertHasNoErrors()->assertSet('step', 3);
         $this->assertNotNull($senior->fresh()->id_generated_at);
         $this->assertMatchesRegularExpression('/^26-\d{4,}$/', $senior->fresh()->osca_id_number);
@@ -105,14 +104,14 @@ class IdIssuanceTest extends TestCase
         $this->assertDatabaseCount('senior_citizen_documents', 0);
     }
 
-    public function test_non_square_intake_photo_must_be_prepared_before_issuance(): void
+    public function test_legacy_intake_photo_does_not_block_physical_photo_preparation(): void
     {
         Storage::fake('local');
         $this->actingAs(User::factory()->create());
         $senior = $this->senior();
         $path = UploadedFile::fake()->createWithContent('portrait.jpg', file_get_contents(base_path('tests/Fixtures/id-photo-portrait.jpg')))->store('senior-photos', 'local');
         $senior->documents()->create(['document_type' => 'PHOTO', 'path' => $path, 'original_name' => 'portrait.jpg', 'mime_type' => 'image/jpeg', 'size' => Storage::disk('local')->size($path)]);
-        Livewire::test(IdManager::class, ['seniorId' => $senior->id])->call('next')->assertHasErrors('photo');
+        Livewire::test(IdManager::class, ['seniorId' => $senior->id])->call('next')->assertHasNoErrors()->assertSet('step', 2);
         $this->assertNull($senior->fresh()->id_generated_at);
     }
 
@@ -120,7 +119,7 @@ class IdIssuanceTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $senior = $this->senior();
-        $this->get(route('senior-id.preview', $senior))->assertOk()->assertSee('DRAFT - NOT ISSUED')->assertSee('Printed Name and Signature')->assertDontSee('Thumbmark');
+        $this->get(route('senior-id.preview', $senior))->assertOk()->assertSee('DRAFT - NOT ISSUED')->assertSee('Thumbprint')->assertSee('1 x 1 inch photo')->assertDontSee('Printed Name and Signature');
         $this->assertDatabaseCount('osca_id_numbers', 0);
         $this->assertDatabaseCount('senior_citizen_id_credentials', 0);
         $this->assertNull($senior->fresh()->id_generated_at);
@@ -241,19 +240,17 @@ class IdIssuanceTest extends TestCase
         $this->assertDatabaseHas('senior_citizen_documents', ['document_type' => 'SIGNATURE_HISTORY', 'senior_citizen_id' => $senior->id]);
     }
 
-    public function test_signature_pad_uses_the_private_signature_upload_workflow(): void
+    public function test_id_preparation_uses_physical_photo_and_thumbprint_without_signature_pad(): void
     {
-        Storage::fake('local');
         $this->actingAs(User::factory()->create());
         $senior = $this->senior();
 
-        Livewire::test(IdManager::class, ['seniorId' => $senior->id])->assertSee('Signature pad')->assertDontSee('thumbmark')
-            ->set('signature', $this->image())->call('saveSignature')->assertHasNoErrors();
+        Livewire::test(IdManager::class, ['seniorId' => $senior->id])
+            ->assertSee('Physical photo and thumbprint')->assertDontSee('Signature pad')->assertDontSee('Upload ID photo');
 
-        $signature = app(IdAssets::class)->latest($senior, 'SIGNATURE');
-        Storage::disk('local')->assertExists($signature->path);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'senior_citizen.id_asset_updated', 'auditable_id' => $senior->id]);
-        $this->assertNotNull(app(IdCardLayout::class)->data($senior, draft: true)['signature']);
+        $card = app(IdCardLayout::class)->data($senior, draft: true);
+        $this->assertNull($card['photo']);
+        $this->assertNull($card['signature']);
     }
 
     public function test_official_settings_are_staff_editable_and_audited(): void
@@ -390,7 +387,7 @@ class IdIssuanceTest extends TestCase
         $options->setTempDir(storage_path('framework/cache'));
         $options->setFontCache(storage_path('framework/cache'));
         $pdf = new Dompdf($options);
-        $pdf->loadHtml(view('senior-citizens.ids.pdf', compact('card'))->render());
+        $pdf->loadHtml(view('senior-citizens.ids.pdf', ['cards' => [$card]])->render());
         $pdf->setPaper('a4');
         $cards = 0;
         $photos = 0;

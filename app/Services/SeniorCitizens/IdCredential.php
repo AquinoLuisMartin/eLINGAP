@@ -58,6 +58,6 @@ class IdCredential
 
         return $senior && $senior->id_generated_at && $senior->osca_id_number
             && $senior->verified_at && ! $senior->died_on && ! $senior->death_declared_at
-            && ! in_array($senior->status, [SeniorCitizenStatus::Deceased, SeniorCitizenStatus::Pending], true);
+            && ! in_array($senior->status, [SeniorCitizenStatus::Deceased, SeniorCitizenStatus::Pending, SeniorCitizenStatus::Transferred], true);
     }
 }

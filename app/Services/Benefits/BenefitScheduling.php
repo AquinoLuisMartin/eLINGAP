@@ -16,7 +16,7 @@ use Illuminate\Validation\ValidationException;
 
 class BenefitScheduling
 {
-    public function __construct(private BenefitEligibility $eligibility) {}
+    public function __construct(private BenefitEligibility $eligibility, private BenefitAssignment $assignments) {}
 
     public function create(Program $program, array $data): BenefitSchedule
     {
@@ -85,6 +85,7 @@ class BenefitScheduling
                 if ($reason = $this->eligibility->reason($senior, $entitlement->rule_snapshot, $entitlement->eligibility_on, $entitlement->milestone_age)) {
                     throw ValidationException::withMessages(['review' => $reason]);
                 }
+                $this->assignments->assign($senior, $schedule->program);
             } else {
                 abort_if(trim($note) === '', 422, 'An exclusion reason is required.');
                 $schedule->recipients()->where('benefit_entitlement_id', $entitlement->id)->update(['outcome' => 'EXCLUDED']);

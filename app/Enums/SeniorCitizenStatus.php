@@ -8,4 +8,5 @@ enum SeniorCitizenStatus: string
     case Verified = 'VERIFIED';
     case Archived = 'ARCHIVED';
     case Deceased = 'DECEASED';
+    case Transferred = 'TRANSFERRED';
 }

@@ -24,13 +24,14 @@ class BeneficiarySecurityTest extends TestCase
     #[TestWith(['approved'])]
     public function test_enrollment_only_accepts_an_approved_application_for_the_same_senior_and_program(string $case): void
     {
-        $admin = User::factory()->admin()->create();
+        $staff = User::factory()->create();
         $barangay = Barangay::create(['name' => 'Test barangay', 'code' => 'TEST']);
         $senior = SeniorCitizen::create([
             'barangay_id' => $barangay->id, 'registration_number' => 'SC-SECURITY-1',
             'first_name' => 'Synthetic', 'last_name' => 'Applicant', 'birth_date' => '1948-01-01',
             'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED',
         ]);
+        $senior->forceFill(['verified_at' => now(), 'id_generated_at' => now(), 'osca_id_number' => 'SYN-ISSUED'])->save();
         $program = Program::create(['name' => 'Test assistance', 'agency' => 'OSCA', 'budget' => 10000, 'status' => 'ACTIVE']);
         $application = Application::create([
             'senior_citizen_id' => $senior->id, 'program_id' => $program->id,
@@ -49,7 +50,7 @@ class BeneficiarySecurityTest extends TestCase
             $application->update(['senior_citizen_id' => $other->id]);
         }
 
-        $response = $this->actingAs($admin)->post(route('programs.beneficiaries.store', $program), [
+        $response = $this->actingAs($staff)->post(route('programs.beneficiaries.store', $program), [
             'program_id' => $program->id, 'senior_citizen_id' => $senior->id,
             'application_id' => $application->id, 'enrolled_on' => '2026-10-01',
         ]);
@@ -57,7 +58,7 @@ class BeneficiarySecurityTest extends TestCase
         if ($case === 'approved') {
             $response->assertRedirect();
             $this->assertDatabaseHas('beneficiaries', ['application_id' => $application->id, 'senior_citizen_id' => $senior->id, 'program_id' => $program->id]);
-            $this->assertDatabaseHas('audit_logs', ['action' => 'beneficiary.enrolled', 'user_id' => $admin->id]);
+            $this->assertDatabaseHas('audit_logs', ['action' => 'beneficiary.enrolled', 'user_id' => $staff->id]);
         } else {
             $response->assertInvalid(['application_id' => 'The selected application id is invalid.']);
             $this->assertDatabaseEmpty('beneficiaries');

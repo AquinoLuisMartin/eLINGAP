@@ -152,8 +152,10 @@ class BenefitWorkflowTest extends TestCase
     {
         $this->senior();
         $schedule = $this->schedule('december-assistance', ['available_funds' => '499']);
+        $this->assertDatabaseCount('beneficiaries', 0);
         Livewire::test(SchedulePanel::class, ['scheduleId' => $schedule->id])->call('approve')->assertHasErrors('approval');
         app(BenefitScheduling::class)->review($schedule->entitlements()->sole(), true, 'Documents checked');
+        $this->assertDatabaseHas('beneficiaries', ['program_id' => $schedule->program_id, 'senior_citizen_id' => $schedule->entitlements()->sole()->senior_citizen_id, 'assigned_by' => auth()->id(), 'status' => 'ACTIVE']);
         Livewire::test(SchedulePanel::class, ['scheduleId' => $schedule->id])->call('approve')->assertHasErrors('approval');
         app(BenefitScheduling::class)->fund($schedule, '500', '500');
         app(BenefitScheduling::class)->approve($schedule);
@@ -333,7 +335,7 @@ class BenefitWorkflowTest extends TestCase
     {
         Storage::fake('local');
         $barangay = Barangay::create(['name' => 'Synthetic Barangay', 'code' => 'REP']);
-        $payload = ['requirements_status' => 'REVIEW', 'requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'review_reason' => 'Synthetic document needs checking', 'barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Representative Applicant', 'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'address' => 'Synthetic address', 'applicant_type' => 'REPRESENTATIVE', 'representative_name' => 'Synthetic Representative', 'representative_relationship' => 'Child', 'representative_contact' => '09171234567'];
+        $payload = ['requirements_status' => 'REVIEW', 'requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'review_reason' => 'Synthetic document needs checking', 'barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Representative Applicant', 'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'address' => 'Synthetic address', 'contact_number' => '09170000001', 'applicant_type' => 'REPRESENTATIVE', 'representative_name' => 'Synthetic Representative', 'representative_relationship' => 'Child', 'representative_contact' => '09171234567'];
         $this->post(route('senior-citizens.store'), $payload)->assertSessionHasErrors('authorization_file');
         $this->post(route('senior-citizens.store'), [...$payload, 'authorization_file' => UploadedFile::fake()->createWithContent('authorization.pdf', "%PDF-1.4\nSynthetic authorization")])->assertSessionHasNoErrors();
         $senior = SeniorCitizen::sole();

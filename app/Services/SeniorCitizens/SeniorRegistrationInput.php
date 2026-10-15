@@ -44,7 +44,7 @@ class SeniorRegistrationInput
         $proofRequired = $representative && ($changed || ! $senior?->documents()->where('document_type', 'AUTHORIZATION')->exists());
 
         return [
-            'contact_number' => ['nullable', 'required_without:representative_contact', 'string', 'regex:/^\+639\d{9}$/'],
+            'contact_number' => ['required', 'string', 'regex:/^\+639\d{9}$/'],
             'applicant_type' => ['sometimes', 'required', Rule::in(['SELF', 'REPRESENTATIVE'])],
             'representative_name' => [Rule::requiredIf($representative), 'nullable', 'string', 'max:180'],
             'representative_relationship' => [Rule::requiredIf($representative), 'nullable', 'string', 'max:100'],
@@ -70,13 +70,16 @@ class SeniorRegistrationInput
         ];
     }
 
-    public static function checkDuplicate(InputValidator $validator, array $input): void
+    public static function checkDuplicate(InputValidator $validator, array $input, ?SeniorCitizen $senior = null): void
     {
-        if ($validator->errors()->hasAny(['first_name', 'last_name', 'birth_date'])) {
+        if ($validator->errors()->hasAny(['first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date'])) {
             return;
         }
         $duplicate = SeniorCitizen::query()->where('birth_date', $input['birth_date'])
+            ->when($senior, fn ($query) => $query->whereKeyNot($senior->id))
             ->whereRaw('lower(first_name) = ?', [mb_strtolower($input['first_name'])])
+            ->whereRaw("lower(coalesce(middle_name, '')) = ?", [mb_strtolower(trim($input['middle_name'] ?? ''))])
+            ->whereRaw("lower(coalesce(name_suffix, '')) = ?", [mb_strtolower(trim($input['name_suffix'] ?? ''))])
             ->whereRaw('lower(last_name) = ?', [mb_strtolower($input['last_name'])])->exists();
         if ($duplicate) {
             $validator->errors()->add('first_name', 'A senior citizen with this name and birth date already exists.');

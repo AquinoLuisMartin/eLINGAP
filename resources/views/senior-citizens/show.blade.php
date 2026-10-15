@@ -2,8 +2,8 @@
 
 @section('content')
     <div class="mx-auto max-w-6xl space-y-4" x-data="{
-        tab: {{ \Illuminate\Support\Js::from(in_array(request('section'), ['profile', 'id-card', 'milestones'], true) ? request('section') : 'profile') }},
-        tabs: ['profile', 'id-card', 'milestones'],
+        tab: {{ \Illuminate\Support\Js::from(in_array(request('section'), ['profile', 'id-card', 'milestones', 'transfers'], true) ? request('section') : 'profile') }},
+        tabs: ['profile', 'id-card', 'milestones', 'transfers'],
         selectTab(index) {
             this.tab = this.tabs[(index + this.tabs.length) % this.tabs.length];
             this.$nextTick(() => document.getElementById('tab-' + this.tab).focus());
@@ -35,7 +35,7 @@
         <nav role="tablist" aria-label="Profile sections" class="flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900"
             @keydown.arrow-right.prevent="selectTab(tabs.indexOf(tab) + 1)" @keydown.arrow-left.prevent="selectTab(tabs.indexOf(tab) - 1)"
             @keydown.home.prevent="selectTab(0)" @keydown.end.prevent="selectTab(tabs.length - 1)">
-            @foreach (['profile' => ['Profile', 'users'], 'id-card' => ['ID card', 'clipboard-list'], 'milestones' => ['Milestones & benefits', 'heart-pulse']] as $key => [$label, $icon])
+            @foreach (['profile' => ['Profile', 'users'], 'id-card' => ['ID card', 'clipboard-list'], 'milestones' => ['Milestones & benefits', 'heart-pulse'], 'transfers' => ['Transfers', 'file-text']] as $key => [$label, $icon])
                 <button type="button" id="tab-{{ $key }}" role="tab" aria-controls="{{ $key }}" :aria-selected="tab === '{{ $key }}'" :tabindex="tab === '{{ $key }}' ? 0 : -1" @click="tab = '{{ $key }}'"
                     class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-osca-primary"
                     :class="tab === '{{ $key }}' ? 'bg-osca-primary text-white' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'">
@@ -130,23 +130,18 @@
         <section id="id-card" role="tabpanel" aria-labelledby="tab-id-card" tabindex="0" x-show="tab === 'id-card'" x-cloak>
             <x-benefit-panel class="p-4!">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div class="space-y-2"><h3 class="text-lg font-semibold">Digital ID details</h3><p class="max-w-xl text-sm text-slate-500">Review the photo and issuance details before preparing the official card.</p></div>
+                    <div class="space-y-2"><h3 class="text-lg font-semibold">Digital ID details</h3><p class="max-w-xl text-sm text-slate-500">Review issuance details before preparing the official card. Attach a physical photo and collect the thumbprint after printing.</p></div>
                     @can('manageId', $seniorCitizen)
-                        <form method="GET" action="{{ route('senior-id.show', [$seniorCitizen, ...request()->only(['from', 'search', 'stage', 'barangay_id', 'status', 'age', 'page'])]) }}"><button type="submit" class="primary-button w-full lg:w-auto"><x-admin.icon name="clipboard-list" size="17" /> Prepare and print ID</button></form>
+                        <form method="GET" action="{{ route('senior-id.show', [$seniorCitizen, ...request()->only(['from', 'search', 'stage', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])]) }}"><button type="submit" class="primary-button w-full lg:w-auto"><x-admin.icon name="clipboard-list" size="17" /> Prepare and print ID</button></form>
                     @endcan
                 </div>
                 <div class="mt-4 flex flex-col gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800 sm:flex-row sm:items-center">
-                    @if ($photo)
-                        <img src="{{ route('senior-citizens.photo', $seniorCitizen) }}" alt="Senior citizen ID photo" width="96" height="96" class="size-24 shrink-0 rounded-lg border border-slate-200 bg-white object-cover dark:border-slate-700">
-                    @else
-                        <div class="flex size-24 shrink-0 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-white text-slate-400 dark:border-slate-600 dark:bg-slate-900"><x-admin.icon name="users" size="24" /><span class="text-xs">No ID photo</span></div>
-                    @endif
+                    <div class="flex size-24 shrink-0 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-2 text-center text-xs text-slate-500 dark:border-slate-600 dark:bg-slate-900">Physical 1 x 1 inch photo</div>
                     <div class="min-w-0 flex-1 space-y-4">
                         <div><p class="text-xs text-slate-500">Office of Senior Citizens Affairs</p><p class="mt-1 break-words text-xl font-semibold text-slate-800 dark:text-slate-100">{{ $seniorCitizen->full_name }}</p><p class="mt-1 text-sm text-slate-500">{{ $seniorCitizen->barangay->name }}, Santa Maria, Bulacan</p></div>
                         <dl class="grid gap-4 sm:grid-cols-2"><div><dt class="text-xs text-slate-500">OSCA ID</dt><dd class="mt-1 text-sm font-medium text-slate-800 dark:text-slate-100">{{ $seniorCitizen->osca_id_number ?: 'Not issued' }}</dd></div><div><dt class="text-xs text-slate-500">Original issuance</dt><dd class="mt-1 text-sm text-slate-800 dark:text-slate-100">{{ $seniorCitizen->id_generated_at?->format('F j, Y') ?? 'Not recorded' }}</dd></div></dl>
                     </div>
                 </div>
-                @if (!$photo)<p class="mt-4 flex items-center gap-2 text-sm text-slate-500"><x-admin.icon name="circle-help" size="16" /> Upload a photo in ID preparation before issuing or printing the card.</p>@endif
             </x-benefit-panel>
         </section>
 
@@ -171,12 +166,15 @@
                         @forelse ($seniorCitizen->beneficiaries as $beneficiary)
                             <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-800"><span class="text-sm text-slate-800 dark:text-slate-100">{{ $beneficiary->program->name }}</span><x-badge :status="$beneficiary->status" /></div>
                         @empty
-                            <p class="text-sm text-slate-500">Central registration covers applicable benefits; separate enrollment is unnecessary.</p>
+                            <p class="text-sm text-slate-500">OSCA Staff assign programs after registration and ID issuance.</p>
                         @endforelse
                     </div>
                 </div>
             </x-benefit-panel>
             <div><h3 class="text-lg font-semibold">Registration and Benefits</h3><livewire:benefits.senior-record :senior-id="$seniorCitizen->id" /></div>
         </div>
+        <section id="transfers" role="tabpanel" aria-labelledby="tab-transfers" tabindex="0" x-show="tab === 'transfers'" x-cloak class="space-y-4">
+            @include('senior-citizens.transfers.panel')
+        </section>
     </div>
 @endsection

@@ -40,12 +40,12 @@ class SeniorCitizenPolicy
 
     public function update(User $user, SeniorCitizen $seniorCitizen): bool
     {
-        return $this->viewAny($user) && $seniorCitizen->status !== SeniorCitizenStatus::Deceased;
+        return $this->viewAny($user) && ! in_array($seniorCitizen->status, [SeniorCitizenStatus::Deceased, SeniorCitizenStatus::Transferred], true);
     }
 
     public function delete(User $user, SeniorCitizen $seniorCitizen): bool
     {
-        return $user->isAdmin() && $seniorCitizen->status !== SeniorCitizenStatus::Deceased;
+        return $user->isAdmin() && ! in_array($seniorCitizen->status, [SeniorCitizenStatus::Deceased, SeniorCitizenStatus::Transferred], true);
     }
 
     public function declareDeceased(User $user, SeniorCitizen $seniorCitizen): bool
@@ -56,5 +56,11 @@ class SeniorCitizenPolicy
     public function correctDeath(User $user, SeniorCitizen $seniorCitizen): bool
     {
         return $user->isAdmin();
+    }
+
+    public function transfer(User $user, SeniorCitizen $seniorCitizen): bool
+    {
+        return $user->is_active && $user->isOscaStaff()
+            && $seniorCitizen->status === SeniorCitizenStatus::Verified;
     }
 }

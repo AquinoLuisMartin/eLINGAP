@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\SeniorCitizens;
 
-use App\Models\SeniorCitizen;
 use App\Services\SeniorCitizens\SeniorRegistrationInput;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -34,7 +33,7 @@ class UpdateSeniorCitizenRequest extends FormRequest
             'sex' => ['required', 'string', 'in:MALE,FEMALE,OTHER'],
             'civil_status' => ['nullable', 'string', 'in:SINGLE,MARRIED,WIDOWED'],
             'address' => ['required', 'string', 'max:1000'],
-            'contact_number' => ['nullable', 'string', 'regex:/^\+639\d{9}$/'],
+            'contact_number' => ['required', 'string', 'regex:/^\+639\d{9}$/'],
             'osca_id_number' => ['missing'],
             'photo' => [Rule::prohibitedIf(! $this->user()->can('manageId', $this->route('senior_citizen'))), 'nullable', 'image', 'mimes:jpeg,png', 'dimensions:max_width=6000,max_height=6000', 'max:2048'],
             ...$this->representativeRules(),
@@ -43,19 +42,7 @@ class UpdateSeniorCitizenRequest extends FormRequest
 
     public function after(): array
     {
-        return [function (Validator $validator): void {
-            if ($validator->errors()->hasAny(['first_name', 'last_name', 'birth_date'])) {
-                return;
-            }
-            $duplicate = SeniorCitizen::query()->where('id', '!=', $this->route('senior_citizen')->id)
-                ->where('birth_date', $this->input('birth_date'))
-                ->whereRaw('lower(first_name) = ?', [mb_strtolower($this->input('first_name'))])
-                ->whereRaw('lower(last_name) = ?', [mb_strtolower($this->input('last_name'))])
-                ->exists();
-            if ($duplicate) {
-                $validator->errors()->add('first_name', 'A senior citizen with this name and birth date already exists.');
-            }
-        }];
+        return [fn (Validator $validator) => SeniorRegistrationInput::checkDuplicate($validator, $this->all(), $this->route('senior_citizen'))];
     }
 
     public function messages(): array

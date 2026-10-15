@@ -9,8 +9,20 @@
             <div><dt class="text-sm text-slate-500">ID issued</dt><dd>{{ $senior->id_generated_at?->format('M j, Y') ?? 'Not recorded' }}</dd></div>
             <div><dt class="text-sm text-slate-500">OSCA ID</dt><dd>{{ $senior->osca_id_number ?? 'Not generated' }}</dd></div>
         </dl>
+        <h3 class="font-semibold">Assigned programs and benefits</h3>
+        <ul class="mt-2 space-y-2 text-sm">
+            @forelse ($senior->activeAssignments as $assignment)
+                <li wire:key="assigned-benefit-{{ $assignment->id }}">{{ $assignment->program->name }}@if($assignment->assigned_at) <span class="text-slate-500">Assigned {{ $assignment->assigned_at->format('M j, Y') }}</span>@endif</li>
+            @empty
+                <li class="text-slate-500">No programs assigned.</li>
+            @endforelse
+        </ul>
         @can('manage', \App\Models\BenefitSchedule::class)
-            @if ($senior->status->value === 'VERIFIED')
+            @if ($senior->status->value === 'VERIFIED' && $senior->id_generated_at && $senior->osca_id_number)
+                <form wire:submit="assignBenefit" class="mt-4 flex flex-wrap items-end gap-3">
+                    <label class="field-label">Program or benefit<select wire:model="programId" required><option value="">Select program</option>@foreach ($programs as $program)<option wire:key="assignment-program-{{ $program->id }}" value="{{ $program->id }}">{{ $program->name }}</option>@endforeach</select></label>
+                    <button type="submit" class="primary-button" wire:loading.attr="disabled">Assign benefit</button>
+                </form>
                 <form wire:submit="saveClassifications" class="mt-6 space-y-3">
                     <h3 class="font-semibold">Staff-verified classifications</h3>
                     <div class="grid gap-3 sm:grid-cols-2">
@@ -21,6 +33,8 @@
                     <label class="field-label">TSS office request and verification note (leave blank when not verified)<textarea wire:model="classifications.tss_request" maxlength="500"></textarea></label>
                     <button class="secondary-button" wire:loading.attr="disabled">Record verified classifications</button>
                 </form>
+            @else
+                <p class="mt-4 text-sm text-slate-500">Register, verify and generate the OSCA ID before assigning benefits or classifications.</p>
             @endif
         @endcan
     </x-benefit-panel>

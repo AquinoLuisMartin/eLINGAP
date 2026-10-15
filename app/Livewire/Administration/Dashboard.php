@@ -243,7 +243,7 @@ class Dashboard extends Component
             ->with('barangay:id,name')
             ->when($term !== '', fn ($query) => $query->where(fn ($query) => $query->searchable($term)
                 ->orWhereHas('barangay', fn ($query) => $query->whereRaw('lower(name) like ?', ['%'.mb_strtolower($term).'%']))))
-            ->when(in_array($this->recordFilter, ['PENDING', 'VERIFIED', 'ARCHIVED', 'DECEASED'], true), fn ($query) => $query->where('status', $this->recordFilter))
+            ->when(in_array($this->recordFilter, ['PENDING', 'VERIFIED', 'ARCHIVED', 'DECEASED', 'TRANSFERRED'], true), fn ($query) => $query->where('status', $this->recordFilter))
             ->latest('updated_at')->orderByDesc('id')->paginate(15, pageName: 'recordsPage');
     }
 

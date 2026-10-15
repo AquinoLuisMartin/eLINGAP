@@ -4,7 +4,6 @@ namespace App\Services\Benefits;
 
 use App\Models\BenefitSchedule;
 use App\Models\SeniorCitizen;
-use App\Services\SeniorCitizens\IdAssets;
 use App\Services\SeniorCitizens\IdCredential;
 use App\Services\SeniorCitizens\OscaIdNumber;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +11,7 @@ use Illuminate\Support\Facades\Gate;
 
 class SeniorEligibilityRecord
 {
-    public function __construct(private OscaIdNumber $numbers, private IdCredential $credentials, private IdAssets $assets) {}
+    public function __construct(private OscaIdNumber $numbers, private IdCredential $credentials) {}
 
     public function verify(SeniorCitizen $senior, bool $checked): void
     {
@@ -44,7 +43,6 @@ class SeniorEligibilityRecord
             $senior = SeniorCitizen::query()->lockForUpdate()->findOrFail($senior->id);
             abort_unless($senior->status->value === 'VERIFIED' && $senior->verified_at && $senior->smsContact(), 422, 'Verify the record before issuing its ID.');
             abort_if($senior->id_generated_at, 409, 'ID issuance is already recorded.');
-            $this->assets->requirePhoto($senior);
             $senior->forceFill(['osca_id_number' => $senior->osca_id_number ?: $this->numbers->next(), 'id_generated_at' => now()])->save();
             $this->credentials->ensure($senior);
             $senior->histories()->create(['changed_by' => auth()->id(), 'action' => 'id_generated', 'changes' => ['issued_at' => now()->toIso8601String()]]);
@@ -63,6 +61,7 @@ class SeniorEligibilityRecord
         DB::transaction(function () use ($senior, $data): void {
             $senior = SeniorCitizen::query()->lockForUpdate()->findOrFail($senior->id);
             abort_unless($senior->status->value === 'VERIFIED', 422, 'Only verified records may be classified.');
+            abort_unless($senior->verified_at && $senior->id_generated_at && $senior->osca_id_number, 422, 'Generate the OSCA ID before assigning benefits or classifications.');
             $fields = ['is_bedridden', 'is_indigent', 'has_national_pension', 'has_local_pension'];
             $before = $senior->only($fields);
             $senior->forceFill([

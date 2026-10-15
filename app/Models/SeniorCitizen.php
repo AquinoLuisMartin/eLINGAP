@@ -69,6 +69,16 @@ class SeniorCitizen extends Model
         return $this->hasMany(Beneficiary::class);
     }
 
+    public function transfers(): HasMany
+    {
+        return $this->hasMany(SeniorCitizenTransfer::class);
+    }
+
+    public function activeAssignments(): HasMany
+    {
+        return $this->beneficiaries()->where('status', 'ACTIVE');
+    }
+
     #[Scope]
     protected function searchable(Builder $query, string $term): Builder
     {
@@ -77,6 +87,7 @@ class SeniorCitizen extends Model
         return $query->where(function (Builder $query) use ($term) {
             $query->whereRaw('lower(registration_number) like ?', [$term])
                 ->orWhereRaw('lower(first_name) like ?', [$term])
+                ->orWhereRaw('lower(middle_name) like ?', [$term])
                 ->orWhereRaw('lower(last_name) like ?', [$term])
                 ->orWhereRaw('lower(osca_id_number) like ?', [$term]);
         });

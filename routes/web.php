@@ -21,6 +21,7 @@ use App\Http\Controllers\SeniorCitizens\PublicIdVerificationController;
 use App\Http\Controllers\SeniorCitizens\SeniorCitizenController;
 use App\Http\Controllers\SeniorCitizens\SeniorCitizenDeathController;
 use App\Http\Controllers\SeniorCitizens\SeniorCitizenIdController;
+use App\Http\Controllers\SeniorCitizens\SeniorCitizenTransferController;
 use App\Http\Controllers\Sms\SmsBlastController;
 use App\Http\Controllers\Sms\SmsMessageController;
 use App\Http\Controllers\Sms\SmsTemplateController;
@@ -85,11 +86,14 @@ Route::middleware(['auth', 'auth.session', 'active', AuditActivity::class])->gro
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
     Route::get('senior-id/officials', [SeniorCitizenIdController::class, 'officials'])->name('senior-id.officials');
+    Route::post('senior-id/batch-print', [SeniorCitizenIdController::class, 'batchPrint'])->middleware('throttle:20,1,id-print')->name('senior-id.batch-print');
     Route::get('senior-citizens/{senior_citizen}/identification', [SeniorCitizenIdController::class, 'show'])->name('senior-id.show');
     Route::get('senior-citizens/{senior_citizen}/identification/preview', [SeniorCitizenIdController::class, 'preview'])->name('senior-id.preview');
     Route::post('senior-citizens/{senior_citizen}/identification/print', [SeniorCitizenIdController::class, 'print'])->middleware('throttle:20,1,id-print')->name('senior-id.print');
 
     Route::resource('senior-citizens', SeniorCitizenController::class)->except(['destroy']);
+    Route::post('senior-citizens/{senior_citizen}/transfers', [SeniorCitizenTransferController::class, 'store'])->name('senior-citizens.transfers.store');
+    Route::post('senior-citizens/{senior_citizen}/transfers/{transfer}/certificate', [SeniorCitizenTransferController::class, 'certificate'])->middleware('throttle:20,1,cancellation-certificate')->name('senior-citizens.transfers.certificate');
     Route::post('senior-citizens/{senior_citizen}/death', [SeniorCitizenDeathController::class, 'store'])->name('senior-citizens.death.store');
     Route::patch('senior-citizens/{senior_citizen}/death', [SeniorCitizenDeathController::class, 'correct'])->name('senior-citizens.death.correct');
     Route::get('senior-citizens/{senior_citizen}/photo', [SeniorCitizenController::class, 'photo'])->name('senior-citizens.photo');

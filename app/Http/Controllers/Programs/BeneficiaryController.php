@@ -4,10 +4,9 @@ namespace App\Http\Controllers\Programs;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Programs\StoreBeneficiaryRequest;
-use App\Models\AuditLog;
-use App\Models\Beneficiary;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
+use App\Services\Benefits\BenefitAssignment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -27,16 +26,13 @@ class BeneficiaryController extends Controller
         return view('programs.beneficiaries.index', [
             'program' => $program,
             'beneficiaries' => $program->beneficiaries()->with('seniorCitizen.barangay')->latest('id')->paginate(15),
-            'seniorCitizens' => $search ? SeniorCitizen::query()->where('status', 'VERIFIED')->searchable($search)->orderBy('last_name')->limit(25)->get() : collect(),
+            'seniorCitizens' => $search ? SeniorCitizen::query()->where('status', 'VERIFIED')->whereNotNull('verified_at')->whereNotNull('id_generated_at')->whereNotNull('osca_id_number')->searchable($search)->orderBy('last_name')->limit(25)->get() : collect(),
         ]);
     }
 
-    public function store(StoreBeneficiaryRequest $request, Program $program): RedirectResponse
+    public function store(StoreBeneficiaryRequest $request, Program $program, BenefitAssignment $assignments): RedirectResponse
     {
-        Gate::authorize('update', $program);
-
-        $beneficiary = Beneficiary::create([...$request->validated(), 'program_id' => $program->id]);
-        AuditLog::create(['user_id' => $request->user()->id, 'action' => 'beneficiary.enrolled', 'auditable_type' => Beneficiary::class, 'auditable_id' => $beneficiary->id, 'new_values' => ['program_id' => $program->id, 'senior_citizen_id' => $beneficiary->senior_citizen_id], 'ip_address' => $request->ip()]);
+        $assignments->assign(SeniorCitizen::findOrFail($request->integer('senior_citizen_id')), $program, $request->validated());
 
         return back()->with('status', 'Beneficiary enrolled.');
     }
