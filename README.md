@@ -13,7 +13,7 @@
 - SMS templates, individual messages, broadcasts, logs, and retries.
 - Application, demographic, payout, and staff reports with export routes.
 
-The application is under active development. Some screens still contain prototype content. SMS delivery requires a configured external gateway and a running queue worker.
+The application is under active development. Legacy local preview URLs redirect to the authenticated workflows; production preview URLs remain unavailable. SMS delivery requires a configured external gateway and a running queue worker.
 
 ## Technology Stack
 
@@ -72,7 +72,9 @@ php artisan app:create-admin
 
 The command prompts interactively for account details and creates the administrator role if needed. Administrators can provision additional accounts through the application.
 
-`php artisan db:seed` seeds roles, barangays, and users through `DatabaseSeeder`. Review the seeders before running them, especially against an existing database, because the user seeder can update accounts.
+`php artisan db:seed` seeds reference roles, barangays, and benefit-program definitions. It does not create demo users or replace existing accounts. Provision the first administrator with `php artisan app:create-admin`, then use administrator account management for additional users.
+
+The public homepage and login page display active programs using their stored names, agencies, descriptions, and default amounts. Office contacts come only from the organization_name, office_name, support_email, support_phone, office_address, and office_hours settings. Missing data displays an unconfigured or empty state. Registry records, private settings, budgets, and payment histories are not exposed there.
 
 ### 4. Build assets and start the application
 
@@ -129,6 +131,10 @@ tests/                Feature and unit tests
 Feature code is grouped around administration, authentication, senior citizens, applications, programs, payouts, reports, and SMS.
 
 ## Development Checks
+
+For non-SMS production prerequisites, run `php artisan app:check-deployment`. Add `--json` for machine-readable results or `--database` to check connectivity, migration metadata, and database-backed session/cache tables. The command returns a nonzero exit code for failed checks and does not modify configuration or records. Production checks are expected to fail on local development settings.
+
+Production requires the canonical HTTPS application URL, secure session cookies, encrypted session storage, private uploads, persistent sessions/cache, built assets, and a real password-recovery mail transport. Verify host encryption, backup restoration, browser accessibility, and measured performance separately before rollout.
 
 The test configuration uses PostgreSQL with a separate database named `db_elingap_testing`. Create that database and ensure the local database user can access it before running database-backed tests. Use a dedicated test database because tests may reset its tables.
 

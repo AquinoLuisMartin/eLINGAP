@@ -4,8 +4,10 @@ namespace App\Services\Reports;
 
 use App\Models\Application;
 use App\Models\Payout;
+use App\Models\Program;
 use App\Models\SeniorCitizen;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class StaffReport
 {
@@ -17,6 +19,13 @@ class StaffReport
         'proxy' => 'Proxy payout claims',
         'archived' => 'Deceased and archived seniors log',
     ];
+
+    public function milestoneAges(): Collection
+    {
+        return Program::query()->where('status', 'ACTIVE')->get(['benefit_rules'])
+            ->flatMap(fn ($program) => array_keys($program->benefit_rules['milestones'] ?? []))
+            ->map(fn ($age) => (int) $age)->filter(fn ($age) => $age >= 60)->unique()->sort()->values();
+    }
 
     public function query(string $type, array $filters): Builder
     {
@@ -42,7 +51,13 @@ class StaffReport
         return SeniorCitizen::query()->with('barangay')
             ->when($type === 'archived', fn ($query) => $query->whereIn('status', ['ARCHIVED', 'DECEASED', 'TRANSFERRED']))
             ->when($type === 'milestones', function ($query) use ($filters) {
-                $age = (int) ($filters['milestone'] ?? 80);
+                $age = $filters['milestone'] ?? $this->milestoneAges()->first();
+                if ($age === null) {
+                    $query->whereRaw('1 = 0');
+
+                    return;
+                }
+                $age = (int) $age;
                 $query->where('status', 'VERIFIED')->where('birth_date', '<=', today()->subYears($age));
             })
             ->when($filters['barangay_id'] ?? null, fn ($query, $id) => $query->where('barangay_id', $id))

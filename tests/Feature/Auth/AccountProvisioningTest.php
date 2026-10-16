@@ -14,26 +14,24 @@ class AccountProvisioningTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_user_seeder_can_run_without_preexisting_roles(): void
+    public function test_legacy_user_seeder_does_not_create_demo_accounts(): void
     {
         $this->seed(UserSeeder::class);
         $this->seed(UserSeeder::class);
 
-        $this->assertDatabaseCount('roles', 2);
-        $this->assertDatabaseCount('users', 2);
-        $this->assertSame(1, User::active()->whereRelation('role', 'name', 'ADMIN')->count());
-        $this->assertSame(1, User::active()->whereRelation('role', 'name', 'OSCA_STAFF')->count());
+        $this->assertDatabaseCount('roles', 0);
+        $this->assertDatabaseCount('users', 0);
     }
 
-    public function test_default_seeding_creates_roles_and_initial_accounts(): void
+    public function test_default_seeding_creates_reference_data_without_accounts(): void
     {
         $this->seed();
         $this->seed();
 
         $this->assertDatabaseCount('roles', 2);
-        $this->assertDatabaseCount('users', 2);
-        $this->assertDatabaseHas('users', ['username' => 'Marie Cruz', 'first_name' => 'Marie']);
-        $this->assertDatabaseHas('users', ['username' => 'Pedro Silva', 'first_name' => 'Pedro']);
+        $this->assertDatabaseCount('users', 0);
+        $this->assertDatabaseCount('barangays', 24);
+        $this->assertDatabaseCount('programs', 9);
     }
 
     public function test_seeding_does_not_change_existing_accounts(): void
@@ -44,7 +42,7 @@ class AccountProvisioningTest extends TestCase
         $this->seed();
 
         $this->assertSame($attributes, $user->fresh()->getAttributes());
-        $this->assertDatabaseCount('users', 3);
+        $this->assertDatabaseCount('users', 1);
     }
 
     public function test_an_administrator_can_be_created_interactively(): void

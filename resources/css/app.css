@@ -69,15 +69,6 @@
 }
 
 .staff-shell .id-workspace-preview .id-card { flex-shrink: 0; }
-.staff-shell .id-workspace-preview .id-card :where(h2, p, td) { color: #111; }
-.staff-shell .id-workspace-preview .id-card td { padding: 0 1mm; border: 0; }
-.staff-shell .id-workspace-preview .id-card table { margin: 0; }
-.staff-shell .id-workspace-preview .id-card tbody tr:hover { background: transparent; }
-.staff-shell .id-workspace-preview .id-dates td { font-size: 5pt; }
-.staff-shell .id-workspace-preview .id-dates .value { font-size: 6.5pt; font-weight: bold; }
-.staff-shell .id-workspace-preview .id-officials td { font-size: 4.7pt; }
-.staff-shell .id-workspace-preview .id-officials .official-name { font-size: 4.6pt; }
-.staff-shell .id-workspace-preview .id-benefits h2 { font-size: 6.3pt; font-weight: bold; }
 
 .skip-link {
     position: fixed;

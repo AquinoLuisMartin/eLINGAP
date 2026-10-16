@@ -1,6 +1,7 @@
 @props(['card'])
 <article class="id-card" aria-label="Back of senior citizen ID">
-    <section class="id-benefits"><h2>Benefits and Privileges under Republic Act No. 9994</h2><ul>
+    <header class="id-back-heading"><h2>Benefits and Privileges under Republic Act No. 9994</h2></header>
+    <section class="id-benefits" aria-label="Benefits and Privileges under Republic Act No. 9994"><ul>
         <li>Free medical/dental, diagnostic and laboratory services in government facilities</li>
         <li>20% discount for medicines</li>
         <li>20% discount in hotels, restaurants and recreation centers</li>
@@ -12,6 +13,16 @@
         <li>5% discount for monthly water and electricity utilization, provided the meter is under the senior citizen's name</li>
     </ul></section>
     <div class="id-warning"><p>Persons and corporations violating RA 9994 shall be penalized.</p><p>Only for the exclusive use of senior citizens. Abuse of privileges is punishable by law.</p></div>
-    @if($card['qr'])<img src="{{ $card['qr'] }}" class="id-qr" alt="eLINGAP verification QR"><p class="id-qr-label">Scan to verify with eLINGAP</p>@else<div class="id-qr" style="border: 0.15mm dashed #777; font-size: 5pt; text-align: center; padding-top: 6mm;">QR assigned on issuance</div>@endif
-    <table class="id-officials"><tr><td>@if($card['headSignature'])<img src="{{ $card['headSignature'] }}" alt="OSCA Head signature">@else<div class="signature-space"></div>@endif</td><td>@if($card['mayorSignature'])<img src="{{ $card['mayorSignature'] }}" alt="Mayor signature">@else<div class="signature-space"></div>@endif</td></tr><tr><td class="official-name">{{ $card['officials']['osca_head_name'] ?? '' }}</td><td class="official-name">{{ $card['officials']['municipal_mayor_name'] ?? '' }}</td></tr><tr><td>OSCA HEAD</td><td>MUNICIPAL MAYOR</td></tr></table>
+    <div class="id-officials">
+        <div class="id-official">
+            <div class="signature-space">@if($card['headSignature'])<img src="{{ $card['headSignature'] }}" alt="OSCA Head signature">@endif</div>
+            <p class="official-name">{{ $card['officials']['osca_head_name'] ?? '' }}</p><p class="official-role">OSCA HEAD</p>
+        </div>
+        <div class="id-official">
+            <div class="signature-space">@if($card['mayorSignature'])<img src="{{ $card['mayorSignature'] }}" alt="Mayor signature">@endif</div>
+            <p class="official-name">{{ $card['officials']['municipal_mayor_name'] ?? '' }}</p><p class="official-role">MUNICIPAL MAYOR</p>
+        </div>
+    </div>
+    @if($card['qr'])<img src="{{ $card['qr'] }}" class="id-qr" alt="eLINGAP verification QR">@else<div class="id-qr id-qr-placeholder">QR assigned<br>on issuance</div>@endif
+    <p class="id-qr-label">Scan to verify with eLINGAP</p>
 </article>

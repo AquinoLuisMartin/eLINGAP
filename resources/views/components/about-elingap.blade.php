@@ -12,7 +12,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
             <article class="bg-slate-50 rounded-2xl border border-slate-200 p-6">
                 <h2 class="text-slate-900 font-semibold text-lg">Unified Masterlist</h2>
-                <p class="mt-2 text-sm text-slate-600 leading-relaxed">A centralized, real-time registry connecting senior citizen records across all 24 barangays of Santa Maria.</p>
+                <p class="mt-2 text-sm text-slate-600 leading-relaxed">A centralized registry connecting senior citizen records across participating barangays.</p>
             </article>
             <article class="bg-slate-50 rounded-2xl border border-slate-200 p-6">
                 <h2 class="text-slate-900 font-semibold text-lg">Automated SMS Broadcasts</h2>

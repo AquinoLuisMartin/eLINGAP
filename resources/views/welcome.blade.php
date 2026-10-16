@@ -28,7 +28,7 @@
                 <nav class="hidden xl:flex ml-auto items-center gap-6 2xl:gap-8 text-sm font-medium text-osca-body" aria-label="Main menu">
                     <a href="#hero" data-view="home" data-view-link class="hover:text-osca-primary transition-colors cursor-pointer">Home</a>
                     <a href="#about-view" data-view="about" data-view-link class="hover:text-osca-primary transition-colors cursor-pointer">About eLINGAP</a>
-                    <a href="mailto:osca@santamariabulacan.gov.ph" class="hover:text-osca-primary transition-colors cursor-pointer">Contact</a>
+                    <a href="#office-contact" class="hover:text-osca-primary transition-colors cursor-pointer">Contact</a>
                 </nav>
 
                 {{-- Right controls --}}
@@ -45,7 +45,7 @@
         <nav id="mobile-menu" class="hidden xl:hidden border-t border-osca-border bg-white px-4 pt-3 pb-6 space-y-1.5 max-h-[calc(100vh-4.5rem)] overflow-y-auto" aria-label="Mobile menu">
             <a href="#hero" data-view="home" data-view-link class="block rounded-lg px-3.5 py-3 text-base font-medium text-osca-ink hover:bg-osca-muted">Home</a>
             <a href="#about-view" data-view="about" data-view-link class="block rounded-lg px-3.5 py-3 text-base font-medium text-osca-ink hover:bg-osca-muted">About eLINGAP</a>
-            <a href="mailto:osca@santamariabulacan.gov.ph" class="block rounded-lg px-3.5 py-3 text-base font-medium text-osca-ink hover:bg-osca-muted">Contact</a>
+            <a href="#office-contact" class="block rounded-lg px-3.5 py-3 text-base font-medium text-osca-ink hover:bg-osca-muted">Contact</a>
         </nav>
     </header>
 
@@ -105,7 +105,7 @@
                                 <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                             </div>
                             <h3 class="text-lg font-semibold text-osca-ink">Records Management</h3>
-                            <p class="mt-2 text-sm text-osca-body leading-relaxed">Unified digital senior registry across all 24 barangays for instant ID validation, status updates, and caregiver links.</p>
+                            <p class="mt-2 text-sm text-osca-body leading-relaxed">Unified digital senior registry across participating barangays for ID validation, status updates, and caregiver links.</p>
                         </div>
                     </article>
 
@@ -123,94 +123,7 @@
             </div>
         </section>
 
-        {{-- Programs and Benefits Section --}}
-        <section id="programs" class="scroll-mt-20 py-14 sm:py-20 bg-osca-muted/60 border-t border-osca-border" aria-label="Programs and Benefits">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="max-w-3xl mb-10 sm:mb-12">
-                    <span class="text-xs font-normal text-osca-primary">Republic Act No. 9994 &amp; Municipal Support</span>
-                    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-semibold text-osca-ink tracking-tight mt-1">
-                        Programs &amp; Welfare <span class="text-osca-primary">Benefits</span>
-                    </h2>
-                    <p class="mt-3 text-sm sm:text-base text-osca-body leading-relaxed">
-                        Santa Maria senior citizens are entitled to financial aid, milestone cash gifts, healthcare support, and statutory discounts.
-                    </p>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-                    {{-- Benefit 1: Social Pension --}}
-                    <article class="bg-white rounded-xl border border-osca-border p-5 sm:p-6 flex flex-col justify-between hover:border-osca-primary transition-colors">
-                        <div>
-                            <div class="flex items-center justify-between gap-2 mb-3">
-                                <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-osca-primary/10 text-osca-primary">Quarterly Stipend</span>
-                                <span class="text-xs text-osca-body font-medium">₱1,000/mo</span>
-                            </div>
-                            <h3 class="text-base sm:text-lg font-semibold text-osca-ink">Social Pension for Indigent Seniors</h3>
-                            <p class="mt-2 text-sm text-osca-body leading-relaxed">
-                                Direct financial assistance of ₱3,000 disbursed quarterly to qualified indigent seniors across all 24 barangays.
-                            </p>
-                        </div>
-                        <div class="mt-5 pt-3 border-t border-osca-border flex items-center justify-between text-xs">
-                            <span class="text-osca-body">Eligibility:</span>
-                            <span class="font-semibold text-osca-success">60+ Indigent</span>
-                        </div>
-                    </article>
-
-                    {{-- Benefit 2: Milestone Grants --}}
-                    <article class="bg-white rounded-xl border border-osca-border p-5 sm:p-6 flex flex-col justify-between hover:border-osca-primary transition-colors">
-                        <div>
-                            <div class="flex items-center justify-between gap-2 mb-3">
-                                <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-osca-warning/20 text-osca-ink">Milestone Grant</span>
-                                <span class="text-xs text-osca-body font-medium">RA 10868</span>
-                            </div>
-                            <h3 class="text-base sm:text-lg font-semibold text-osca-ink">Centenarian &amp; Birthday Cash Gifts</h3>
-                            <p class="mt-2 text-sm text-osca-body leading-relaxed">
-                                ₱100,000 cash gift for seniors reaching 100 years, plus local honorarium for milestone birthdays (80, 85, 90, 95).
-                            </p>
-                        </div>
-                        <div class="mt-5 pt-3 border-t border-osca-border flex items-center justify-between text-xs">
-                            <span class="text-osca-body">Coverage:</span>
-                            <span class="font-semibold text-osca-primary">80+ Residents</span>
-                        </div>
-                    </article>
-
-                    {{-- Benefit 3: Healthcare --}}
-                    <article class="bg-white rounded-xl border border-osca-border p-5 sm:p-6 flex flex-col justify-between hover:border-osca-primary transition-colors">
-                        <div>
-                            <div class="flex items-center justify-between gap-2 mb-3">
-                                <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-osca-success/15 text-osca-success">Healthcare</span>
-                                <span class="text-xs text-osca-body font-medium">RHU Clinic</span>
-                            </div>
-                            <h3 class="text-base sm:text-lg font-semibold text-osca-ink">Free Maintenance &amp; Eye Care</h3>
-                            <p class="mt-2 text-sm text-osca-body leading-relaxed">
-                                Monthly maintenance medicine refills at RHU stations, plus periodic free cataract screening missions.
-                            </p>
-                        </div>
-                        <div class="mt-5 pt-3 border-t border-osca-border flex items-center justify-between text-xs">
-                            <span class="text-osca-body">Location:</span>
-                            <span class="font-semibold text-osca-ink">Municipal RHU</span>
-                        </div>
-                    </article>
-
-                    {{-- Benefit 4: Discounts --}}
-                    <article class="bg-white rounded-xl border border-osca-border p-5 sm:p-6 flex flex-col justify-between hover:border-osca-primary transition-colors">
-                        <div>
-                            <div class="flex items-center justify-between gap-2 mb-3">
-                                <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-osca-primary/10 text-osca-primary">Statutory</span>
-                                <span class="text-xs text-osca-body font-medium">Nationwide</span>
-                            </div>
-                            <h3 class="text-base sm:text-lg font-semibold text-osca-ink">20% Discount &amp; VAT Exemption</h3>
-                            <p class="mt-2 text-sm text-osca-body leading-relaxed">
-                                Mandatory 20% discount and VAT exemption on medicines, hospital services, groceries, dining, and transit.
-                            </p>
-                        </div>
-                        <div class="mt-5 pt-3 border-t border-osca-border flex items-center justify-between text-xs">
-                            <span class="text-osca-body">Requirement:</span>
-                            <span class="font-semibold text-osca-primary">Valid OSCA ID</span>
-                        </div>
-                    </article>
-                </div>
-            </div>
-        </section>
+        @include('public.programs')
 
         {{-- Records Management Section --}}
         <section id="records" class="scroll-mt-20 py-14 sm:py-20 bg-white border-t border-osca-border" aria-label="Records Management">
@@ -222,14 +135,14 @@
                             Digital Senior Citizen <span class="text-osca-primary">Records Registry</span>
                         </h2>
                         <p class="text-sm sm:text-base text-osca-body leading-relaxed">
-                            eLINGAP provides unified records verification across Santa Maria's 24 barangays, accelerating ID renewals, benefit validation, and family caregiver contacts.
+                            eLINGAP provides unified records verification across participating barangays, supporting ID renewals, benefit validation, and family caregiver contacts.
                         </p>
                         <div class="w-full space-y-3 pt-2">
                             <div class="w-full flex items-start gap-3 p-3.5 rounded-xl bg-osca-muted border border-osca-border">
                                 <span class="size-6 rounded-full bg-osca-success text-white flex items-center justify-center shrink-0 mt-0.5 text-xs font-semibold">&check;</span>
                                 <div>
-                                    <h4 class="text-sm font-semibold text-osca-ink">Unified 24-Barangay Masterlist</h4>
-                                    <p class="text-xs text-osca-body mt-0.5">Centralized database syncs senior records from Poblacion to Tumana in real-time.</p>
+                                    <h4 class="text-sm font-semibold text-osca-ink">Unified Barangay Masterlist</h4>
+                                    <p class="text-xs text-osca-body mt-0.5">A centralized database keeps registered senior records available to authorized staff.</p>
                                 </div>
                             </div>
                             <div class="w-full flex items-start gap-3 p-3.5 rounded-xl bg-osca-muted border border-osca-border">
@@ -276,13 +189,11 @@
                         <div class="w-full max-w-sm rounded-xl border border-osca-border bg-osca-muted p-5">
                             <div class="flex items-center gap-3 border-b border-osca-border pb-4 text-xs">
                                 <img src="{{ asset('images/eLINGAP.png') }}" alt="" class="size-12 object-contain" width="48" height="48" loading="lazy">
-                                <div><p class="font-medium text-osca-ink">OSCA Santa Maria</p><p class="mt-1">Example SMS notification</p></div>
+                                <div><p class="font-medium text-osca-ink">Notification information</p><p class="mt-1">Confirmed schedules and requirements</p></div>
                             </div>
                             <div class="mt-4 space-y-3 text-xs">
                                 <div class="rounded-lg border border-osca-border bg-white p-4 text-sm leading-relaxed">
-                                    <p class="mb-2 font-medium text-osca-primary">Paunawa mula sa OSCA</p>
-                                    <p>Magandang araw po! Ipapadala ng OSCA ang inyong programa, halaga, petsa, oras, at lugar ng payout kapag nakumpirma na ang iskedyul.</p>
-                                    <p class="mt-3">Kasama rin sa abiso ang mga dokumentong kailangang dalhin, kung mayroon.</p>
+                                    <p>Notifications identify the program, confirmed schedule, location, and documents to bring. Ask the office about current announcements.</p>
                                 </div>
                             </div>
                         </div>
@@ -330,12 +241,10 @@
                     <div class="lg:col-span-5">
                         <div class="rounded-xl border border-slate-200 bg-white p-7 sm:p-8">
                             <img src="{{ asset('images/eLINGAP.png') }}" alt="eLINGAP logo" class="mb-5 size-24 object-contain" width="96" height="96" loading="lazy">
-                            <blockquote class="text-base sm:text-lg text-osca-body leading-relaxed">
-                                &ldquo;Our senior citizens are the pillars of Santa Maria's heritage. Ensuring their well-being, dignity, and prompt access to public services is our highest duty.&rdquo;
-                            </blockquote>
+                            <p class="text-base sm:text-lg text-osca-body leading-relaxed">A shared registry helps staff review records, assess applications, and maintain an accountable history of assistance.</p>
                             <div class="mt-6 pt-4 border-t border-osca-border">
-                                <p class="font-semibold text-base text-osca-ink">Office of the Senior Citizens Affairs</p>
-                                <p class="text-xs text-osca-body">Municipal Government of Santa Maria, Bulacan</p>
+                                <p class="font-semibold text-base text-osca-ink">{{ $publicOffice['office_name'] ?? 'Office of the Senior Citizens Affairs' }}</p>
+                                @if (!empty($publicOffice['organization_name']))<p class="text-xs text-osca-body">{{ $publicOffice['organization_name'] }}</p>@endif
                             </div>
                         </div>
                     </div>
@@ -360,22 +269,22 @@
                     </div>
                     <p class="text-sm text-white/70 leading-relaxed max-w-sm">An integrated web-based records management and automated SMS notification system serving the senior citizens of Santa Maria, Bulacan.</p>
                 </div>
-                <div class="space-y-3 md:mt-6">
-                    <h5 class="text-sm font-normal text-white">Office of Senior Citizens Affairs</h5>
+                <div id="office-contact" class="scroll-mt-20 space-y-3 md:mt-6">
+                    <h5 class="text-sm font-normal text-white">{{ $publicOffice['office_name'] ?? 'Office of Senior Citizens Affairs' }}</h5>
                     <div class="space-y-2.5 text-sm text-white/70">
                         <p class="flex items-start gap-2.5">
                             <svg class="size-4 shrink-0 mt-0.5 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                            <span>Ground Floor, Municipal Hall Building, Poblacion, Santa Maria, Bulacan 3022</span>
+                            <span>{{ $publicOffice['office_address'] ?? 'Office address not configured.' }}</span>
                         </p>
                         <p class="flex items-center gap-2.5">
                             <svg class="size-4 shrink-0 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-                            <span class="min-w-0 break-words">osca@santamariabulacan.gov.ph</span>
+                            <span class="min-w-0 break-words">{{ $publicOffice['support_email'] ?? 'Office email not configured.' }}</span>
                         </p>
                         <p class="flex items-center gap-2.5">
                             <svg class="size-4 shrink-0 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.88.37 1.85.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.96.33 1.93.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                            <span>(044) 913-0248</span>
+                            <span>{{ $publicOffice['support_phone'] ?? 'Office phone not configured.' }}</span>
                         </p>
-                        <p class="text-xs text-white/50 pt-2 border-t border-white/10">Counter Hours: Monday to Friday &middot; 8:00 AM to 5:00 PM (Excluding Official Holidays)</p>
+                        <p class="text-xs text-white/50 pt-2 border-t border-white/10">{{ $publicOffice['office_hours'] ?? 'Contact the OSCA office to confirm counter hours.' }}</p>
                     </div>
                 </div>
             </div>

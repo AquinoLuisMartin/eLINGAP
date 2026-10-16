@@ -7,14 +7,17 @@ use Tests\TestCase;
 
 class PreviewPagesTest extends TestCase
 {
-    #[TestWith(['/dashboard-preview', 'dashboard.preview'])]
-    #[TestWith(['/payouts-preview', 'payouts.preview'])]
-    #[TestWith(['/reports-preview', 'reports.preview'])]
-    #[TestWith(['/masterlist', 'masterlist.index'])]
-    #[TestWith(['/messaging', 'messaging'])]
-    public function test_preview_pages_render_without_authentication(string $path, string $view): void
+    #[TestWith(['/dashboard-preview', 'dashboard'])]
+    #[TestWith(['/payouts-preview', 'payouts.index'])]
+    #[TestWith(['/reports-preview', 'reports.index'])]
+    #[TestWith(['/masterlist', 'senior-citizens.index'])]
+    #[TestWith(['/staff-preview', 'dashboard'])]
+    #[TestWith(['/registrations-preview', 'registrations.index'])]
+    #[TestWith(['/messaging', 'sms.blasts.index'])]
+    public function test_legacy_previews_redirect_to_working_pages(string $path, string $route): void
     {
-        $this->get($path)->assertOk()->assertViewIs($view);
+        $this->get($path)->assertRedirect(route($route));
+        $this->get(route($route))->assertRedirect(route('login'));
     }
 
     #[TestWith(['/payouts'])]

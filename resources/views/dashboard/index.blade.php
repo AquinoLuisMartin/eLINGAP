@@ -27,8 +27,8 @@
             @foreach ([
                 'Active seniors' => [$activeCount, 'Verified records'],
                 'Approved applications' => [$readyCount, 'Ready for processing'],
-                'Upcoming milestones' => [$milestoneCount, 'Ages 80, 90 and 100'],
-                'Barangays covered' => [$barangays->count(), 'Active registry areas'],
+                'Upcoming milestones' => [$milestoneCount, $milestoneAges->isEmpty() ? 'No milestone programs configured' : 'Ages '.$milestoneAges->join(', ')],
+                'Barangays covered' => [$barangayCount, 'Active registry areas'],
             ] as $label => [$count, $description])
                 <div class="min-w-0">
                     <dt class="text-sm text-slate-500">{{ $label }}</dt>

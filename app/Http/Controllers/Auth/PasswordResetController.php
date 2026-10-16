@@ -28,15 +28,15 @@ class PasswordResetController extends Controller
 
     public function createReset(string $token): View
     {
-        return view('auth.reset-password', ['token' => $token, 'email' => request('email')]);
+        $email = request()->query('email');
+
+        return view('auth.reset-password', ['token' => $token, 'email' => is_string($email) ? $email : '']);
     }
 
     public function reset(ResetPasswordRequest $request): RedirectResponse
     {
         $status = Password::reset($request->validated(), function (User $user, string $password): void {
-            $user->forceFill(['password_hash' => Hash::make($password), 'remember_token' => null])
-                ->setRememberToken(null)
-                ->save();
+            $user->forceFill(['password_hash' => Hash::make($password), 'remember_token' => null])->save();
 
             event(new PasswordReset($user));
         });

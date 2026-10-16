@@ -6,7 +6,7 @@
     <div class="grid gap-3 md:grid-cols-4">
         <label class="field-label">Status<select wire:model.live="status"><option value="">All statuses</option>@foreach (\App\Enums\BenefitStatus::cases() as $state)<option wire:key="report-status-{{ $state->value }}" value="{{ $state->value }}">{{ $state->label() }}</option>@endforeach</select></label>
         <label class="field-label">Program<select wire:model.live="programId"><option value="">All programs</option>@foreach($programs as $program)<option wire:key="report-program-{{ $program->id }}" value="{{ $program->id }}">{{ $program->name }}</option>@endforeach</select></label>
-        <label class="field-label">Original period<input wire:model.live.debounce.300ms="period" placeholder="2026 or AGE-90"></label>
+        <label class="field-label">Original period<input wire:model.live.debounce.300ms="period" placeholder="Year or milestone period"></label>
         <label class="field-label">Search senior / ID<input wire:model.live.debounce.300ms="search"></label>
     </div>
     <p class="my-3 text-xs text-slate-500">Pending: awaiting funds or a schedule. Unpaid: scheduled, not released. Unclaimed: available but not collected. Claimed: confirmed received.</p>

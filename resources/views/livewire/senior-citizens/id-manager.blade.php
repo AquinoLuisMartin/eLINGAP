@@ -38,7 +38,7 @@
     @if (!$card)
         <x-senior-id.panel title="ID unavailable" description="This record is deceased or transferred. Its QR no longer verifies as valid, and the ID cannot be printed." />
     @elseif ($step === 1)
-        <x-senior-id.panel title="Physical photo and thumbprint" description="The PDF leaves a 1x1-inch photo placeholder. Attach the physical photograph and collect the thumbprint after printing.">
+        <x-senior-id.panel title="Physical photo and thumbprint" description="The PDF leaves a square 1 x 1 inch (2.54 x 2.54 cm) photo placeholder. Attach the physical photograph and collect the thumbprint after printing.">
             <p class="text-sm text-slate-500">No digital photo or senior signature is required. Official signatures are managed through Official card settings.</p>
         </x-senior-id.panel>
         <footer class="flex justify-end"><button type="button" wire:click="next" wire:loading.attr="disabled" class="primary-button">Continue to review</button></footer>

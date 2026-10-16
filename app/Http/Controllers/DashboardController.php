@@ -6,6 +6,7 @@ use App\Enums\ApplicationStatus;
 use App\Enums\SeniorCitizenStatus;
 use App\Models\Application;
 use App\Models\BenefitEntitlement;
+use App\Models\Program;
 use App\Models\SeniorCitizen;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,9 @@ class DashboardController extends Controller
 
         Gate::authorize('viewAny', SeniorCitizen::class);
         $active = SeniorCitizen::query()->where('status', SeniorCitizenStatus::Verified->value);
+        $milestoneAges = Program::query()->where('status', 'ACTIVE')->get(['benefit_rules'])
+            ->flatMap(fn ($program) => array_keys($program->benefit_rules['milestones'] ?? []))
+            ->map(fn ($age) => (int) $age)->filter(fn ($age) => $age >= 60)->unique()->sort()->values();
         $ageGroups = [
             '60–69' => (clone $active)->where('birth_date', '>', today()->subYears(70))->count(),
             '70–79' => (clone $active)->whereBetween('birth_date', [today()->subYears(80)->addDay(), today()->subYears(70)])->count(),
@@ -33,11 +37,13 @@ class DashboardController extends Controller
             'activeCount' => (clone $active)->count(),
             'readyCount' => Application::query()->where('status', ApplicationStatus::Approved->value)->count(),
             'benefitCounts' => BenefitEntitlement::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
-            'milestoneCount' => (clone $active)->where(function ($query) {
-                foreach ([80, 90, 100] as $age) {
+            'milestoneAges' => $milestoneAges,
+            'milestoneCount' => $milestoneAges->isEmpty() ? 0 : (clone $active)->where(function ($query) use ($milestoneAges) {
+                foreach ($milestoneAges as $age) {
                     $query->orWhereBetween('birth_date', [today()->subYears($age), today()->subYears($age - 1)->subDay()]);
                 }
             })->count(),
+            'barangayCount' => (clone $active)->distinct()->count('barangay_id'),
             'barangays' => (clone $active)->join('barangays', 'barangays.id', '=', 'senior_citizens.barangay_id')
                 ->selectRaw('barangays.name, count(*) as total')->groupBy('barangays.id', 'barangays.name')
                 ->orderByDesc('total')->limit(8)->get(),

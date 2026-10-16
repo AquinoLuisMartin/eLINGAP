@@ -7,11 +7,47 @@ use App\Models\Role;
 use App\Models\SeniorCitizen;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
 
 class StaffReportTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_transferred_status_is_available_in_preview_and_export(): void
+    {
+        $barangay = Barangay::create(['name' => 'Synthetic barangay', 'code' => 'SYN']);
+        foreach (['TRANSFERRED', 'VERIFIED'] as $status) {
+            SeniorCitizen::create(['barangay_id' => $barangay->id, 'registration_number' => 'SC-'.$status, 'first_name' => 'Synthetic', 'last_name' => $status, 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => $status]);
+        }
+        $this->actingAs(User::factory()->create());
+
+        $this->get(route('reports.workspace', ['type' => 'masterlist', 'status' => 'TRANSFERRED']))
+            ->assertOk()->assertSee('Synthetic TRANSFERRED')->assertDontSee('Synthetic VERIFIED');
+        $export = $this->get(route('reports.export', ['type' => 'masterlist', 'status' => 'TRANSFERRED']))->assertOk();
+
+        $this->assertStringContainsString('Synthetic TRANSFERRED', $export->streamedContent());
+        $this->assertStringNotContainsString('Synthetic VERIFIED', $export->streamedContent());
+    }
+
+    #[TestWith(['applications'])]
+    #[TestWith(['payouts'])]
+    #[TestWith(['proxy'])]
+    public function test_an_end_date_can_be_used_without_a_start_date(string $type): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->get(route('reports.workspace', ['type' => $type, 'to' => '2026-10-16']))->assertOk();
+        $this->get(route('reports.export', ['type' => $type, 'to' => '2026-10-16']))->assertOk();
+    }
+
+    public function test_a_date_range_cannot_end_before_it_starts(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->getJson(route('reports.workspace', ['type' => 'payouts', 'from' => '2026-10-16', 'to' => '2026-10-15']))
+            ->assertUnprocessable()->assertJsonValidationErrors('to');
+    }
 
     public function test_preview_and_csv_export_apply_the_same_barangay_filter(): void
     {
