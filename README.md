@@ -1,38 +1,85 @@
-﻿<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+<p align="center">
+  <a href="https://laravel.com" target="_blank">
+    <img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/1%20Full%20Color.svg" width="400" alt="Laravel Logo">
+  </a>
+</p>
 
+<h1 align="center">eLINGAP</h1>
 
+<p align="center">
+  An integrated web-based records management and automated SMS notification system
+  for the Office of the Senior Citizens Affairs of Santa Maria, Bulacan.
+</p>
 
-# eLINGAP : An Integrated Web-Based Records Management and Automated SMS Notification System for the Office of the Senior Citizens Affairs of Santa Maria, Bulacan.
-## Current Features
+## Overview
 
-- Public landing page, login, password reset, and role-based dashboards.
-- Administrator account management and account access controls.
-- Senior citizen registration, record updates, photos, and death declarations or corrections.
-- Program listings, beneficiary enrollment, and application status workflows.
-- Payout schedules, release tracking, claimant details, and payout reversals.
-- SMS templates, individual messages, broadcasts, logs, and retries.
+eLINGAP centralizes senior citizen records, benefit-program workflows, payout
+monitoring, reports, staff access, and SMS notifications in one application.
+It is designed for authenticated office workflows with role-based access and
+auditable operational records.
+
+> The application is under active development. SMS delivery requires a
+> configured external gateway and a running queue worker.
+
+## Contents
+
+- [Features](#features)
+- [Technology](#technology)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Operations](#operations)
+- [SMS configuration](#sms-configuration)
+- [Project structure](#project-structure)
+- [Development checks](#development-checks)
+- [Contributing](#contributing)
+
+## Features
+
+### Records and administration
+
+- Public landing page, authentication, password reset, and role-based dashboards.
+- Administrator account management and access controls.
+- Senior citizen registration, updates, photos, and death declarations or corrections.
+- Reference data for barangays, roles, programs, and office settings.
+
+### Benefits and payouts
+
+- Benefit-program listings and beneficiary enrollment.
+- Application status and review workflows.
+- Payout schedules, release tracking, claimant details, and reversals.
 - Application, demographic, payout, and staff reports with export routes.
 
-The application is under active development. Legacy local preview URLs redirect to the authenticated workflows; production preview URLs remain unavailable. SMS delivery requires a configured external gateway and a running queue worker.
+### Messaging
 
-## Technology Stack
+- Reusable SMS templates and individual messages.
+- Broadcast messaging, delivery logs, retries, and failure tracking.
+- Queued delivery after database commits with eligibility checks before sending.
 
-| Component | Project dependency |
+## Technology
+
+| Area | Stack |
 | --- | --- |
-| PHP | 8.3 or later |
-| Laravel | 13 (`^13.17`) |
-| Livewire | 4 (`^4.4`) |
+| Backend | PHP 8.3+, Laravel 13 |
+| Application UI | Blade, Livewire 4, Alpine.js |
+| Styling and assets | Tailwind CSS 4, Vite 8 |
 | Database | PostgreSQL |
-| Frontend | Blade, Tailwind CSS 4, Vite 8 |
-| Tests | PHPUnit 12 |
+| Documents and exports | Dompdf, PhpSpreadsheet, QR code packages |
+| Testing | PHPUnit 12 |
 
-Install Composer, Git, PostgreSQL, and Node.js with npm. Vite requires Node.js `^20.19.0` or `>=22.12.0`. Enable PHP's PostgreSQL extensions alongside the extensions required by Laravel.
+## Requirements
 
-## Local Setup
+Install the following before setting up the application:
 
-### 1. Clone and install dependencies
+- PHP `^8.3` with the PostgreSQL extensions required by Laravel.
+- Composer.
+- PostgreSQL.
+- Node.js `^20.19.0` or `>=22.12.0` with npm.
 
-Replace `<repository-url>` with the project's repository URL.
+## Installation
+
+### 1. Clone the repository
+
+Replace `<repository-url>` with the repository URL:
 
 ```bash
 git clone <repository-url>
@@ -43,100 +90,171 @@ npm install
 
 ### 2. Configure the environment
 
-Copy the environment template:
+Create the local environment file.
 
 ```bash
 cp .env.example .env
+php artisan key:generate
 ```
 
-For Windows PowerShell:
+On Windows PowerShell:
 
 ```powershell
 Copy-Item .env.example .env
+php artisan key:generate
 ```
 
-Create a local PostgreSQL database, then configure its connection in `.env`. The template uses PostgreSQL and database-backed sessions, cache, and queues. Configure the application URL and mail settings as needed; password reset emails require a working mail configuration.
+Create a local PostgreSQL database and update the `DB_*` values in `.env`.
+The application uses PostgreSQL and database-backed sessions, cache, and
+queues. Configure the application URL and mail settings as needed; password
+reset emails require a working mail transport.
+
+Run the migrations:
 
 ```bash
-php artisan key:generate
 php artisan migrate
 ```
 
 Keep `.env`, credentials, and personal data out of version control.
 
-### 3. Create an administrator
+### 3. Seed reference data and create an administrator
+
+Seed the initial reference roles, barangays, and benefit-program definitions:
+
+```bash
+php artisan db:seed
+```
+
+Create the first administrator interactively:
 
 ```bash
 php artisan app:create-admin
 ```
 
-The command prompts interactively for account details and creates the administrator role if needed. Administrators can provision additional accounts through the application.
+The seeder does not create demo users or replace existing accounts.
+Administrators can provision additional accounts through the application.
 
-`php artisan db:seed` seeds reference roles, barangays, and benefit-program definitions. It does not create demo users or replace existing accounts. Provision the first administrator with `php artisan app:create-admin`, then use administrator account management for additional users.
+### 4. Build and run the application
 
-The public homepage and login page display active programs using their stored names, agencies, descriptions, and default amounts. Office contacts come only from the organization_name, office_name, support_email, support_phone, office_address, and office_hours settings. Missing data displays an unconfigured or empty state. Registry records, private settings, budgets, and payment histories are not exposed there.
-
-### 4. Build assets and start the application
+Build the frontend assets and start the local server:
 
 ```bash
 npm run build
 php artisan serve
 ```
 
-Open `http://localhost:8000`. For frontend development, run `npm run dev` in a separate terminal.
+Open [http://localhost:8000](http://localhost:8000) in a browser. During
+frontend development, run `npm run dev` in a separate terminal.
 
-For queued SMS processing, run another terminal:
+For a convenient local development command, use:
+
+```bash
+composer dev
+```
+
+## Operations
+
+### Queue worker
+
+Run a queue worker in a separate terminal when processing SMS or other queued
+work:
 
 ```bash
 php artisan queue:work
 ```
 
-Alternatively, `composer dev` invokes Laravel's development command. `composer setup` installs dependencies, creates `.env` if missing, generates the application key, runs migrations, and builds assets; configure the database before using it.
+Messages are queued after successful database commits. The queue job records
+send results and failures, retries failed attempts, and checks linked senior
+citizen eligibility before sending.
 
-## SMS Configuration
+### Deployment checks
 
-The SMS gateway reads `services.sms.url`, `services.sms.token`, and `services.sms.timeout` from `config/services.php`. Configure the corresponding environment settings locally.
+Run the deployment prerequisite checks before a production rollout:
 
-The driver sends authenticated requests to the gateway's `/messages` endpoint with `to` and `message` fields and an idempotency header. It expects a JSON response containing a provider message ID in `id`. Confirm that the chosen provider supports this contract before enabling delivery.
+```bash
+php artisan app:check-deployment
+```
 
-Messages are queued after database commits. The queue job records send results and failures, retries failed attempts, and checks linked senior citizen eligibility before sending. A recorded sent status reflects the gateway request result.
+Useful options:
 
-## Project Layout
+```bash
+php artisan app:check-deployment --json
+php artisan app:check-deployment --database
+```
+
+The command does not modify configuration or records and returns a nonzero exit
+code when a check fails. Checks that require production settings are expected
+to fail in a local development environment.
+
+Production should use the canonical HTTPS application URL, secure session
+cookies, encrypted session storage, private uploads, persistent sessions and
+cache, built assets, and a real password-recovery mail transport. Verify
+encryption, backups, restoration, browser accessibility, and performance
+separately before rollout.
+
+## SMS configuration
+
+The SMS gateway reads the following values from `config/services.php`:
+
+| Setting | Purpose |
+| --- | --- |
+| `services.sms.url` | Gateway base URL |
+| `services.sms.token` | Authentication token |
+| `services.sms.timeout` | Request timeout |
+
+Configure the corresponding environment variables locally. The driver sends
+authenticated requests to the gateway's `/messages` endpoint with `to` and
+`message` fields and an idempotency header. It expects a JSON response
+containing the provider message ID in `id`. Confirm that the selected provider
+supports this contract before enabling delivery.
+
+A recorded `sent` status reflects the gateway request result; it does not
+replace provider-side delivery confirmation.
+
+## Project structure
 
 ```text
 app/
+  Actions/             Application actions
   Console/Commands/    Artisan commands, including administrator creation
-  Enums/              Roles and workflow statuses
-  Http/               Controllers, middleware, and form requests
-  Jobs/Sms/           Queued SMS delivery
-  Livewire/           Livewire components
-  Models/             Eloquent models
-  Policies/           Authorization rules
-  Providers/          Application service bindings
-  Services/           Domain logic, reports, and SMS integration
-  Support/            Shared helpers
+  Enums/               Roles and workflow statuses
+  Http/                Controllers, middleware, and form requests
+  Jobs/                Queued work, including SMS delivery
+  Livewire/            Livewire components
+  Models/              Eloquent models
+  Policies/            Authorization rules
+  Providers/           Application service bindings
+  Services/            Domain logic, reports, and integrations
+  Support/             Shared helpers
 database/
-  factories/          Test data factories
-  migrations/         Database schema
-  seeders/            Initial data and account seeding
-docs/                 Project notes
+  factories/           Test data factories
+  migrations/          Database schema
+  seeders/             Reference and account seeders
 resources/
-  css/                Application and administration styles
-  js/                 Frontend JavaScript
-  views/              Blade layouts and feature views
-routes/               Web and console routes
-tests/                Feature and unit tests
+  css/                 Application and administration styles
+  js/                  Frontend JavaScript
+  views/               Blade layouts and feature views
+routes/
+  console.php          Console routes
+  web.php              Web routes
+tests/
+  Feature/             Feature and workflow tests
+  Unit/                Unit tests
+  Js/                  JavaScript tests
+docs/                  Project notes and operational documentation
 ```
 
-Feature code is grouped around administration, authentication, senior citizens, applications, programs, payouts, reports, and SMS.
+Feature code is organized around authentication, administration, senior
+citizens, applications, programs, payouts, reports, and SMS.
 
-## Development Checks
+## Development checks
 
-For non-SMS production prerequisites, run `php artisan app:check-deployment`. Add `--json` for machine-readable results or `--database` to check connectivity, migration metadata, and database-backed session/cache tables. The command returns a nonzero exit code for failed checks and does not modify configuration or records. Production checks are expected to fail on local development settings.
+The test configuration uses PostgreSQL with a separate database named
+`db_elingap_testing`. Create that database and ensure the local database user
+can access it before running database-backed tests. Tests may reset tables, so
+do not use a production database.
 
-Production requires the canonical HTTPS application URL, secure session cookies, encrypted session storage, private uploads, persistent sessions/cache, built assets, and a real password-recovery mail transport. Verify host encryption, backup restoration, browser accessibility, and measured performance separately before rollout.
-
-The test configuration uses PostgreSQL with a separate database named `db_elingap_testing`. Create that database and ensure the local database user can access it before running database-backed tests. Use a dedicated test database because tests may reset its tables.
+Run the main checks:
 
 ```bash
 composer test
@@ -145,18 +263,25 @@ vendor/bin/pint
 npm run build
 ```
 
-On Windows, use `vendor\bin\pint.bat` for formatting if the shell cannot run `vendor/bin/pint`.
+On Windows, use the formatter batch file if the shell cannot run the Unix-style
+path:
+
+```powershell
+vendor\bin\pint.bat
+```
 
 ## Contributing
 
 - Follow [AGENTS.md](AGENTS.md) and the existing module conventions.
-- Keep changes focused and add relevant tests for behavior changes.
+- Keep changes focused and add tests for behavior changes.
 - Run the applicable tests, PHP formatter, and frontend build.
-- Describe configuration changes and validation in the pull request.
-- Exclude personal information, production data, credentials, and local environment files.
+- Document configuration changes and validation in the pull request.
+- Never include personal information, production data, credentials, or local
+  environment files.
 
 Report security issues privately to the project maintainers.
 
 ## License
 
-The Laravel framework is licensed under the MIT license. Confirm project-specific licensing terms with the maintainers.
+The Laravel framework is licensed under the MIT license. Confirm project-specific
+licensing terms with the maintainers.
