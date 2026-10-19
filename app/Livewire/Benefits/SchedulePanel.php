@@ -9,6 +9,7 @@ use App\Services\Benefits\BenefitPayments;
 use App\Services\Benefits\BenefitScheduling;
 use App\Services\Benefits\BenefitSms;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -139,13 +140,13 @@ class SchedulePanel extends Component
         $this->notice = $blast->recipient_count.' payout SMS messages queued. Failed sends remain available for staff retry.';
     }
 
-    public function render()
+    public function render(): View
     {
         $schedule = $this->schedule();
 
         return view('livewire.benefits.schedule-panel', [
             'schedule' => $schedule,
-            'entries' => $schedule->entitlements()->with(['seniorCitizen.barangay', 'payments'])->orderBy('id')->paginate(15),
+            'entries' => $schedule->entitlements()->with(['seniorCitizen.barangay', 'payments'])->orderBy('id')->paginate(15, pageName: 'recipientsPage'),
             'recipientTotal' => $schedule->entitlements()->count(),
             'requiredFunds' => $schedule->entitlements()->sum('amount'),
             'barangays' => Barangay::query()->when($schedule->barangay_ids, fn ($query) => $query->whereIn('id', $schedule->barangay_ids))->orderBy('name')->get(['id', 'name']),

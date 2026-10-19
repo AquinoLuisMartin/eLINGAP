@@ -7,7 +7,8 @@
     <x-favicon />
     <script>
         (function () {
-            var theme = localStorage.getItem('elingap-theme') === 'dark' ? 'dark' : 'light';
+            var theme = 'light';
+            try { theme = localStorage.getItem('elingap-theme') === 'dark' ? 'dark' : 'light'; } catch {}
             document.documentElement.classList.add(theme === 'dark' ? 'theme-dark' : 'theme-light');
             document.documentElement.style.colorScheme = theme;
         })();
@@ -23,21 +24,25 @@
 <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
     @php($user = auth()->user()->loadMissing('role'))
+    @php($isAdmin = $user->isAdmin())
+    @php($portalLabel = $isAdmin ? 'System Administration' : 'OSCA Staff Portal')
     @php($lastLoginAt = array_key_exists('last_login_at', $user->getAttributes()) ? $user->last_login_at : null)
     <div class="admin-shell staff-shell" x-data="{
         sidebarOpen: false,
+        sidebarTrigger: null,
+        adminOpen: true,
         profileOpen: false,
         profileTrigger: null,
-        theme: localStorage.getItem('elingap-theme') === 'dark' ? 'dark' : 'light',
+        theme: document.documentElement.classList.contains('theme-dark') ? 'dark' : 'light',
         toggleTheme() {
             this.theme = this.theme === 'light' ? 'dark' : 'light';
-            localStorage.setItem('elingap-theme', this.theme);
+            try { localStorage.setItem('elingap-theme', this.theme); } catch {}
             document.documentElement.classList.toggle('theme-dark', this.theme === 'dark');
             document.documentElement.classList.toggle('theme-light', this.theme === 'light');
             document.documentElement.style.colorScheme = this.theme;
         }
-    }" :class="theme === 'dark' ? 'theme-dark' : 'theme-light'" @keydown.escape.window="if (profileOpen) profileTrigger?.focus(); profileOpen = false; sidebarOpen = false">
-        <aside id="osca-navigation" class="admin-sidebar" :class="{ 'is-expanded': sidebarOpen }" @mouseenter="if (window.matchMedia('(min-width: 761px)').matches) sidebarOpen = true" @mouseleave="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains(document.activeElement)) sidebarOpen = false" @focusin="sidebarOpen = true" @focusout="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains($event.relatedTarget) && !$el.matches(':hover')) sidebarOpen = false">
+    }" :class="theme === 'dark' ? 'theme-dark' : 'theme-light'" @keydown.escape.window="if (profileOpen) profileTrigger?.focus(); else if (sidebarOpen) sidebarTrigger?.focus(); profileOpen = false; sidebarOpen = false" @resize.window="sidebarOpen = false">
+        <aside id="osca-navigation" class="admin-sidebar" x-trap.inert.noscroll="sidebarOpen && window.matchMedia('(max-width: 760px)').matches" :class="{ 'is-expanded': sidebarOpen }" @mouseenter="if (window.matchMedia('(min-width: 761px)').matches) sidebarOpen = true" @mouseleave="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains(document.activeElement)) sidebarOpen = false" @focusin="sidebarOpen = true" @focusout="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains($event.relatedTarget) && !$el.matches(':hover')) sidebarOpen = false">
             <div class="sidebar-brand">
                 <div class="brand-mark">
                     <img class="brand-logo" src="{{ asset('images/eLINGAP.png') }}" alt="eLINGAP Logo">
@@ -48,6 +53,15 @@
                 </div>
             </div>
 
+            @if ($isAdmin)
+                <x-admin.navigation :active="match (true) {
+                    request()->routeIs('administration.users.*') => 'users',
+                    request()->routeIs('benefits.*', 'programs.*', 'administration.programs.*', 'payouts.*', 'payout-schedules.*') => 'programs',
+                    request()->routeIs('sms.*') => 'sms',
+                    request()->routeIs('senior-citizens.*', 'senior-id.*', 'registrations.*', 'applications.*') => 'records',
+                    default => '',
+                }" />
+            @else
             <nav class="sidebar-nav" aria-label="OSCA Staff navigation">
                 <p class="nav-label">Workspace</p>
                 @foreach ([
@@ -62,6 +76,7 @@
                     @php($isActive = request()->routeIs($pattern) || match ($route) {
                         'senior-citizens.index' => request()->routeIs('senior-id.*'),
                         'payouts.index' => request()->routeIs('payout-schedules.*'),
+                        'benefits.workspace' => request()->routeIs('programs.*'),
                         default => false,
                     })
                     <a class="nav-item {{ $isActive ? 'is-active' : '' }}" href="{{ route($route) }}" title="{{ $label }}" @if($isActive) aria-current="page" @endif>
@@ -72,12 +87,13 @@
                 @endforeach
 
             </nav>
+            @endif
 
             <button class="sidebar-footer" type="button" @click="profileTrigger = $event.currentTarget; profileOpen = !profileOpen" aria-controls="osca-account-panel" :aria-expanded="profileOpen">
                 <span class="profile-avatar">{{ mb_substr($user->first_name, 0, 1).mb_substr($user->last_name, 0, 1) }}</span>
                 <span class="profile-copy">
                     <strong>{{ $user->first_name }} - {{ $user->role->name->label() }}</strong>
-                    <small>OSCA Staff Portal</small>
+                    <small>{{ $portalLabel }}</small>
                 </span>
                 <span class="icon-button sidebar-logout" aria-label="Open account menu" title="Open account menu">
                     <x-admin.icon name="chevron-right" size="17" />
@@ -85,8 +101,10 @@
             </button>
         </aside>
 
+        <button type="button" class="sidebar-backdrop" x-show="sidebarOpen" x-cloak @click="sidebarOpen = false; sidebarTrigger?.focus()" aria-label="Close navigation"></button>
+
         <div class="profile-menu-backdrop" x-show="profileOpen" x-transition.opacity @click="profileOpen = false" style="display: none;"></div>
-        <aside id="osca-account-panel" class="profile-menu" aria-label="Account details" x-show="profileOpen" x-transition @click.stop @click.outside="profileOpen = false" style="display: none;">
+        <aside id="osca-account-panel" class="profile-menu" x-trap.inert.noscroll="profileOpen" aria-label="Account details" x-show="profileOpen" x-transition @click.stop @click.outside="profileOpen = false" style="display: none;">
             <div class="profile-menu-header">
                 <div class="profile-menu-avatar">{{ mb_substr($user->first_name, 0, 1).mb_substr($user->last_name, 0, 1) }}</div>
                 <div>
@@ -121,11 +139,11 @@
         <div class="admin-main">
             <header class="admin-header">
                 <div class="header-title">
-                    <button type="button" class="icon-button mobile-menu-button" @click="sidebarOpen = !sidebarOpen" aria-label="Toggle navigation" aria-controls="osca-navigation" :aria-expanded="sidebarOpen">
+                    <button type="button" class="icon-button mobile-menu-button" @click="sidebarTrigger = $event.currentTarget; sidebarOpen = !sidebarOpen; if (sidebarOpen) $nextTick(() => document.querySelector('#osca-navigation a')?.focus())" aria-label="Toggle navigation" aria-controls="osca-navigation" :aria-expanded="sidebarOpen">
                         <x-admin.icon name="menu" size="20" />
                     </button>
                     <div>
-                        <span class="eyebrow">{{ request()->routeIs('administration.*') ? 'System Administration' : 'OSCA Staff Portal' }}</span>
+                        <span class="eyebrow">{{ $portalLabel }}</span>
                         <h1>{{ match (true) {
                             request()->routeIs('administration.users.*') => 'User Accounts',
                             request()->routeIs('senior-id.*') => 'Senior Citizen IDs',

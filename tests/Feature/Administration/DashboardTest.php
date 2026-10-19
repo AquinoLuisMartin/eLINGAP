@@ -50,10 +50,34 @@ class DashboardTest extends TestCase
             ->assertSet('active', 'help');
     }
 
+    public function test_dashboard_can_open_a_linked_module(): void
+    {
+        Livewire::actingAs($this->adminUser)
+            ->withQueryParams(['tab' => 'configuration'])
+            ->test(Dashboard::class)
+            ->assertSet('active', 'configuration')
+            ->assertSee('System Configuration');
+    }
+
+    public function test_dashboard_rejects_an_unknown_linked_module(): void
+    {
+        $this->actingAs($this->adminUser)
+            ->get(route('administration.dashboard', ['tab' => 'unknown']))
+            ->assertNotFound();
+    }
+
     public function test_admin_registry_does_not_offer_senior_registration(): void
     {
         Livewire::actingAs($this->adminUser)->test(Dashboard::class)
             ->call('navigate', 'records')
+            ->assertDontSeeHtml('href="'.route('senior-citizens.create').'"');
+    }
+
+    public function test_admin_help_links_to_registration_review_instead_of_a_forbidden_form(): void
+    {
+        Livewire::actingAs($this->adminUser)->test(Dashboard::class)
+            ->call('navigate', 'help')
+            ->assertSeeHtml('href="'.route('registrations.index').'"')
             ->assertDontSeeHtml('href="'.route('senior-citizens.create').'"');
     }
 
@@ -74,6 +98,7 @@ class DashboardTest extends TestCase
             ->assertSet('toast', $user->full_name.' is now active.');
 
         $this->assertTrue($user->fresh()->is_active);
+        $this->assertDatabaseHas('audit_logs', ['user_id' => $this->adminUser->id, 'action' => 'user.access_changed', 'auditable_id' => $user->id]);
     }
 
     public function test_dispatcher_links_to_the_validated_broadcast_workflow(): void

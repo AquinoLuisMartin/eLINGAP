@@ -45,7 +45,7 @@
     <div class="panel-heading"><div><h3>Recent audit activity</h3><p>Latest recorded actions across the system.</p></div><button type="button" class="text-button" wire:click="navigate('system-logs')">View all</button></div>
     <div class="activity-list">
         @forelse ($this->recentActivity as $event)
-            <div class="activity-item" wire:key="activity-{{ $event->id }}"><span class="activity-icon blue"><x-admin.icon name="activity" size="15" /></span><div><strong>{{ \App\Support\SystemEventLabel::for($event->action) }}</strong><small>Audit event #{{ $event->id }}</small></div><time datetime="{{ \Illuminate\Support\Carbon::parse($event->created_at)->toIso8601String() }}">{{ \Illuminate\Support\Carbon::parse($event->created_at)->diffForHumans() }}</time></div>
+            <div class="activity-item" wire:key="activity-{{ $event->id }}"><span class="activity-icon blue"><x-admin.icon name="activity" size="15" /></span><div><strong>{{ \App\Support\SystemEventLabel::for($event->action) }} - {{ \App\Support\SystemEventLabel::operator($event->operator_role, $event->operator_name) }}</strong><small>Audit event #{{ $event->id }}</small></div><time datetime="{{ \Illuminate\Support\Carbon::parse($event->created_at)->toIso8601String() }}">{{ \Illuminate\Support\Carbon::parse($event->created_at)->diffForHumans() }}</time></div>
         @empty
             <p class="chart-note">No audit activity recorded yet.</p>
         @endforelse

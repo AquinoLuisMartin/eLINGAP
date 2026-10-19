@@ -100,7 +100,7 @@ class RoleRoutingTest extends TestCase
     public function test_accounts_without_email_can_login_with_a_spaced_username_and_access_their_dashboard(bool $admin, string $dashboard): void
     {
         $user = $admin ? $this->admin : $this->staff;
-        $user->update(['username' => $user->first_name.' '.$user->last_name, 'email' => null]);
+        $user->update(['username' => $admin ? 'Synthetic Admin' : 'Synthetic Staff', 'email' => null]);
 
         $this->post(route('login'), [
             'email' => Str::upper($user->username),

@@ -14,6 +14,10 @@ class AuditActivity
 {
     public function handle(Request $request, Closure $next): Response
     {
+        if (! $request->isMethod('GET') || ! $request->routeIs('senior-citizens.document', 'senior-citizens.id-card')) {
+            return $next($request);
+        }
+
         try {
             $response = $next($request);
         } finally {

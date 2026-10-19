@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -24,7 +25,7 @@ class AuditResilienceTest extends TestCase
     public function test_logging_failure_uses_a_sanitized_fallback_and_preserves_the_response(): void
     {
         $staff = User::factory()->create();
-        Route::get('/audit-resilience', fn () => response('Completed'))->middleware(['web', AuditActivity::class]);
+        Route::get('/audit-resilience', fn () => response('Completed'))->middleware(['web', AuditActivity::class])->name('senior-citizens.document');
         Event::listen('eloquent.creating: '.AuditLog::class, fn () => throw new RuntimeException('Sensitive database detail'));
         Log::shouldReceive('error')->once()->andThrow(new RuntimeException('Sensitive logging detail'));
         Storage::fake('audit-fallback');
@@ -61,7 +62,7 @@ class AuditResilienceTest extends TestCase
         Exceptions::assertReported(RuntimeException::class);
     }
 
-    public function test_access_audit_failure_does_not_hide_a_completed_action(): void
+    public function test_mutations_do_not_write_redundant_access_audits(): void
     {
         $staff = User::factory()->create();
         Route::post('/audit-resilience', function () {
@@ -70,7 +71,7 @@ class AuditResilienceTest extends TestCase
             return redirect('/');
         })->middleware(['web', AuditActivity::class]);
         Event::listen('eloquent.creating: '.AuditLog::class, fn () => throw new RuntimeException('Sensitive database detail'));
-        Log::shouldReceive('error')->once()->with('Page access audit could not be recorded.', ['failure_type' => RuntimeException::class]);
+        Log::shouldReceive('error')->never();
 
         $this->actingAs($staff)->post('/audit-resilience')->assertRedirect('/');
 
@@ -82,21 +83,61 @@ class AuditResilienceTest extends TestCase
     {
         $staff = User::factory()->create();
         Route::get('/audit-resilience', fn () => abort(409, 'Original conflict'))
-            ->middleware(['web', AuditActivity::class]);
+            ->middleware(['web', AuditActivity::class])->name('senior-citizens.document');
         Event::listen('eloquent.creating: '.AuditLog::class, fn () => throw new RuntimeException('Sensitive database detail'));
         Log::shouldReceive('error')->once()->with('Page access audit could not be recorded.', ['failure_type' => RuntimeException::class]);
 
         $this->actingAs($staff)->get('/audit-resilience')->assertConflict()->assertSee('Original conflict');
     }
 
-    public function test_successful_access_still_records_the_audit(): void
+    public function test_private_document_access_still_records_the_operator(): void
     {
         $staff = User::factory()->create();
         Route::get('/audit-resilience', fn () => response('Completed'))
-            ->middleware(['web', AuditActivity::class])->name('audit-resilience');
+            ->middleware(['web', AuditActivity::class])->name('senior-citizens.document');
 
         $this->actingAs($staff)->get('/audit-resilience')->assertSee('Completed');
 
-        $this->assertDatabaseHas('audit_logs', ['user_id' => $staff->id, 'action' => 'access.audit-resilience']);
+        $this->assertDatabaseHas('audit_logs', ['user_id' => $staff->id, 'action' => 'access.senior-citizens.document']);
+    }
+
+    public function test_routine_page_views_filters_and_refreshes_do_not_create_audit_rows(): void
+    {
+        $staff = User::factory()->create();
+
+        $this->actingAs($staff)->get(route('reports.index'))->assertOk();
+        $this->get(route('reports.index'))->assertOk();
+        $this->get(route('senior-citizens.index', ['search' => 'Synthetic']))->assertOk();
+        $this->get(route('registrations.index'))->assertOk();
+
+        $this->assertDatabaseCount('audit_logs', 0);
+    }
+
+    public function test_report_export_records_one_important_event_without_a_duplicate_access_log(): void
+    {
+        $staff = User::factory()->create();
+
+        $this->actingAs($staff)->get(route('reports.export', ['type' => 'masterlist']))->assertOk();
+
+        $this->assertDatabaseCount('audit_logs', 1);
+        $this->assertDatabaseHas('audit_logs', ['user_id' => $staff->id, 'action' => 'report.exported']);
+    }
+
+    public function test_password_reset_audit_failure_rolls_back_the_password_change(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $staff = User::factory()->create();
+        $originalHash = $staff->password_hash;
+        $password = Str::password();
+        Event::listen('eloquent.creating: '.AuditLog::class, fn () => throw new RuntimeException('Synthetic audit failure'));
+        Exceptions::fake([RuntimeException::class]);
+
+        $this->actingAs($admin)->patch(route('administration.users.password.update', $staff), [
+            'password' => $password, 'password_confirmation' => $password,
+        ])->assertServerError();
+
+        $this->assertSame($originalHash, $staff->fresh()->password_hash);
+        $this->assertDatabaseCount('audit_logs', 0);
+        Exceptions::assertReported(RuntimeException::class);
     }
 }

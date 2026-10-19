@@ -1,6 +1,7 @@
 import Alpine from 'alpinejs';
 import collapse from '@alpinejs/collapse';
 import idImageEditor from './id-image-editor';
+import initApplicationWizard from './application-wizard';
 
 window.idImageEditor = idImageEditor;
 const modalTriggers = new WeakMap();
@@ -15,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initStaffControls();
-    initApplicationWizard();
+    initApplicationWizard(document.getElementById('application-wizard'));
     initMobileMenu();
     initModal('search');
     initModal('login');
@@ -85,36 +86,6 @@ function initStaffControls() {
             if (!window.confirm(`Queue this SMS broadcast?\n\n${facts}`)) event.preventDefault();
         });
     }
-}
-
-function initApplicationWizard() {
-    const form = document.getElementById('application-wizard');
-    if (!form) return;
-    const steps = [...form.querySelectorAll('[data-wizard-step]')];
-    const back = document.getElementById('wizard-back');
-    const next = document.getElementById('wizard-next');
-    const submit = document.getElementById('wizard-submit');
-    const progress = document.getElementById('wizard-progress');
-    const labels = ['Senior citizen', 'Program and date', 'Review and submit'];
-    let index = 0;
-    const show = () => {
-        steps.forEach((step, position) => { step.hidden = position !== index; });
-        back.hidden = index === 0;
-        next.hidden = index === steps.length - 1;
-        submit.hidden = index !== steps.length - 1;
-        progress.textContent = `Step ${index + 1} of ${steps.length} · ${labels[index]}`;
-        if (index === 2) {
-            const senior = form.elements.senior_citizen_id.selectedOptions[0]?.textContent || '';
-            const program = form.elements.program_id.selectedOptions[0]?.textContent || '';
-            document.getElementById('application-review').textContent = `${senior} · ${program} · ${form.elements.applied_on.value}`;
-        }
-    };
-    next.addEventListener('click', () => {
-        const controls = [...steps[index].querySelectorAll('input, select, textarea')];
-        if (controls.every(control => control.reportValidity())) { index++; show(); }
-    });
-    back.addEventListener('click', () => { index--; show(); });
-    show();
 }
 
 // Toggle mobile navigation drawer

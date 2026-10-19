@@ -4,6 +4,7 @@ namespace App\Livewire\Administration;
 
 use App\Enums\LoginEvent;
 use App\Enums\UserRole;
+use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\BenefitPayment;
 use App\Models\Payout;
@@ -24,6 +25,7 @@ use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -33,6 +35,7 @@ class Dashboard extends Component
     use WithPagination;
 
     // Active navigation tab
+    #[Url(as: 'tab', history: true)]
     public string $active = 'dashboard';
 
     // Global search query
@@ -70,7 +73,12 @@ class Dashboard extends Component
 
     public array $passwordForm = ['current' => '', 'next' => '', 'confirm' => ''];
 
-    // Navigate to a dashboard module
+    public function mount(): void
+    {
+        $this->navigate($this->active);
+    }
+
+    // Navigate to a dashboard module.
     public function navigate(string $tab): void
     {
         abort_unless(in_array($tab, ['dashboard', 'records', 'programs', 'sms', 'users', 'system-logs', 'configuration', 'help'], true), 404);
@@ -125,7 +133,11 @@ class Dashboard extends Component
         $user = User::findOrFail($userId);
         Gate::authorize('manageAccess', $user);
 
-        $user->update(['is_active' => ! $user->is_active]);
+        DB::transaction(function () use ($user): void {
+            $wasActive = $user->is_active;
+            $user->update(['is_active' => ! $wasActive]);
+            AuditLog::create(['user_id' => auth()->id(), 'action' => 'user.access_changed', 'auditable_type' => User::class, 'auditable_id' => $user->id, 'old_values' => ['is_active' => $wasActive], 'new_values' => ['is_active' => $user->is_active], 'ip_address' => request()->ip()]);
+        });
         unset($this->filteredUsers, $this->userCounts);
 
         $this->triggerToast($user->full_name.' is now '.($user->is_active ? 'active' : 'suspended').'.');
@@ -276,14 +288,24 @@ class Dashboard extends Component
 
     private function logsQuery(): Builder
     {
-        $audit = DB::table('audit_logs')->selectRaw('id, created_at, ? as category, action as detail, ? as status', ['Audit Trail', 'Recorded']);
-        $login = DB::table('login_logs')->selectRaw('id, created_at, ? as category, event as detail, case when success then ? else ? end as status', ['Login Events', 'Success', 'Failed']);
-        $sms = DB::table('sms_messages')->selectRaw('id, created_at, ? as category, status as detail, status', ['SMS Dispatch']);
+        $audit = DB::table('audit_logs')->selectRaw('id, created_at, user_id, ? as category, action as detail, ? as status', ['Audit Trail', 'Recorded']);
+        $login = DB::table('login_logs')->selectRaw('id, created_at, case when event = ? then null else user_id end as user_id, ? as category, event as detail, case when success then ? else ? end as status', ['PASSWORD_RESET', 'Login Events', 'Success', 'Failed']);
+        $sms = DB::table('sms_messages')->selectRaw('id, created_at, created_by as user_id, ? as category, status as detail, status', ['SMS Dispatch']);
 
-        return DB::query()->fromSub($audit->unionAll($login)->unionAll($sms), 'events')
+        return $this->withOperators(DB::query()->fromSub($audit->unionAll($login)->unionAll($sms), 'events')->select('events.*'), 'events.user_id')
             ->when(in_array($this->logCategory, ['Audit Trail', 'Login Events', 'SMS Dispatch'], true), fn ($query) => $query->where('category', $this->logCategory))
-            ->when(trim($this->search) !== '', fn ($query) => $query->whereRaw('lower(detail) like ?', ['%'.mb_strtolower(trim($this->search)).'%']))
-            ->orderByDesc('created_at')->orderBy('category')->orderByDesc('id');
+            ->when(trim($this->search) !== '', fn ($query) => $query->where(fn ($query) => $query
+                ->whereRaw('lower(detail) like ?', ['%'.mb_strtolower(trim($this->search)).'%'])
+                ->orWhereRaw("lower(concat_ws(' ', replace(roles.name, '_', ' '), users.first_name, users.middle_name, users.last_name, users.name_suffix)) like ?", ['%'.mb_strtolower(trim($this->search)).'%'])))
+            ->orderByDesc('events.created_at')->orderBy('category')->orderByDesc('events.id');
+    }
+
+    private function withOperators(Builder $query, string $userColumn): Builder
+    {
+        return $query->leftJoin('users', 'users.id', '=', $userColumn)
+            ->leftJoin('roles', 'roles.id', '=', 'users.role_id')
+            ->addSelect('roles.name as operator_role')
+            ->selectRaw("trim(concat_ws(' ', users.first_name, users.middle_name, users.last_name, users.name_suffix)) as operator_name");
     }
 
     #[Computed]
@@ -295,7 +317,8 @@ class Dashboard extends Component
     #[Computed]
     public function recentActivity(): Collection
     {
-        return DB::table('audit_logs')->select(['id', 'action', 'created_at'])->latest('created_at')->orderByDesc('id')->limit(5)->get();
+        return $this->withOperators(DB::table('audit_logs')->select(['audit_logs.id', 'audit_logs.action', 'audit_logs.created_at']), 'audit_logs.user_id')
+            ->latest('audit_logs.created_at')->orderByDesc('audit_logs.id')->limit(5)->get();
     }
 
     #[Computed]

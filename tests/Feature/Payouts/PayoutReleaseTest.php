@@ -114,6 +114,8 @@ class PayoutReleaseTest extends TestCase
         $schedule = PayoutSchedule::query()->where('reference_number', 'SCH-TEST-002')->firstOrFail();
         $this->assertSame(1, $schedule->payouts()->count());
         $this->assertDatabaseHas('payouts', ['payout_schedule_id' => $schedule->id, 'senior_citizen_id' => $payout->senior_citizen_id, 'amount' => 1500]);
+        $this->assertDatabaseCount('audit_logs', 1);
+        $this->assertDatabaseHas('audit_logs', ['user_id' => $schedule->created_by, 'action' => 'payout.schedule_created', 'auditable_id' => $schedule->id]);
     }
 
     private function user(string $role): User

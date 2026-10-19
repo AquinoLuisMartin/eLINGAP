@@ -4,6 +4,7 @@ namespace Tests\Feature\Administration;
 
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -36,6 +37,8 @@ class AccountManagementTest extends TestCase
         $this->assertDatabaseHas('users', $payload);
         $this->assertTrue(Hash::check($password, $created->password_hash));
         $this->assertNull($created->last_login_at);
+        $this->assertDatabaseCount('audit_logs', 1);
+        $this->assertDatabaseHas('audit_logs', ['user_id' => $admin->id, 'action' => 'user.created', 'auditable_id' => $created->id]);
     }
 
     public function test_an_administrator_can_edit_another_account(): void
@@ -51,6 +54,8 @@ class AccountManagementTest extends TestCase
         ])->assertRedirect(route('administration.users.index'));
 
         $this->assertSame($newUsername, $user->fresh()->username);
+        $this->assertDatabaseCount('audit_logs', 1);
+        $this->assertDatabaseHas('audit_logs', ['user_id' => $admin->id, 'action' => 'user.updated', 'auditable_id' => $user->id]);
     }
 
     public function test_account_creation_requires_valid_input(): void
@@ -61,6 +66,7 @@ class AccountManagementTest extends TestCase
             ->assertInvalid(['role_id', 'username', 'email', 'first_name', 'last_name', 'password']);
 
         $this->assertDatabaseCount('users', 1);
+        $this->assertDatabaseCount('audit_logs', 0);
     }
 
     public function test_role_ids_must_be_scalar_integers(): void
@@ -142,8 +148,41 @@ class AccountManagementTest extends TestCase
         $staff->refresh();
         $this->assertTrue(Hash::check($password, $staff->password_hash));
         $this->assertNull($staff->remember_token);
+        $this->assertDatabaseCount('audit_logs', 1);
+        $this->assertDatabaseHas('audit_logs', ['user_id' => $admin->id, 'action' => 'user.password_reset', 'auditable_id' => $staff->id]);
+        $audit = AuditLog::query()->sole();
+        $this->assertNull($audit->old_values);
+        $this->assertNull($audit->new_values);
+        $this->assertDatabaseCount('login_logs', 0);
         $this->actingAs($staff)->withSession(['password_hash_web' => $previousHash])
             ->get(route('dashboard'))->assertRedirect(route('login'));
         $this->assertGuest();
+    }
+
+    public function test_saving_an_unchanged_account_does_not_create_an_event(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $staff = User::factory()->create();
+
+        $this->actingAs($admin)->put(route('administration.users.update', $staff), $staff->only(['role_id', 'username', 'email', 'first_name', 'last_name']))
+            ->assertRedirect(route('administration.users.index'));
+
+        $this->assertDatabaseCount('audit_logs', 0);
+    }
+
+    public function test_repeated_account_status_requests_record_only_the_actual_change(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $staff = User::factory()->create();
+
+        $this->actingAs($admin)->patch(route('administration.users.status.update', $staff), ['is_active' => false])->assertRedirect();
+        $this->patch(route('administration.users.status.update', $staff), ['is_active' => false])->assertRedirect();
+
+        $this->assertFalse($staff->fresh()->is_active);
+        $this->assertDatabaseCount('audit_logs', 1);
+        $this->assertDatabaseHas('audit_logs', ['user_id' => $admin->id, 'action' => 'user.access_changed', 'auditable_id' => $staff->id]);
+        $audit = AuditLog::query()->sole();
+        $this->assertSame(['is_active' => true], $audit->old_values);
+        $this->assertSame(['is_active' => false], $audit->new_values);
     }
 }

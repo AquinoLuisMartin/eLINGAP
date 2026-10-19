@@ -63,7 +63,7 @@ class BeneficiarySecurityTest extends TestCase
             $response->assertInvalid(['application_id' => 'The selected application id is invalid.']);
             $this->assertDatabaseEmpty('beneficiaries');
             $this->assertSame(0, AuditLog::where('action', 'not like', 'access.%')->count());
-            $this->assertDatabaseCount('audit_logs', 1);
+            $this->assertDatabaseCount('audit_logs', 0);
         }
     }
 }

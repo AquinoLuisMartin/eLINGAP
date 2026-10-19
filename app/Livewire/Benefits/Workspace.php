@@ -7,6 +7,7 @@ use App\Models\BenefitSchedule;
 use App\Models\Program;
 use App\Services\Benefits\BenefitScheduling;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -34,7 +35,8 @@ class Workspace extends Component
 
     public function updatedFormProgramId(): void
     {
-        $program = Program::find($this->form['program_id']);
+        $this->validateOnly('form.program_id', ['form.program_id' => ['nullable', 'integer', 'exists:programs,id']]);
+        $program = filled($this->form['program_id']) ? Program::find($this->form['program_id']) : null;
         $this->form['amount'] = $program?->default_amount ?? '';
         $this->form['period_key'] = match ($program?->benefit_rules['cadence'] ?? '') {
             'QUARTERLY' => now()->year.'-Q'.now()->quarter,
@@ -61,7 +63,7 @@ class Workspace extends Component
         $data['barangay_ids'] = array_map('intval', $data['barangay_ids']);
         $schedule = $service->create(Program::findOrFail($data['program_id']), $data);
         $this->selectedSchedule = $schedule->id;
-        $this->resetPage();
+        $this->resetPage('schedulesPage');
     }
 
     public function openSchedule(int $id): void
@@ -70,12 +72,12 @@ class Workspace extends Component
         $this->selectedSchedule = $id;
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.benefits.workspace', [
             'programs' => Program::query()->whereNotNull('benefit_code')->where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name']),
             'barangays' => Barangay::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
-            'schedules' => BenefitSchedule::query()->with('program:id,name,government_level')->withCount('entitlements')->latest('id')->paginate(10),
+            'schedules' => BenefitSchedule::query()->with('program:id,name,government_level')->withCount('entitlements')->latest('id')->paginate(10, pageName: 'schedulesPage'),
         ]);
     }
 }

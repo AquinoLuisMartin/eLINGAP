@@ -10,6 +10,7 @@ use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\Program;
 use App\Services\Reports\StaffReport;
+use App\Support\CsvCell;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -48,7 +49,7 @@ class StaffReportController extends Controller
             $stream = fopen('php://output', 'w');
             fputcsv($stream, $report->headings($type), escape: '');
             foreach ($report->query($type, $filters)->lazyById(200) as $record) {
-                fputcsv($stream, array_map(fn ($value) => is_string($value) && preg_match('/^(?:[\x00-\x20]*[=+\-@]|[\t\r\n])/', $value) ? "'".$value : $value, $report->row($type, $record)), escape: '');
+                fputcsv($stream, array_map(CsvCell::escape(...), $report->row($type, $record)), escape: '');
             }
             fclose($stream);
         }, $type.'-'.today()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);

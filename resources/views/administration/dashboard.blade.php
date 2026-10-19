@@ -8,7 +8,8 @@
     {{-- Apply saved theme before paint to avoid light/dark flash --}}
     <script>
         (function () {
-            var theme = localStorage.getItem('elingap-theme') === 'dark' ? 'dark' : 'light';
+            var theme = 'light';
+            try { theme = localStorage.getItem('elingap-theme') === 'dark' ? 'dark' : 'light'; } catch {}
             document.documentElement.classList.add(theme === 'dark' ? 'theme-dark' : 'theme-light');
             document.documentElement.style.colorScheme = theme;
         })();
@@ -17,6 +18,7 @@
     @livewireStyles
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <livewire:administration.dashboard />
 
     @livewireScripts

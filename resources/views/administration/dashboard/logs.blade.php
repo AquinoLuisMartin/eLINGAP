@@ -9,7 +9,7 @@
     <p wire:loading wire:target="search,logCategory" role="status">Updating events...</p>
     <div class="table-scroll"><table><thead><tr><th scope="col">Timestamp</th><th scope="col">Category</th><th scope="col">Event ID</th><th scope="col">Event</th><th scope="col">Status</th></tr></thead><tbody>
         @forelse ($this->filteredLogs as $log)
-            <tr wire:key="log-{{ $log->category }}-{{ $log->id }}"><td>{{ \Illuminate\Support\Carbon::parse($log->created_at)->format('M j, Y g:i A') }}</td><td><span class="category-badge {{ strtolower(str_replace(' ', '-', $log->category)) }}">{{ $log->category }}</span></td><td>#{{ $log->id }}</td><td class="detail-cell">{{ \App\Support\SystemEventLabel::for($log->detail, $log->category) }}</td><td>{{ $log->status }}</td></tr>
+            <tr wire:key="log-{{ $log->category }}-{{ $log->id }}"><td>{{ \Illuminate\Support\Carbon::parse($log->created_at)->format('M j, Y g:i A') }}</td><td><span class="category-badge {{ strtolower(str_replace(' ', '-', $log->category)) }}">{{ $log->category }}</span></td><td>#{{ $log->id }}</td><td class="detail-cell">{{ \App\Support\SystemEventLabel::for($log->detail, $log->category) }} - {{ \App\Support\SystemEventLabel::operator($log->operator_role, $log->operator_name) }}</td><td>{{ $log->status }}</td></tr>
         @empty
             <tr><td colspan="5"><div class="empty-log-state"><strong>No matching system events</strong><span>Try another search term or category.</span></div></td></tr>
         @endforelse

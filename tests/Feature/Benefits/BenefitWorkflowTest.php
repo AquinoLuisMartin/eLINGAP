@@ -163,6 +163,39 @@ class BenefitWorkflowTest extends TestCase
         $this->assertSame(BenefitStatus::Unpaid, $schedule->entitlements()->sole()->status);
     }
 
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function test_approval_checks_every_recipient_across_chunk_boundaries(bool $invalidateLastRecipient): void
+    {
+        for ($index = 0; $index < 201; $index++) {
+            $lastSenior = $this->senior();
+        }
+        $schedule = $this->schedule('december-assistance', ['available_funds' => '200000']);
+        $schedule->entitlements()->update(['reviewed_by' => auth()->id(), 'reviewed_at' => now()]);
+        if ($invalidateLastRecipient) {
+            $lastSenior->update(['status' => 'DECEASED']);
+        }
+
+        if ($invalidateLastRecipient) {
+            try {
+                app(BenefitScheduling::class)->approve($schedule);
+                $this->fail('Approval must reject an ineligible recipient in the second chunk.');
+            } catch (ValidationException $exception) {
+                $this->assertSame(['The senior record is not verified.'], $exception->errors()['approval']);
+            }
+
+            $this->assertSame('DRAFT', $schedule->fresh()->status);
+            $this->assertSame(201, $schedule->entitlements()->where('status', 'PENDING')->count());
+            $this->assertDatabaseMissing('audit_logs', ['action' => 'benefit.schedule_approved', 'auditable_id' => $schedule->id]);
+        } else {
+            app(BenefitScheduling::class)->approve($schedule);
+
+            $this->assertSame('APPROVED', $schedule->fresh()->status);
+            $this->assertSame(201, $schedule->entitlements()->where('status', 'UNPAID')->count());
+            $this->assertDatabaseHas('audit_logs', ['action' => 'benefit.schedule_approved', 'auditable_id' => $schedule->id]);
+        }
+    }
+
     public function test_unique_reference_and_payment_confirmation_prevent_double_release(): void
     {
         $this->senior();
@@ -467,19 +500,67 @@ class BenefitWorkflowTest extends TestCase
         $this->get(route('senior-citizens.id-card', $senior))->assertStatus(422);
     }
 
-    public function test_filtered_report_export_escapes_formulas_and_retains_original_period(): void
+    #[TestWith(['=1+1'])]
+    #[TestWith(["\x1b=1+1"])]
+    #[TestWith(["\tSynthetic"])]
+    public function test_filtered_report_export_escapes_formulas_and_retains_original_period(string $programName): void
     {
         $this->senior();
         $schedule = $this->schedule();
-        $schedule->program->update(['name' => '=1+1']);
+        $schedule->program->update(['name' => $programName]);
         Livewire::test(EntitlementReport::class)->set('status', 'PENDING')->set('period', '2026')->call('export')->assertFileDownloaded('benefit-entitlements.csv');
         $response = app(EntitlementReport::class)->export();
         ob_start();
         $response->sendContent();
         $csv = ob_get_clean();
-        $this->assertStringContainsString("'=1+1", $csv);
+        $this->assertStringContainsString("'".$programName, $csv);
         $this->assertStringContainsString('2026', $csv);
         $this->assertDatabaseHas('audit_logs', ['action' => 'benefit.report_exported']);
+    }
+
+    public function test_clearing_a_schedule_program_resets_defaults_without_a_database_error(): void
+    {
+        $program = $this->program('december-assistance');
+
+        Livewire::test(Workspace::class)
+            ->set('form.program_id', (string) $program->id)
+            ->assertSet('form.amount', $program->default_amount)
+            ->set('form.program_id', '')
+            ->assertHasNoErrors()
+            ->assertSet('form.amount', '')
+            ->assertSet('form.period_key', '2026');
+    }
+
+    #[TestWith(['not-an-id'])]
+    #[TestWith([['unexpected']])]
+    public function test_schedule_program_selection_validates_before_querying(mixed $programId): void
+    {
+        Livewire::test(Workspace::class)
+            ->set('form.program_id', $programId)
+            ->assertHasErrors(['form.program_id' => 'integer']);
+    }
+
+    #[TestWith([Workspace::class, 'schedules', 'schedulesPage', 2])]
+    #[TestWith([SchedulePanel::class, 'entries', 'recipientsPage', 3])]
+    #[TestWith([EntitlementReport::class, 'entries', 'entitlementsPage', 4])]
+    public function test_benefit_tables_use_independent_pagination(string $component, string $variable, string $pageName, int $page): void
+    {
+        $schedule = $this->schedule();
+
+        $instance = Livewire::withQueryParams(['page' => 8, 'schedulesPage' => 2, 'recipientsPage' => 3, 'entitlementsPage' => 4])
+            ->test($component, $component === SchedulePanel::class ? ['scheduleId' => $schedule->id] : []);
+
+        $this->assertSame($pageName, $instance->viewData($variable)->getPageName());
+        $this->assertSame($page, $instance->viewData($variable)->currentPage());
+    }
+
+    public function test_changing_report_filters_resets_only_report_pagination(): void
+    {
+        $component = Livewire::test(EntitlementReport::class)
+            ->call('gotoPage', 3, 'entitlementsPage')
+            ->set('status', 'PENDING');
+
+        $this->assertSame(1, $component->viewData('entries')->currentPage());
     }
 
     public function test_queued_sms_cannot_announce_a_previous_schedule_after_rescheduling(): void

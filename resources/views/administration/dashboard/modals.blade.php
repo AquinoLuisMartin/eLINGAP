@@ -1,6 +1,6 @@
 {{-- Profile Details Modal --}}
 @if ($profileModal === 'profile')
-    <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title" wire:keydown.escape="closeModal">
+    <div class="modal-backdrop" role="dialog" aria-modal="true" x-data="{}" x-trap.inert.noscroll="true" aria-labelledby="profile-modal-title" wire:keydown.escape="closeModal">
         <div class="modal-card profile-details-modal">
             <div class="modal-heading">
                 <div>
@@ -38,7 +38,7 @@
 
 {{-- Change Password Modal --}}
 @if ($profileModal === 'password')
-    <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="password-modal-title" wire:keydown.escape="closeModal">
+    <div class="modal-backdrop" role="dialog" aria-modal="true" x-data="{}" x-trap.inert.noscroll="true" aria-labelledby="password-modal-title" wire:keydown.escape="closeModal">
         <div class="modal-card password-modal">
             <div class="modal-heading">
                 <div>
@@ -49,36 +49,39 @@
                     <x-admin.icon name="x" size="19" />
                 </button>
             </div>
-            <label class="field-label">
-                Current password
-                <input type="password" wire:model="passwordForm.current" />
-            </label>
-            <label class="field-label">
-                New password
-                <input type="password" wire:model="passwordForm.next" />
-            </label>
-            <label class="field-label">
-                Confirm password
-                <input type="password" wire:model="passwordForm.confirm" />
-            </label>
-            @foreach (['current', 'next', 'confirm'] as $field)
-                @error('passwordForm.'.$field)
-                    <p class="form-error" role="alert">{{ $message }}</p>
-                @enderror
-            @endforeach
-            <div class="modal-actions">
-                <button type="button" class="secondary-button" wire:click="closeModal">Cancel</button>
-                <button type="button" class="primary-button" wire:click="updatePassword">
-                    <x-admin.icon name="check" size="16" /> Update password
-                </button>
-            </div>
+            <form wire:submit="updatePassword">
+                <label class="field-label">
+                    Current password
+                    <input type="password" wire:model="passwordForm.current" autocomplete="current-password" />
+                </label>
+                <label class="field-label">
+                    New password
+                    <input type="password" wire:model="passwordForm.next" autocomplete="new-password" />
+                </label>
+                <label class="field-label">
+                    Confirm password
+                    <input type="password" wire:model="passwordForm.confirm" autocomplete="new-password" />
+                </label>
+                @foreach (['current', 'next', 'confirm'] as $field)
+                    @error('passwordForm.'.$field)
+                        <p class="form-error" role="alert">{{ $message }}</p>
+                    @enderror
+                @endforeach
+                <div class="modal-actions">
+                    <button type="button" class="secondary-button" wire:click="closeModal">Cancel</button>
+                    <button type="submit" class="primary-button" wire:loading.attr="disabled" wire:target="updatePassword">
+                        <x-admin.icon name="check" size="16" /> Update password
+                    </button>
+                </div>
+                <p wire:loading wire:target="updatePassword" role="status">Updating password...</p>
+            </form>
         </div>
     </div>
 @endif
 
 {{-- Logout Confirmation Modal --}}
 @if ($logoutConfirmOpen)
-    <div class="modal-backdrop logout-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="logout-modal-title" wire:keydown.escape="$set('logoutConfirmOpen', false)">
+    <div class="modal-backdrop logout-modal-backdrop" role="dialog" aria-modal="true" x-data="{}" x-trap.inert.noscroll="true" aria-labelledby="logout-modal-title" wire:keydown.escape="$set('logoutConfirmOpen', false)">
         <div class="modal-card logout-modal">
             <div class="logout-icon">
                 <x-admin.icon name="log-out" size="20" />

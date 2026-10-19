@@ -101,21 +101,24 @@ class BenefitScheduling
         DB::transaction(function () use ($schedule): void {
             $schedule = BenefitSchedule::query()->lockForUpdate()->findOrFail($schedule->id);
             abort_unless($schedule->status === 'DRAFT', 409);
-            $entries = $schedule->entitlements()->with('seniorCitizen')->lockForUpdate()->get();
-            if ($entries->isEmpty() || $entries->contains(fn ($entry) => ! $entry->reviewed_at || $entry->amount === null)) {
+            $recipientCount = $schedule->entitlements()->count();
+            if (! $recipientCount || $schedule->entitlements()->where(fn ($query) => $query->whereNull('reviewed_at')->orWhereNull('amount'))->exists()) {
                 throw ValidationException::withMessages(['approval' => 'Review every included recipient and set an amount before approval.']);
             }
-            foreach ($entries as $entry) {
-                if ($reason = $this->eligibility->reason($entry->seniorCitizen, $entry->rule_snapshot, $entry->eligibility_on, $entry->milestone_age)) {
-                    throw ValidationException::withMessages(['approval' => $reason]);
+            $schedule->entitlements()->with('seniorCitizen')->lockForUpdate()->chunkById(200, function ($entries): void {
+                foreach ($entries as $entry) {
+                    if ($reason = $this->eligibility->reason($entry->seniorCitizen, $entry->rule_snapshot, $entry->eligibility_on, $entry->milestone_age)) {
+                        throw ValidationException::withMessages(['approval' => $reason]);
+                    }
                 }
-            }
-            if (round($entries->sum(fn ($entry) => (float) $entry->amount), 2) > (float) $schedule->available_funds) {
+            });
+            $requiredFunds = $schedule->entitlements()->sum('amount');
+            if (round((float) $requiredFunds, 2) > (float) $schedule->available_funds) {
                 throw ValidationException::withMessages(['approval' => 'Available funds cannot cover this list. Exclude recipients to keep their benefits pending.']);
             }
             $schedule->update(['status' => 'APPROVED', 'approved_at' => now(), 'approved_by' => auth()->id()]);
             $schedule->entitlements()->update(['status' => BenefitStatus::Unpaid->value]);
-            BenefitAudit::record('benefit.schedule_approved', $schedule, ['recipient_count' => $entries->count(), 'amount' => $entries->sum('amount')]);
+            BenefitAudit::record('benefit.schedule_approved', $schedule, ['recipient_count' => $recipientCount, 'amount' => $requiredFunds]);
         });
     }
 

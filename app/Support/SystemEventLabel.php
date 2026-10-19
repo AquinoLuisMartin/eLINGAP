@@ -2,10 +2,20 @@
 
 namespace App\Support;
 
+use App\Enums\UserRole;
 use Illuminate\Support\Str;
 
 final class SystemEventLabel
 {
+    public static function operator(?string $role, ?string $name): string
+    {
+        if (trim($name ?? '') === '') {
+            return 'System / unavailable operator';
+        }
+
+        return (UserRole::tryFrom($role ?? '')?->label() ?? 'Unknown role').' '.trim($name);
+    }
+
     public static function for(string $event, string $category = 'Audit Trail'): string
     {
         if ($category === 'SMS Dispatch') {
@@ -36,6 +46,11 @@ final class SystemEventLabel
             'benefit.recipients_prepared' => 'Prepared eligible benefit recipients',
             'benefit.recipient_reviewed' => 'Reviewed a benefit recipient',
             'program.created' => 'Created a program',
+            'user.created' => 'Created a user account',
+            'user.updated' => 'Updated a user account',
+            'user.access_changed' => 'Changed account access',
+            'user.password_reset' => 'Reset account password',
+            'payout.schedule_created' => 'Created a payout schedule',
             'application.created' => 'Submitted an application',
             'application.status_changed' => 'Changed an application status',
             'beneficiary.enrolled' => 'Enrolled a program beneficiary',

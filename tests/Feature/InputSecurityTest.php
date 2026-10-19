@@ -40,6 +40,6 @@ class InputSecurityTest extends TestCase
         $this->assertDatabaseCount('senior_citizens', $operation === 'update' ? 1 : 0);
         $this->assertDatabaseEmpty('sms_messages');
         $this->assertSame(0, AuditLog::where('action', 'not like', 'access.%')->count());
-        $this->assertDatabaseCount('audit_logs', 1);
+        $this->assertDatabaseCount('audit_logs', 0);
     }
 }

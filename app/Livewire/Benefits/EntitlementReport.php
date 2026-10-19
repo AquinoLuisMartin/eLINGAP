@@ -9,9 +9,13 @@ use App\Models\Program;
 use App\Services\Benefits\BenefitAudit;
 use App\Services\Benefits\BenefitPayments;
 use App\Services\Benefits\BenefitScheduling;
+use App\Support\CsvCell;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EntitlementReport extends Component
 {
@@ -39,11 +43,11 @@ class EntitlementReport extends Component
     public function updated(string $property): void
     {
         if (in_array($property, ['status', 'search', 'programId', 'period'], true)) {
-            $this->resetPage();
+            $this->resetPage('entitlementsPage');
         }
     }
 
-    private function query()
+    private function query(): Builder
     {
         return BenefitEntitlement::query()->with(['program', 'seniorCitizen.barangay', 'schedule', 'payments'])
             ->when(in_array($this->status, ['PENDING', 'UNPAID', 'UNCLAIMED', 'CLAIMED']), fn ($query) => $query->where('status', $this->status))
@@ -67,11 +71,11 @@ class EntitlementReport extends Component
         $this->reset('reason');
     }
 
-    public function export()
+    public function export(): StreamedResponse
     {
         Gate::authorize('viewAny', BenefitSchedule::class);
         $query = $this->query();
-        $first = (clone $query)->first();
+        $first = (clone $query)->withoutEagerLoads()->first(['id']);
         if ($first) {
             BenefitAudit::record('benefit.report_exported', $first, ['status' => $this->status, 'program_id' => $this->programId, 'period' => $this->period]);
         }
@@ -82,17 +86,17 @@ class EntitlementReport extends Component
             $query->chunkById(200, function ($entries) use ($stream): void {
                 foreach ($entries as $entry) {
                     $row = [$entry->seniorCitizen->registration_number, $entry->program->name, $entry->period_key, $entry->amount ?? '', $entry->status->value, $entry->seniorCitizen->status->value, $entry->payments->map(fn ($payment) => $payment->reference_number.($payment->reversed_at ? ' (reversed)' : ''))->implode('; ')];
-                    fputcsv($stream, array_map(fn ($cell) => preg_match('/^[\s]*[=+@-]/u', (string) $cell) ? "'".$cell : $cell, $row), escape: '');
+                    fputcsv($stream, array_map(CsvCell::escape(...), $row), escape: '');
                 }
             });
             fclose($stream);
         }, 'benefit-entitlements.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.benefits.entitlement-report', [
-            'entries' => $this->query()->paginate(15),
+            'entries' => $this->query()->paginate(15, pageName: 'entitlementsPage'),
             'counts' => BenefitEntitlement::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
             'programs' => Program::query()->whereNotNull('benefit_code')->orderBy('name')->get(['id', 'name']),
             'drafts' => BenefitSchedule::query()->where('status', 'DRAFT')->with('program:id,name')->latest('id')->get(),

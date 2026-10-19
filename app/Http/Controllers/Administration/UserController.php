@@ -6,10 +6,12 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Administration\StoreUserRequest;
 use App\Http\Requests\Administration\UpdateUserRequest;
+use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -47,10 +49,15 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request): RedirectResponse
     {
-        $user = User::create([
-            ...$request->safe()->except('password'),
-            'password_hash' => $request->string('password')->toString(),
-        ]);
+        $user = DB::transaction(function () use ($request): User {
+            $user = User::create([
+                ...$request->safe()->except('password'),
+                'password_hash' => $request->string('password')->toString(),
+            ]);
+            AuditLog::create(['user_id' => $request->user()->id, 'action' => 'user.created', 'auditable_type' => User::class, 'auditable_id' => $user->id, 'ip_address' => $request->ip()]);
+
+            return $user;
+        });
 
         return redirect()->route('administration.users.index')
             ->with('status', "Account {$user->username} created.");
@@ -73,7 +80,13 @@ class UserController extends Controller
             Gate::authorize('manageAccess', $user);
         }
 
-        $user->update($request->validated());
+        DB::transaction(function () use ($request, $user): void {
+            $oldRole = $user->role_id;
+            $user->update($request->validated());
+            if ($user->wasChanged()) {
+                AuditLog::create(['user_id' => $request->user()->id, 'action' => 'user.updated', 'auditable_type' => User::class, 'auditable_id' => $user->id, 'old_values' => ['role_id' => $oldRole], 'new_values' => ['role_id' => $user->role_id], 'ip_address' => $request->ip()]);
+            }
+        });
 
         return redirect()->route('administration.users.index')
             ->with('status', "Account {$user->username} updated.");

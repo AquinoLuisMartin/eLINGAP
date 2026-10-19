@@ -16,17 +16,18 @@
     :class="theme === 'dark' ? 'theme-dark' : 'theme-light'"
     x-data="{
         sidebarOpen: false,
+        sidebarTrigger: null,
         adminOpen: true,
         profileOpen: false,
         profileTrigger: null,
         notificationsOpen: false,
-        theme: localStorage.getItem('elingap-theme') === 'dark' ? 'dark' : 'light',
+        theme: document.documentElement.classList.contains('theme-dark') ? 'dark' : 'light',
         init() {
             this.applyTheme(this.theme);
         },
         applyTheme(value) {
             this.theme = value === 'dark' ? 'dark' : 'light';
-            localStorage.setItem('elingap-theme', this.theme);
+            try { localStorage.setItem('elingap-theme', this.theme); } catch {}
             document.documentElement.classList.toggle('theme-dark', this.theme === 'dark');
             document.documentElement.classList.toggle('theme-light', this.theme === 'light');
             document.documentElement.style.colorScheme = this.theme;
@@ -36,10 +37,10 @@
             this.applyTheme(this.theme === 'light' ? 'dark' : 'light');
         }
     }"
-    @keydown.escape.window="if (profileOpen) profileTrigger?.focus(); profileOpen = false; notificationsOpen = false; sidebarOpen = false">
+    @keydown.escape.window="if (profileOpen) profileTrigger?.focus(); else if (sidebarOpen) sidebarTrigger?.focus(); profileOpen = false; notificationsOpen = false; sidebarOpen = false" @resize.window="sidebarOpen = false">
 
     {{-- Collapsible Sidebar --}}
-    <aside id="admin-navigation" class="admin-sidebar" :class="{ 'is-expanded': sidebarOpen }" @mouseenter="if (window.matchMedia('(min-width: 761px)').matches) sidebarOpen = true" @mouseleave="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains(document.activeElement)) sidebarOpen = false" @focusin="sidebarOpen = true" @focusout="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains($event.relatedTarget) && !$el.matches(':hover')) sidebarOpen = false">
+    <aside id="admin-navigation" class="admin-sidebar" x-trap.inert.noscroll="sidebarOpen && window.matchMedia('(max-width: 760px)').matches" :class="{ 'is-expanded': sidebarOpen }" @mouseenter="if (window.matchMedia('(min-width: 761px)').matches) sidebarOpen = true" @mouseleave="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains(document.activeElement)) sidebarOpen = false" @focusin="sidebarOpen = true" @focusout="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains($event.relatedTarget) && !$el.matches(':hover')) sidebarOpen = false">
         <div class="sidebar-brand">
             <div class="brand-mark">
                 <img class="brand-logo" src="{{ asset('images/eLINGAP.png') }}" alt="eLINGAP Logo" />
@@ -50,67 +51,7 @@
             </div>
         </div>
 
-        <nav class="sidebar-nav" aria-label="System navigation">
-            <p class="nav-label">Workspace</p>
-
-            <button type="button" class="nav-item {{ $active === 'dashboard' ? 'is-active' : '' }}" wire:click="navigate('dashboard')">
-                <x-admin.icon name="layout-dashboard" size="18" />
-                <span>Dashboard</span>
-                @if ($active === 'dashboard') <i class="active-dot"></i> @endif
-            </button>
-
-            <button type="button" class="nav-item {{ $active === 'records' ? 'is-active' : '' }}" wire:click="navigate('records')">
-                <x-admin.icon name="users" size="18" />
-                <span>Senior Records Registry</span>
-                @if ($active === 'records') <i class="active-dot"></i> @endif
-            </button>
-
-            <button type="button" class="nav-item {{ $active === 'programs' ? 'is-active' : '' }}" wire:click="navigate('programs')">
-                <x-admin.icon name="heart-pulse" size="18" />
-                <span>Benefits &amp; Programs</span>
-                @if ($active === 'programs') <i class="active-dot"></i> @endif
-            </button>
-
-            <button type="button" class="nav-item {{ $active === 'sms' ? 'is-active' : '' }}" wire:click="navigate('sms')">
-                <x-admin.icon name="message-square" size="18" />
-                <span>SMS Dispatcher</span>
-                @if ($active === 'sms') <i class="active-dot"></i> @endif
-            </button>
-
-            {{-- Administration section --}}
-            <button type="button" class="nav-item admin-toggle" @click="adminOpen = !adminOpen">
-                <x-admin.icon name="settings" size="18" />
-                <span>Administration</span>
-                <x-admin.icon name="chevron-down" size="15" ::class="adminOpen ? '' : 'rotate-[-90deg]'" />
-            </button>
-
-            <div class="admin-subnav" :class="{ 'is-open': adminOpen }">
-                <button type="button" class="nav-item nav-subitem {{ $active === 'users' ? 'is-active' : '' }}" wire:click="navigate('users')">
-                    <x-admin.icon name="user-cog" size="18" />
-                    <span>User Accounts</span>
-                    @if ($active === 'users') <i class="active-dot"></i> @endif
-                </button>
-
-                <button type="button" class="nav-item nav-subitem {{ $active === 'system-logs' ? 'is-active' : '' }}" wire:click="navigate('system-logs')">
-                    <x-admin.icon name="clipboard-list" size="18" />
-                    <span>System Logs</span>
-                    @if ($active === 'system-logs') <i class="active-dot"></i> @endif
-                </button>
-
-                <button type="button" class="nav-item nav-subitem {{ $active === 'configuration' ? 'is-active' : '' }}" wire:click="navigate('configuration')">
-                    <x-admin.icon name="settings" size="18" />
-                    <span>System Configuration</span>
-                    @if ($active === 'configuration') <i class="active-dot"></i> @endif
-                </button>
-            </div>
-
-            <p class="nav-label nav-label-lower">Support</p>
-            <button type="button" class="nav-item {{ $active === 'help' ? 'is-active' : '' }}" wire:click="navigate('help')">
-                <x-admin.icon name="circle-help" size="18" />
-                <span>Help &amp; Support</span>
-                @if ($active === 'help') <i class="active-dot"></i> @endif
-            </button>
-        </nav>
+        <x-admin.navigation :active="$active" :dashboard="true" />
 
         {{-- Sidebar Footer Profile Toggle --}}
         <button class="sidebar-footer" type="button" aria-controls="admin-account-panel" :aria-expanded="profileOpen" @click="profileTrigger = $event.currentTarget; profileOpen = !profileOpen">
@@ -125,9 +66,11 @@
         </button>
     </aside>
 
+    <button type="button" class="sidebar-backdrop" x-show="sidebarOpen" x-cloak @click="sidebarOpen = false; sidebarTrigger?.focus()" aria-label="Close navigation"></button>
+
     {{-- Profile Flyout Menu --}}
     <div class="profile-menu-backdrop" x-show="profileOpen" @click="profileOpen = false" style="display: none;"></div>
-    <aside id="admin-account-panel" class="profile-menu" aria-label="Account details" x-show="profileOpen" @click.stop @click.outside="profileOpen = false" style="display: none;">
+    <aside id="admin-account-panel" class="profile-menu" x-trap.inert.noscroll="profileOpen" aria-label="Account details" x-show="profileOpen" @click.stop @click.outside="profileOpen = false" style="display: none;">
         <div class="profile-menu-header">
             <div class="profile-menu-avatar">{{ mb_substr($this->currentUser->first_name, 0, 1).mb_substr($this->currentUser->last_name, 0, 1) }}</div>
             <div>
@@ -180,10 +123,10 @@
     </aside>
 
     {{-- Main Workspace --}}
-    <main class="admin-main">
+    <div class="admin-main">
         <header class="admin-header">
             <div class="header-title">
-                <button type="button" class="mobile-menu-button icon-button" @click="sidebarOpen = !sidebarOpen" aria-label="Toggle navigation" aria-controls="admin-navigation" :aria-expanded="sidebarOpen">
+                <button type="button" class="mobile-menu-button icon-button" @click="sidebarTrigger = $event.currentTarget; sidebarOpen = !sidebarOpen; if (sidebarOpen) $nextTick(() => document.querySelector('#admin-navigation a')?.focus())" aria-label="Toggle navigation" aria-controls="admin-navigation" :aria-expanded="sidebarOpen">
                     <x-admin.icon name="menu" size="20" />
                 </button>
                 <div>
@@ -226,7 +169,7 @@
             </div>
         </header>
 
-        <div class="admin-content">
+        <main id="main-content" class="admin-content" tabindex="-1">
             @if ($active === 'records')
                 @include('administration.dashboard.records')
             @elseif ($active === 'programs')
@@ -244,8 +187,8 @@
             @else
                 @include('administration.dashboard.overview')
             @endif
-        </div>
-    </main>
+        </main>
+    </div>
 
     {{-- Overlays and Dialogs --}}
     @include('administration.dashboard.modals')
@@ -253,7 +196,7 @@
 
     {{-- Toast Notification --}}
     @if ($toast)
-        <div class="toast" x-data="{ show: true }" x-init="setTimeout(() => { show = false; $wire.dismissToast(); }, 3000)" x-show="show" x-transition>
+        <div class="toast" role="status" x-data="{ show: true }" x-init="setTimeout(() => { show = false; $wire.dismissToast(); }, 3000)" x-show="show" x-transition>
             <x-admin.icon name="check" size="16" /> {{ $toast }}
         </div>
     @endif

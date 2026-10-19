@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Payouts;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Payouts\StorePayoutScheduleRequest;
+use App\Models\AuditLog;
 use App\Models\Beneficiary;
 use App\Models\Payout;
 use App\Models\PayoutSchedule;
@@ -46,6 +47,8 @@ class PayoutScheduleController extends Controller
                         Payout::create(['payout_schedule_id' => $schedule->id, 'senior_citizen_id' => $beneficiary->senior_citizen_id, 'amount' => $schedule->amount, 'status' => 'PENDING']);
                     }
                 });
+
+            AuditLog::create(['user_id' => $request->user()->id, 'action' => 'payout.schedule_created', 'auditable_type' => PayoutSchedule::class, 'auditable_id' => $schedule->id, 'ip_address' => $request->ip()]);
 
             return $schedule;
         });
