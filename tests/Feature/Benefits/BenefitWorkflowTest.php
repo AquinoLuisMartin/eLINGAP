@@ -10,6 +10,7 @@ use App\Livewire\Benefits\Programs;
 use App\Livewire\Benefits\SchedulePanel;
 use App\Livewire\Benefits\SeniorRecord;
 use App\Livewire\Benefits\Workspace;
+use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\BenefitPayment;
 use App\Models\BenefitSchedule;
@@ -25,15 +26,18 @@ use App\Services\Reports\AdminDashboardReport;
 use App\Services\SeniorCitizens\IdAssets;
 use App\Services\Sms\SmsGateway;
 use Database\Seeders\BenefitProgramSeeder;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\TestWith;
+use RuntimeException;
 use Tests\TestCase;
 
 class BenefitWorkflowTest extends TestCase
@@ -209,6 +213,36 @@ class BenefitWorkflowTest extends TestCase
         $this->assertSame(BenefitStatus::Claimed, $entry->fresh()->status);
         Livewire::test(SchedulePanel::class, ['scheduleId' => $schedule->id])->set('paymentConfirmed', true)->call('claim', $entry->id)->assertStatus(409);
         $this->assertDatabaseCount('benefit_payments', 1);
+    }
+
+    public function test_payment_and_recipient_changes_roll_back_when_the_claim_audit_fails(): void
+    {
+        $this->senior();
+        $schedule = $this->schedule();
+        $this->approve($schedule);
+        $entry = $schedule->entitlements()->sole();
+        Event::listen('eloquent.creating: '.AuditLog::class, function (AuditLog $audit): void {
+            if ($audit->action === 'benefit.claimed') {
+                throw new RuntimeException('Synthetic audit storage failure');
+            }
+        });
+
+        try {
+            app(BenefitPayments::class)->claim($entry, ['claimant_type' => 'SELF']);
+            $this->fail('The claim must fail when its audit cannot be recorded.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('Synthetic audit storage failure', $exception->getMessage());
+        }
+
+        $this->assertDatabaseCount('benefit_payments', 0);
+        $this->assertSame(BenefitStatus::Unpaid, $entry->fresh()->status);
+        $this->assertNull($entry->fresh()->claimed_at);
+        $this->assertDatabaseHas('benefit_schedule_recipients', [
+            'benefit_schedule_id' => $schedule->id,
+            'benefit_entitlement_id' => $entry->id,
+            'outcome' => 'SELECTED',
+        ]);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'benefit.claimed']);
     }
 
     public function test_unclaimed_rescheduling_preserves_period_amount_and_prior_history(): void
@@ -531,6 +565,137 @@ class BenefitWorkflowTest extends TestCase
             ->assertSet('form.period_key', '2026');
     }
 
+    public function test_staff_can_activate_an_upcoming_program_when_preparing_a_schedule(): void
+    {
+        $program = Program::where('benefit_code', 'december-assistance')->sole();
+        $this->senior();
+
+        $component = Livewire::test(Workspace::class)
+            ->assertSee('Annual December Senior Assistance (Upcoming)')
+            ->set('form.program_id', (string) $program->id)
+            ->set('form.location', 'Synthetic payout venue')
+            ->call('createSchedule')->assertHasErrors('historicalClaimsChecked');
+
+        $this->assertSame('UPCOMING', $program->fresh()->status);
+        $this->assertDatabaseCount('benefit_schedules', 0);
+
+        $component->set('historicalClaimsChecked', true)->call('createSchedule')->assertHasNoErrors();
+
+        $this->assertSame('ACTIVE', $program->fresh()->status);
+        $schedule = BenefitSchedule::sole();
+        $this->assertSame('DRAFT', $schedule->status);
+        $this->assertSame($program->id, $schedule->program_id);
+        $this->assertSame(1, $schedule->entitlements()->count());
+        $this->assertDatabaseHas('audit_logs', ['action' => 'benefit.program_configured', 'auditable_id' => $program->id, 'user_id' => auth()->id()]);
+    }
+
+    public function test_other_creates_a_reusable_program_with_validated_rules_and_a_draft_schedule(): void
+    {
+        $this->senior();
+
+        Livewire::test(Workspace::class)
+            ->set('form.program_id', 'other')
+            ->assertSee('Program name')
+            ->set('newProgram.name', '  Synthetic provincial aid  ')
+            ->set('newProgram.agency', 'Synthetic agency')
+            ->set('newProgram.government_level', 'PROVINCIAL')
+            ->set('newProgram.cadence', 'QUARTERLY')
+            ->assertSet('form.period_key', '2026-Q4')
+            ->set('form.location', 'Synthetic payout venue')
+            ->set('form.amount', '250')
+            ->set('historicalClaimsChecked', true)
+            ->call('createSchedule')->assertHasNoErrors();
+
+        $program = Program::where('name', 'Synthetic provincial aid')->sole();
+        $this->assertSame('ACTIVE', $program->status);
+        $this->assertSame(['cadence' => 'QUARTERLY'], $program->benefit_rules);
+        $this->assertSame('250.00', $program->default_amount);
+        $this->assertSame(auth()->id(), $program->created_by);
+        $schedule = BenefitSchedule::sole();
+        $this->assertSame($program->id, $schedule->program_id);
+        $this->assertSame('PROVINCIAL', $schedule->rule_snapshot['government_level']);
+        $this->assertSame('250.00', $schedule->entitlements()->sole()->amount);
+        $this->assertDatabaseCount('benefit_payments', 0);
+        Livewire::test(Workspace::class)
+            ->assertSee('Synthetic provincial aid')
+            ->set('form.program_id', (string) $program->id)
+            ->assertSet('form.amount', '250.00')
+            ->assertSet('form.period_key', '2026-Q4')
+            ->set('form.location', 'Synthetic second venue')
+            ->call('createSchedule')->assertHasNoErrors();
+
+        $this->assertDatabaseCount('programs', 10);
+        $this->assertDatabaseCount('benefit_schedules', 2);
+    }
+
+    public function test_other_requires_a_name_valid_rules_and_historical_review(): void
+    {
+        $component = Livewire::test(Workspace::class)
+            ->set('form.program_id', 'other')
+            ->set('form.location', 'Synthetic payout venue')
+            ->set('newProgram.government_level', 'INVALID')
+            ->call('createSchedule')->assertHasErrors(['newProgram.name', 'newProgram.government_level']);
+
+        $component->set('newProgram.name', 'Synthetic custom aid')
+            ->set('newProgram.government_level', 'LGU')
+            ->call('createSchedule')->assertHasErrors('historicalClaimsChecked');
+
+        $this->assertDatabaseCount('programs', 9);
+        $this->assertDatabaseCount('benefit_schedules', 0);
+    }
+
+    public function test_other_rejects_a_case_insensitive_existing_program_name(): void
+    {
+        Livewire::test(Workspace::class)
+            ->set('form.program_id', 'other')
+            ->set('form.location', 'Synthetic payout venue')
+            ->set('newProgram.name', ' annual december senior assistance ')
+            ->set('historicalClaimsChecked', true)
+            ->call('createSchedule')->assertHasErrors('newProgram.name');
+
+        $this->assertDatabaseCount('programs', 9);
+        $this->assertDatabaseCount('benefit_schedules', 0);
+    }
+
+    public function test_failed_schedule_creation_rolls_back_new_program_or_activation(): void
+    {
+        $program = Program::where('benefit_code', 'december-assistance')->sole();
+
+        Livewire::test(Workspace::class)
+            ->set('form.program_id', (string) $program->id)
+            ->set('form.location', 'Synthetic payout venue')
+            ->set('form.eligibility_on', '2026-10-01')
+            ->set('form.scheduled_at', '2026-10-20T12:00')
+            ->set('historicalClaimsChecked', true)
+            ->call('createSchedule')->assertHasErrors('scheduled_at');
+
+        $this->assertSame('UPCOMING', $program->fresh()->status);
+        $this->assertDatabaseCount('audit_logs', 0);
+
+        Livewire::test(Workspace::class)
+            ->set('form.program_id', 'other')
+            ->set('form.location', 'Synthetic payout venue')
+            ->set('newProgram.name', 'Synthetic custom aid')
+            ->set('form.period_key', 'invalid')
+            ->set('historicalClaimsChecked', true)
+            ->call('createSchedule')->assertHasErrors('period');
+
+        $this->assertDatabaseCount('programs', 9);
+        $this->assertDatabaseCount('benefit_schedules', 0);
+        $this->assertDatabaseCount('audit_logs', 0);
+    }
+
+    public function test_inactive_program_cannot_be_scheduled_by_tampering_with_selection(): void
+    {
+        $program = $this->program('december-assistance');
+        $component = Livewire::test(Workspace::class)->set('form.program_id', (string) $program->id);
+        $program->update(['status' => 'INACTIVE']);
+
+        $component->set('form.location', 'Synthetic payout venue')->call('createSchedule')->assertHasErrors('form.program_id');
+
+        $this->assertDatabaseCount('benefit_schedules', 0);
+    }
+
     #[TestWith(['not-an-id'])]
     #[TestWith([['unexpected']])]
     public function test_schedule_program_selection_validates_before_querying(mixed $programId): void
@@ -609,6 +774,28 @@ class BenefitWorkflowTest extends TestCase
         $program->update(['status' => 'ACTIVE']);
 
         return $program;
+    }
+
+    public function test_database_rejects_a_second_active_payment_but_preserves_reversal_history(): void
+    {
+        $this->senior();
+        $schedule = $this->schedule();
+        $this->approve($schedule);
+        app(BenefitPayments::class)->claim($schedule->entitlements()->sole(), ['claimant_type' => 'SELF']);
+        $payment = BenefitPayment::sole();
+
+        try {
+            DB::transaction(fn () => $payment->replicate()->fill(['reference_number' => 'PAY-SYNTHETIC-DUPLICATE'])->save());
+            $this->fail('A second active payment must be rejected.');
+        } catch (QueryException $exception) {
+            $this->assertSame('23505', (string) $exception->getCode());
+        }
+
+        $this->assertDatabaseCount('benefit_payments', 1);
+        $payment->update(['reversed_at' => now(), 'reversed_by' => auth()->id(), 'reversal_reason' => 'Synthetic reversal']);
+        $payment->replicate()->fill(['reference_number' => 'PAY-SYNTHETIC-REPLACEMENT', 'reversed_at' => null, 'reversed_by' => null, 'reversal_reason' => null])->save();
+        $this->assertDatabaseCount('benefit_payments', 2);
+        $this->assertDatabaseHas('benefit_payments', ['id' => $payment->id, 'reversal_reason' => 'Synthetic reversal']);
     }
 
     private function schedule(string $code = 'december-assistance', array $attributes = []): BenefitSchedule

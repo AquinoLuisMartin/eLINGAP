@@ -22,6 +22,7 @@ use App\Http\Controllers\SeniorCitizens\SeniorCitizenController;
 use App\Http\Controllers\SeniorCitizens\SeniorCitizenDeathController;
 use App\Http\Controllers\SeniorCitizens\SeniorCitizenIdController;
 use App\Http\Controllers\SeniorCitizens\SeniorCitizenTransferController;
+use App\Http\Controllers\SeniorCitizens\SeniorImportController;
 use App\Http\Controllers\Sms\SmsBlastController;
 use App\Http\Controllers\Sms\SmsMessageController;
 use App\Http\Controllers\Sms\SmsTemplateController;
@@ -60,6 +61,12 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware(['auth', 'auth.session', 'active', AuditActivity::class])->group(function () {
     Route::view('registrations', 'registrations.index')->name('registrations.index');
+    Route::get('registrations/import', [SeniorImportController::class, 'create'])->name('registrations.import.create');
+    Route::get('registrations/import/template/{format}', [SeniorImportController::class, 'template'])->name('registrations.import.template');
+    Route::post('registrations/import', [SeniorImportController::class, 'preview'])->middleware('throttle:5,1,senior-import')->name('registrations.import.preview');
+    Route::get('registrations/import/{token}', [SeniorImportController::class, 'show'])->whereUuid('token')->name('registrations.import.show');
+    Route::post('registrations/import/{token}', [SeniorImportController::class, 'store'])->whereUuid('token')->middleware('throttle:5,1,senior-import-confirm')->name('registrations.import.store');
+    Route::delete('registrations/import/{token}', [SeniorImportController::class, 'destroy'])->whereUuid('token')->name('registrations.import.destroy');
     Route::view('benefits', 'benefits.page')->name('benefits.workspace');
     Route::view('benefits/programs', 'benefits.page')->name('benefits.programs');
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');

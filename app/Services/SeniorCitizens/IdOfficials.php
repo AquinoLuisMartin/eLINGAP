@@ -13,6 +13,8 @@ use Throwable;
 
 class IdOfficials
 {
+    public function __construct(private PrivateUploads $uploads) {}
+
     public const KEYS = ['osca_head_name', 'municipal_mayor_name', 'osca_head_signature', 'municipal_mayor_signature', 'municipal_seal'];
 
     public function values(): array
@@ -35,7 +37,7 @@ class IdOfficials
                 $values = $names;
                 foreach ($uploads as $key => $file) {
                     if ($file) {
-                        $paths[] = $values[$key] = $file->store('id-official-assets', 'local');
+                        $paths[] = $values[$key] = $this->uploads->storeOfficialImage($file);
                     } elseif (in_array($key, $remove, true)) {
                         $values[$key] = null;
                     }

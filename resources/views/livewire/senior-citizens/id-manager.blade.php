@@ -5,9 +5,15 @@
             <h2 class="mt-3 text-3xl font-medium text-osca-primary dark:text-slate-100">Senior citizen ID</h2>
             <p class="mt-2 text-slate-500">{{ $senior->full_name }} <span class="ml-2">{{ $senior->osca_id_number ?? $senior->registration_number }}</span></p>
         </div>
-        @can('configureId', \App\Models\SeniorCitizen::class)
-            <button type="button" wire:click="$toggle('officialsOpen')" class="secondary-button" aria-controls="id-official-settings" aria-expanded="{{ $officialsOpen ? 'true' : 'false' }}">Official card settings</button>
-        @endcan
+        <div class="flex flex-wrap items-center gap-3">
+            @can('create', \App\Models\SeniorCitizen::class)
+                <a href="{{ route('senior-citizens.create') }}" class="primary-button"><x-admin.icon name="plus" size="17" /> New registration</a>
+                <a href="{{ route('registrations.index') }}" class="secondary-button">Exit to registrations</a>
+            @endcan
+            @can('configureId', \App\Models\SeniorCitizen::class)
+                <button type="button" wire:click="$toggle('officialsOpen')" class="secondary-button" aria-controls="id-official-settings" aria-expanded="{{ $officialsOpen ? 'true' : 'false' }}">Official card settings</button>
+            @endcan
+        </div>
     </header>
     @if ($officialsOpen)
         <section id="id-official-settings" class="rounded-lg border border-slate-200 p-4 dark:border-slate-700">

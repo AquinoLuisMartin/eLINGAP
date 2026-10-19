@@ -6,9 +6,9 @@ use App\Services\SeniorCitizens\SeniorRegistrationInput;
 
 trait RepresentativeRules
 {
-    protected function normalizeContacts(): void
+    protected function normalizeRegistrationInput(): void
     {
-        $this->merge(SeniorRegistrationInput::normalize($this->only(['contact_number', 'representative_contact'])));
+        $this->merge(SeniorRegistrationInput::normalize($this->all()));
     }
 
     protected function representativeRules(): array

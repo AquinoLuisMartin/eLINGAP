@@ -35,8 +35,6 @@ class IdApplication extends Component
 
     public array $form = ['requirements_status' => '', 'requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'review_reason' => '', 'first_name' => '', 'middle_name' => '', 'last_name' => '', 'name_suffix' => '', 'birth_date' => '', 'sex' => '', 'civil_status' => '', 'barangay_id' => '', 'address' => '', 'contact_number' => '', 'applicant_type' => 'SELF', 'representative_name' => '', 'representative_relationship' => '', 'representative_contact' => ''];
 
-    public $photo;
-
     public $authorizationFile;
 
     public $identificationFile;
@@ -62,11 +60,6 @@ class IdApplication extends Component
             $this->resetValidation('form.birth_date');
             $this->validateInput(['birth_date']);
         }
-    }
-
-    public function updatedPhoto(): void
-    {
-        $this->validateInput(['photo']);
     }
 
     public function updatedRepresentativeContact(bool $enabled): void
@@ -98,18 +91,24 @@ class IdApplication extends Component
 
     private function input(): array
     {
-        return SeniorRegistrationInput::normalize([...$this->form, 'photo' => $this->photo, 'authorization_file' => $this->authorizationFile, 'identification_file' => $this->identificationFile]);
+        return SeniorRegistrationInput::normalize([...$this->form, 'authorization_file' => $this->authorizationFile, 'identification_file' => $this->identificationFile]);
     }
 
     private function validateInput(?array $fields = null): array
     {
+        $input = $this->input();
+        foreach (SeniorRegistrationInput::UPPERCASE_FIELDS as $field) {
+            if (array_key_exists($field, $input)) {
+                $this->form[$field] = $input[$field];
+            }
+        }
         try {
-            return SeniorRegistrationInput::validator($this->input(), $fields)->validate();
+            return SeniorRegistrationInput::validator($input, $fields)->validate();
         } catch (ValidationException $exception) {
             $errors = [];
             foreach ($exception->errors() as $field => $messages) {
                 $property = match ($field) {
-                    'photo' => 'photo', 'authorization_file' => 'authorizationFile', 'identification_file' => 'identificationFile', default => 'form.'.$field,
+                    'authorization_file' => 'authorizationFile', 'identification_file' => 'identificationFile', default => 'form.'.$field,
                 };
                 $errors[$property] = $messages;
             }

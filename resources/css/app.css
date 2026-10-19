@@ -166,6 +166,10 @@
     text-transform: none;
 }
 
+.staff-shell .admin-content label :where(input.uppercase, textarea.uppercase) {
+    text-transform: uppercase;
+}
+
 .staff-shell .admin-content .metric-value,
 .staff-shell .admin-content td,
 .staff-shell .mini-stat strong {
@@ -228,6 +232,11 @@
     color: var(--ink);
     background: var(--paper);
     font: inherit;
+}
+
+.staff-shell .admin-content .senior-mobile-field input {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
 }
 
 .staff-shell :where(a, button, input, select, textarea):focus-visible {

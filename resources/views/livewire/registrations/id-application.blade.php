@@ -9,7 +9,7 @@
             try {
                 const draft = JSON.parse(sessionStorage.getItem(this.draftKey) || '{}');
                 for (const field of this.nameFields) {
-                    if (typeof draft[field] === 'string') this.$wire.$set('form.' + field, draft[field].slice(0, field === 'name_suffix' ? 20 : 100), false);
+                    if (typeof draft[field] === 'string') this.$wire.$set('form.' + field, draft[field].toUpperCase().slice(0, field === 'name_suffix' ? 20 : 100), false);
                 }
             } catch {}
         },
@@ -61,7 +61,7 @@
                     <p class="text-sm text-slate-500">Enter the senior's details as shown on their identification documents. Applicants must be at least 60 years old.</p>
                     <div class="grid gap-4 sm:grid-cols-2">
                         @foreach (['first_name' => 'First name', 'last_name' => 'Last name', 'middle_name' => 'Middle name', 'name_suffix' => 'Name suffix'] as $field => $label)
-                            <x-registration-field wire:key="personal-field-{{ $field }}" :name="'form.'.$field" :label="$label" :required="in_array($field, ['first_name', 'last_name'])"><input id="form-{{ $field }}" data-draft-name="{{ $field }}" wire:model="form.{{ $field }}" maxlength="{{ $field === 'name_suffix' ? 20 : 100 }}" autocomplete="{{ ['first_name' => 'given-name', 'last_name' => 'family-name', 'middle_name' => 'additional-name'][$field] ?? 'off' }}"></x-registration-field>
+                            <x-registration-field wire:key="personal-field-{{ $field }}" :name="'form.'.$field" :label="$label" :required="in_array($field, ['first_name', 'last_name'])"><input id="form-{{ $field }}" data-draft-name="{{ $field }}" wire:model="form.{{ $field }}" class="uppercase" maxlength="{{ $field === 'name_suffix' ? 20 : 100 }}" autocomplete="{{ ['first_name' => 'given-name', 'last_name' => 'family-name', 'middle_name' => 'additional-name'][$field] ?? 'off' }}"></x-registration-field>
                         @endforeach
                         <x-registration-field name="form.birth_date" label="Birth date" required>
                             <input id="form-birth_date" type="date" wire:model.live="form.birth_date" max="{{ today()->subYears(60)->toDateString() }}" aria-describedby="registration-age">
@@ -81,15 +81,21 @@
                 @elseif ($step === 2)
                     <div class="grid gap-4 sm:grid-cols-2">
                         <x-registration-field name="form.barangay_id" label="Barangay" required><select id="form-barangay_id" wire:model="form.barangay_id"><option value="">Select barangay</option>@foreach ($barangays as $barangay)<option wire:key="registration-barangay-{{ $barangay->id }}" value="{{ $barangay->id }}">{{ $barangay->name }}</option>@endforeach</select></x-registration-field>
-                        <x-registration-field name="form.contact_number" label="Senior mobile number" required hint="A contact number is required for every registration, including representative applications."><input id="form-contact_number" type="tel" wire:model="form.contact_number" autocomplete="tel" maxlength="30" placeholder="09xx xxx xxxx"></x-registration-field>
-                        <x-registration-field name="form.address" label="House and street address" required class="sm:col-span-2"><textarea id="form-address" class="resize-none" wire:model="form.address" maxlength="1000" rows="2" autocomplete="street-address"></textarea></x-registration-field>
+                        <x-registration-field name="form.contact_number" label="Senior mobile number" required hint="Enter 10 digits starting with 9. The +63 country code is included."><x-senior-mobile-input id="form-contact_number" wire:model="form.contact_number" required /></x-registration-field>
+                        <x-registration-field name="form.address" label="House and street address" required class="sm:col-span-2"><textarea id="form-address" class="resize-none uppercase" wire:model="form.address" maxlength="1000" rows="2" autocomplete="street-address"></textarea></x-registration-field>
                         <x-registration-field name="form.applicant_type" label="Who is applying?" required class="sm:col-span-2"><select id="form-applicant_type" wire:model.live="form.applicant_type"><option value="SELF">Senior applying personally</option><option value="REPRESENTATIVE">Authorized representative</option></select></x-registration-field>
                     </div>
                     @if ($form['applicant_type'] === 'SELF')<label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="representativeContact"> Add an authorized representative for SMS or future claiming</label>@endif
                     @if ($representativeContact || $this->needsRepresentative())
                         <fieldset class="space-y-4 rounded-lg border border-slate-200 p-4 dark:border-slate-700"><legend class="px-2 text-sm font-semibold">Authorized representative</legend><p class="text-sm text-slate-500">Authorization proof will be uploaded in the next step.</p><div class="grid gap-4 sm:grid-cols-2">
                             @foreach (['representative_name' => 'Full name', 'representative_relationship' => 'Relationship to senior', 'representative_contact' => 'Mobile number'] as $field => $label)
-                                <x-registration-field wire:key="representative-field-{{ $field }}" :name="'form.'.$field" :label="$label" required><input id="form-{{ $field }}" wire:model="form.{{ $field }}" type="{{ $field === 'representative_contact' ? 'tel' : 'text' }}" maxlength="{{ $field === 'representative_name' ? 180 : ($field === 'representative_relationship' ? 100 : 30) }}"></x-registration-field>
+                                <x-registration-field wire:key="representative-field-{{ $field }}" :name="'form.'.$field" :label="$label" required>
+                                    @if ($field === 'representative_contact')
+                                        <x-senior-mobile-input id="form-representative_contact" wire:model="form.representative_contact" required />
+                                    @else
+                                        <input id="form-{{ $field }}" wire:model="form.{{ $field }}" class="uppercase" maxlength="{{ $field === 'representative_name' ? 180 : 100 }}">
+                                    @endif
+                                </x-registration-field>
                             @endforeach
                         </div></fieldset>
                     @endif
@@ -97,6 +103,7 @@
                     <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-700 dark:bg-slate-800">
                         <h3 class="font-semibold">Application summary</h3><dl class="mt-3 grid gap-3 sm:grid-cols-2"><div><dt class="text-slate-500">Senior</dt><dd>{{ $form['first_name'] }} {{ $form['middle_name'] }} {{ $form['last_name'] }} {{ $form['name_suffix'] }}</dd></div><div><dt class="text-slate-500">Birth date</dt><dd>{{ $form['birth_date'] }}</dd></div><div><dt class="text-slate-500">Barangay</dt><dd>{{ $barangays->firstWhere('id', (int) $form['barangay_id'])?->name }}</dd></div><div><dt class="text-slate-500">Applicant</dt><dd>{{ $form['applicant_type'] === 'REPRESENTATIVE' ? $form['representative_name'] : 'Senior personally' }}</dd></div></dl>
                     </div>
+                    <p class="text-sm text-slate-500">No photo upload is needed. Attach the senior's printed 1 x 1 inch photo to the ID after printing.</p>
                     <div class="grid gap-5 sm:grid-cols-2">
                         <x-registration-field name="identificationFile" label="Supporting identification" hint="Optional identification or birth-date proof. PDF, JPEG or PNG, up to 5 MB."><input id="identificationFile" type="file" wire:model="identificationFile" accept=".pdf,.jpg,.jpeg,.png"></x-registration-field>
                         @if ($this->needsRepresentative())<x-registration-field name="authorizationFile" label="Proof of authorization" required hint="Required for the recorded representative. PDF, JPEG or PNG, up to 5 MB." class="sm:col-span-2"><input id="authorizationFile" type="file" wire:model="authorizationFile" accept=".pdf,.jpg,.jpeg,.png"></x-registration-field>@endif

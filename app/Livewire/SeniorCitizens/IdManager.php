@@ -7,28 +7,20 @@ use App\Models\AuditLog;
 use App\Models\SeniorCitizen;
 use App\Models\SeniorCitizenIdCredential;
 use App\Services\Benefits\SeniorEligibilityRecord;
-use App\Services\SeniorCitizens\IdAssets;
 use App\Services\SeniorCitizens\IdCardLayout;
 use App\Services\SeniorCitizens\IdCredential;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Livewire\WithFileUploads;
 
 class IdManager extends Component
 {
-    use WithFileUploads;
-
     #[Locked]
     public int $seniorId;
 
     #[Locked]
     public int $step = 1;
-
-    public $photo;
-
-    public $photoOriginal;
 
     public bool $reviewed = false;
 
@@ -65,16 +57,6 @@ class IdManager extends Component
         if (isset($this->seniorId)) {
             Gate::authorize('manageId', SeniorCitizen::findOrFail($this->seniorId));
         }
-    }
-
-    public function savePhoto(IdAssets $assets): bool
-    {
-        $this->validate(['photo' => ['required', 'image', 'mimes:jpeg,png', 'max:2048', 'dimensions:ratio=1/1'], 'photoOriginal' => ['nullable', 'image', 'mimes:jpeg,png', 'max:2048']]);
-        $assets->save($this->senior(), $this->photo, 'PHOTO', $this->photoOriginal);
-        $this->reset('photo', 'photoOriginal', 'reviewed');
-        $this->notice = 'ID photo saved at a square crop. It will print at 1x1 inch.';
-
-        return true;
     }
 
     public function next(): void

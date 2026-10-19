@@ -58,8 +58,8 @@ class IdApplicationTest extends TestCase
             ->set('form', $input)->call('next')->assertHasNoErrors()->assertSet('step', 2)
             ->set('form.address', '')->call('next')->assertSet('step', 2)->assertHasErrors('form.address')
             ->set('form.address', 'Synthetic address')->call('next')->assertSet('step', 3)->assertHasNoErrors()
-            ->call('back')->assertSet('step', 2)->assertSet('form.first_name', 'Synthetic')
-            ->call('back')->assertSet('step', 1)->assertSet('form.address', 'Synthetic address');
+            ->call('back')->assertSet('step', 2)->assertSet('form.first_name', 'SYNTHETIC')
+            ->call('back')->assertSet('step', 1)->assertSet('form.address', 'SYNTHETIC ADDRESS');
         $this->assertDatabaseCount('senior_citizens', 0);
     }
 
@@ -78,10 +78,21 @@ class IdApplicationTest extends TestCase
         $this->assertNull($senior->id_generated_at);
         $this->assertNull($senior->osca_id_number);
         $this->assertSame('+639171234567', $senior->contact_number);
+        $this->assertSame('SYNTHETIC', $senior->first_name);
+        $this->assertSame('APPLICANT', $senior->last_name);
+        $this->assertSame('SYNTHETIC ADDRESS', $senior->address);
         $this->assertDatabaseCount('applications', 0);
         $this->assertDatabaseCount('beneficiaries', 0);
         $this->assertDatabaseHas('audit_logs', ['action' => 'senior_citizen.created', 'auditable_id' => $senior->id, 'user_id' => $staff->id]);
         $component->call('submit')->assertRedirect(route('senior-id.show', [$senior, 'from' => 'registrations']));
+        $this->assertDatabaseCount('senior_citizens', 1);
+
+        $this->get(route('senior-id.show', [$senior, 'from' => 'registrations']))
+            ->assertOk()
+            ->assertSeeHtml('href="'.route('senior-citizens.create').'"')
+            ->assertSee('New registration')
+            ->assertSee('Exit to registrations');
+        $this->get(route('senior-citizens.create'))->assertOk()->assertSeeLivewire(IdApplication::class);
         $this->assertDatabaseCount('senior_citizens', 1);
     }
 
@@ -91,7 +102,7 @@ class IdApplicationTest extends TestCase
         $this->actingAs(User::factory()->create());
         $component = $this->application()->set('form', [...$this->input(), 'applicant_type' => 'REPRESENTATIVE'])
             ->call('next')->call('next')->assertSet('step', 2)->assertHasErrors(['form.representative_name', 'form.representative_contact'])
-            ->set('form.representative_name', 'Synthetic Representative')->set('form.representative_relationship', 'Child')->set('form.representative_contact', '09171234567')
+            ->set('form.representative_name', 'Synthetic Representative')->set('form.representative_relationship', 'Child')->set('form.representative_contact', '917-123-4567')
             ->call('next')->assertSet('step', 3)->assertHasNoErrors()
             ->set('informationReviewed', true)->call('submit')->assertHasErrors('authorizationFile')
             ->set('authorizationFile', UploadedFile::fake()->createWithContent('proof.pdf', "%PDF-1.4\nSynthetic proof"))
@@ -99,25 +110,26 @@ class IdApplicationTest extends TestCase
         $senior = SeniorCitizen::sole();
         $component->assertRedirect(route('senior-id.show', [$senior, 'from' => 'registrations']));
         $this->assertSame('+639171234567', $senior->representative_contact);
+        $this->assertSame('SYNTHETIC REPRESENTATIVE', $senior->representative_name);
+        $this->assertSame('CHILD', $senior->representative_relationship);
         $document = $senior->documents()->sole();
         $this->assertSame('AUTHORIZATION', $document->document_type);
         Storage::disk('local')->assertExists($document->path);
     }
 
-    public function test_photo_and_identification_uploads_are_private_and_unexpected_authoritative_fields_are_ignored(): void
+    public function test_identification_uploads_are_private_and_unexpected_authoritative_fields_are_ignored(): void
     {
         Storage::fake('local');
         Storage::fake('public');
         config(['filesystems.default' => 'public']);
         $this->actingAs(User::factory()->create());
-        $photo = UploadedFile::fake()->createWithContent('photo.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+nmfwAAAAASUVORK5CYII='));
         $this->application()->set('form', [...$this->input(), 'status' => 'VERIFIED', 'verified_at' => now()->toDateTimeString(), 'id_generated_at' => now()->toDateTimeString()])
-            ->call('next')->call('next')->set('photo', $photo)->set('identificationFile', UploadedFile::fake()->createWithContent('id.pdf', "%PDF-1.4\nSynthetic identification"))
+            ->call('next')->call('next')->set('identificationFile', UploadedFile::fake()->createWithContent('id.pdf', "%PDF-1.4\nSynthetic identification"))
             ->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
         $senior = SeniorCitizen::sole();
         $this->assertSame('PENDING', $senior->status->value);
         $this->assertNull($senior->id_generated_at);
-        $this->assertSame(2, $senior->documents()->count());
+        $this->assertSame(1, $senior->documents()->count());
         foreach ($senior->documents()->get() as $document) {
             Storage::disk('local')->assertExists($document->path);
             Storage::disk('public')->assertMissing($document->path);
@@ -247,12 +259,68 @@ class IdApplicationTest extends TestCase
         $this->assertSame('SINGLE', $senior->fresh()->civil_status);
     }
 
+    #[TestWith(['9672348976'])]
+    #[TestWith(['967-234-8976'])]
+    #[TestWith(['0967 234 8976'])]
+    #[TestWith(['+63 967-234-8976'])]
+    #[TestWith(['639672348976'])]
+    public function test_registration_saves_uppercase_unicode_text_and_canonical_mobile_numbers(string $number): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->application()->set('form', [
+            ...$this->input(), 'first_name' => '  synthetic ñandú ', 'middle_name' => 'mixed',
+            'last_name' => "o'synthetic", 'name_suffix' => 'jr.', 'address' => '  synthetic street ', 'contact_number' => $number,
+        ])->call('next')->call('next')->assertSet('step', 3)->assertHasNoErrors()
+            ->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
+
+        $senior = SeniorCitizen::sole();
+        $this->assertSame('SYNTHETIC ÑANDÚ', $senior->first_name);
+        $this->assertSame('MIXED', $senior->middle_name);
+        $this->assertSame("O'SYNTHETIC", $senior->last_name);
+        $this->assertSame('JR.', $senior->name_suffix);
+        $this->assertSame('SYNTHETIC STREET', $senior->address);
+        $this->assertSame('+639672348976', $senior->contact_number);
+    }
+
+    #[TestWith(['867-234-8976'])]
+    #[TestWith(['967-234-897'])]
+    #[TestWith(['967-234-89760'])]
+    #[TestWith(['+1 967-234-8976'])]
+    #[TestWith(['967abc2348976'])]
+    #[TestWith(['+63+639672348976'])]
+    #[TestWith([['9672348976']])]
+    public function test_both_registration_entry_points_reject_invalid_senior_and_representative_numbers(mixed $number): void
+    {
+        $this->actingAs(User::factory()->create());
+        $input = [...$this->input(), 'contact_number' => $number, 'applicant_type' => 'REPRESENTATIVE',
+            'representative_name' => 'Synthetic Representative', 'representative_relationship' => 'Child', 'representative_contact' => $number];
+
+        $this->application()->set('form', $input)->call('next')->call('next')->assertSet('step', 2)
+            ->assertHasErrors(['form.contact_number', 'form.representative_contact']);
+        $this->post(route('senior-citizens.store'), $input)->assertSessionHasErrors(['contact_number', 'representative_contact']);
+
+        $this->assertDatabaseCount('senior_citizens', 0);
+        $this->assertDatabaseCount('audit_logs', 0);
+    }
+
     private function application(): Testable
     {
         return Livewire::test(IdApplication::class)
             ->set('form.requirements_status', 'REVIEW')
             ->set('form.review_reason', 'Synthetic document needs checking')
             ->call('next')->assertHasNoErrors()->assertSet('step', 1);
+    }
+
+    public function test_registration_rejects_a_digital_senior_photo(): void
+    {
+        Storage::fake('local');
+        $this->actingAs(User::factory()->create());
+
+        $this->post(route('senior-citizens.store'), [...$this->input(), 'photo' => UploadedFile::fake()->image('synthetic.png')])
+            ->assertSessionHasErrors('photo');
+
+        $this->assertDatabaseCount('senior_citizens', 0);
+        $this->assertDatabaseCount('senior_citizen_documents', 0);
     }
 
     private function input(): array

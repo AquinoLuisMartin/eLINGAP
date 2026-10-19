@@ -13,7 +13,7 @@ class UpdateSeniorCitizenRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->normalizeContacts();
+        $this->normalizeRegistrationInput();
     }
 
     public function authorize(): bool
@@ -35,7 +35,7 @@ class UpdateSeniorCitizenRequest extends FormRequest
             'address' => ['required', 'string', 'max:1000'],
             'contact_number' => ['required', 'string', 'regex:/^\+639\d{9}$/'],
             'osca_id_number' => ['missing'],
-            'photo' => [Rule::prohibitedIf(! $this->user()->can('manageId', $this->route('senior_citizen'))), 'nullable', 'image', 'mimes:jpeg,png', 'dimensions:max_width=6000,max_height=6000', 'max:2048'],
+            'photo' => ['prohibited'],
             ...$this->representativeRules(),
         ];
     }

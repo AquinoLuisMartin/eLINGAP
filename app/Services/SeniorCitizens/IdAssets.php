@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class IdAssets
@@ -25,21 +24,6 @@ class IdAssets
     public function latest(SeniorCitizen $senior, string $type): ?SeniorCitizenDocument
     {
         return $senior->documents()->where('document_type', $type)->latest('id')->first();
-    }
-
-    public function requirePhoto(SeniorCitizen $senior): SeniorCitizenDocument
-    {
-        $photo = $this->latest($senior, 'PHOTO');
-        $size = $photo && Storage::disk('local')->exists($photo->path)
-            ? @getimagesize(Storage::disk('local')->path($photo->path)) : false;
-        if (! $size || $size[0] !== $size[1] || ! in_array($size['mime'], ['image/jpeg', 'image/png'], true)) {
-            throw ValidationException::withMessages(['photo' => 'Upload and prepare a square 1x1 ID photo before issuance or printing.']);
-        }
-        if ($size['mime'] === 'image/png' && ! function_exists('imagecreatefrompng')) {
-            throw ValidationException::withMessages(['photo' => 'Adjust the saved photo and select Use this image to prepare a print-ready copy.']);
-        }
-
-        return $photo;
     }
 
     public function save(SeniorCitizen $senior, UploadedFile $file, string $type, ?UploadedFile $original = null): void

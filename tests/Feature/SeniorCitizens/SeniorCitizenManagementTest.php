@@ -31,15 +31,41 @@ class SeniorCitizenManagementTest extends TestCase
             'sex' => 'MALE',
             'civil_status' => 'MARRIED',
             'address' => 'Poblacion, Santa Maria, Bulacan',
-            'contact_number' => '09171234567',
+            'contact_number' => '917-123-4567',
         ]);
 
         $seniorCitizen = SeniorCitizen::first();
         $response->assertRedirect(route('senior-citizens.show', $seniorCitizen));
         $this->assertSame('PENDING', $seniorCitizen->status->value);
         $this->assertSame('+639171234567', $seniorCitizen->contact_number);
+        $this->assertSame('JUAN', $seniorCitizen->first_name);
+        $this->assertSame('DELA', $seniorCitizen->middle_name);
+        $this->assertSame('CRUZ', $seniorCitizen->last_name);
+        $this->assertSame('POBLACION, SANTA MARIA, BULACAN', $seniorCitizen->address);
         $this->assertDatabaseHas('senior_citizen_histories', ['senior_citizen_id' => $seniorCitizen->id, 'action' => 'created']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'senior_citizen.created', 'auditable_id' => $seniorCitizen->id]);
+    }
+
+    public function test_editing_legacy_representative_casing_keeps_existing_authorization_proof(): void
+    {
+        $staff = $this->user('OSCA_STAFF');
+        $senior = $this->seniorCitizen();
+        $senior->update(['applicant_type' => 'REPRESENTATIVE', 'representative_name' => 'Synthetic Representative',
+            'representative_relationship' => 'Child', 'representative_contact' => '+639672348976']);
+        $senior->documents()->create(['document_type' => 'AUTHORIZATION', 'path' => 'synthetic-proof.pdf',
+            'original_name' => 'synthetic-proof.pdf', 'mime_type' => 'application/pdf', 'size' => 100, 'uploaded_by' => $staff->id]);
+
+        $this->actingAs($staff)->get(route('senior-citizens.edit', $senior))->assertOk()
+            ->assertSee('967-234-8976')->assertSee('+63');
+        $this->put(route('senior-citizens.update', $senior), [
+            ...$senior->only(['barangay_id', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'sex', 'address', 'applicant_type', 'representative_name', 'representative_relationship']),
+            'birth_date' => $senior->birth_date->format('Y-m-d'), 'contact_number' => '967-234-8976', 'representative_contact' => '967-234-8976',
+        ])->assertSessionHasNoErrors()->assertRedirect(route('senior-citizens.show', $senior));
+
+        $this->assertSame('SYNTHETIC REPRESENTATIVE', $senior->fresh()->representative_name);
+        $this->assertSame('CHILD', $senior->fresh()->representative_relationship);
+        $this->assertSame('+639672348976', $senior->fresh()->contact_number);
+        $this->assertDatabaseCount('senior_citizen_documents', 1);
     }
 
     public function test_registration_requires_a_senior_age_and_valid_barangay(): void
@@ -112,17 +138,17 @@ class SeniorCitizenManagementTest extends TestCase
         ]);
 
         $response->assertRedirect(route('senior-citizens.show', $seniorCitizen));
-        $this->assertSame('Maria Updated', $seniorCitizen->fresh()->first_name);
+        $this->assertSame('MARIA UPDATED', $seniorCitizen->fresh()->first_name);
 
         $history = $seniorCitizen->histories()->where('action', 'updated')->first();
         $this->assertNotNull($history);
         $this->assertSame('Maria', $history->changes['from']['first_name']);
-        $this->assertSame('Maria Updated', $history->changes['to']['first_name']);
+        $this->assertSame('MARIA UPDATED', $history->changes['to']['first_name']);
 
         $audit = AuditLog::where('auditable_id', $seniorCitizen->id)->where('action', 'senior_citizen.updated')->first();
         $this->assertNotNull($audit);
         $this->assertSame('Maria', $audit->old_values['first_name']);
-        $this->assertSame('Maria Updated', $audit->new_values['first_name']);
+        $this->assertSame('MARIA UPDATED', $audit->new_values['first_name']);
     }
 
     public function test_death_declaration_requires_valid_date_and_document_and_blocks_edits(): void
@@ -146,18 +172,16 @@ class SeniorCitizenManagementTest extends TestCase
         $this->get(route('senior-citizens.edit', $senior))->assertForbidden();
     }
 
-    public function test_id_photo_is_private_and_available_to_authorized_staff(): void
+    public function test_existing_id_photo_remains_private_and_available_to_authorized_staff(): void
     {
         Storage::fake('local');
         $senior = $this->seniorCitizen();
         $staff = $this->user('OSCA_STAFF');
 
-        $this->actingAs($staff)->put(route('senior-citizens.update', $senior), [
-            'barangay_id' => $senior->barangay_id, 'first_name' => $senior->first_name,
-            'last_name' => $senior->last_name, 'birth_date' => $senior->birth_date->format('Y-m-d'),
-            'sex' => $senior->sex, 'address' => $senior->address, 'contact_number' => '09171234567',
-            'photo' => UploadedFile::fake()->createWithContent('photo.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+nmfwAAAAASUVORK5CYII=')),
-        ])->assertRedirect();
+        $file = UploadedFile::fake()->createWithContent('legacy-photo.jpg', file_get_contents(base_path('tests/Fixtures/id-photo.jpg')));
+        $path = $file->store('senior-photos', 'local');
+        $senior->documents()->create(['document_type' => 'PHOTO', 'path' => $path, 'original_name' => 'legacy-photo.jpg', 'mime_type' => 'image/jpeg', 'size' => $file->getSize(), 'uploaded_by' => $staff->id]);
+        $this->actingAs($staff);
 
         $photo = $senior->documents()->where('document_type', 'PHOTO')->firstOrFail();
         Storage::disk('local')->assertExists($photo->path);

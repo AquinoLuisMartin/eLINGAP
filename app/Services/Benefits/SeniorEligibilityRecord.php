@@ -6,6 +6,7 @@ use App\Models\BenefitSchedule;
 use App\Models\SeniorCitizen;
 use App\Services\SeniorCitizens\IdCredential;
 use App\Services\SeniorCitizens\OscaIdNumber;
+use App\Services\SeniorCitizens\SeniorRegistration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
@@ -40,10 +41,11 @@ class SeniorEligibilityRecord
     {
         Gate::authorize('manageId', $senior);
         DB::transaction(function () use ($senior): void {
+            SeniorRegistration::lockIdentityChanges();
             $senior = SeniorCitizen::query()->lockForUpdate()->findOrFail($senior->id);
             abort_unless($senior->status->value === 'VERIFIED' && $senior->verified_at && $senior->smsContact(), 422, 'Verify the record before issuing its ID.');
             abort_if($senior->id_generated_at, 409, 'ID issuance is already recorded.');
-            $senior->forceFill(['osca_id_number' => $senior->osca_id_number ?: $this->numbers->next(), 'id_generated_at' => now()])->save();
+            $senior->forceFill(['osca_id_number' => filled($senior->osca_id_number) ? $senior->osca_id_number : $this->numbers->next(), 'id_generated_at' => now()])->save();
             $this->credentials->ensure($senior);
             $senior->histories()->create(['changed_by' => auth()->id(), 'action' => 'id_generated', 'changes' => ['issued_at' => now()->toIso8601String()]]);
             BenefitAudit::record('senior_citizen.id_generated', $senior);

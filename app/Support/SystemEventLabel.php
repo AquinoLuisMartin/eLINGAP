@@ -25,6 +25,7 @@ final class SystemEventLabel
         return match ($event) {
             'senior_citizen.requirements_review_requested' => 'Flagged registration requirements for review',
             'senior_citizen.created' => 'Registered a new senior citizen',
+            'senior_citizen.imported' => 'Imported a historical senior record for review',
             'senior_citizen.updated' => 'Updated a senior citizen record',
             'senior_citizen.verified' => 'Verified a senior citizen record',
             'senior_citizen.id_generated' => 'Issued an OSCA ID',

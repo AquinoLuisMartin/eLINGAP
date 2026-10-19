@@ -78,17 +78,15 @@ class IdIssuanceTest extends TestCase
         $this->get(route('senior-id.officials'))->assertRedirect(route('login'));
     }
 
-    public function test_photo_editor_cannot_save_a_non_square_or_disguised_document(): void
+    public function test_staff_cannot_upload_a_senior_photo_through_profile_editing(): void
     {
         Storage::fake('local');
         $this->actingAs(User::factory()->create());
         $senior = $this->senior();
-        Livewire::test(IdManager::class, ['seniorId' => $senior->id])
-            ->set('photo', UploadedFile::fake()->createWithContent('portrait.jpg', file_get_contents(base_path('tests/Fixtures/id-photo-portrait.jpg'))))
-            ->call('savePhoto')->assertHasErrors('photo');
-        Livewire::test(IdManager::class, ['seniorId' => $senior->id])
-            ->set('photo', UploadedFile::fake()->createWithContent('disguised.jpg', '%PDF-1.4 synthetic document'))
-            ->call('savePhoto')->assertHasErrors('photo');
+        $this->put(route('senior-citizens.update', $senior), [
+            ...$senior->only(['barangay_id', 'first_name', 'last_name', 'sex', 'address', 'contact_number']),
+            'birth_date' => $senior->birth_date->toDateString(), 'photo' => $this->image(),
+        ])->assertSessionHasErrors('photo');
         $this->assertDatabaseCount('senior_citizen_documents', 0);
     }
 
@@ -217,7 +215,7 @@ class IdIssuanceTest extends TestCase
         Storage::fake('local');
         $this->actingAs(User::factory()->create());
         $senior = $this->senior(['status' => 'ARCHIVED', 'osca_id_number' => '26-0031', 'id_generated_at' => '2026-03-01']);
-        Livewire::test(IdManager::class, ['seniorId' => $senior->id])->set('photo', $this->image())->call('savePhoto')->assertHasNoErrors()
+        Livewire::test(IdManager::class, ['seniorId' => $senior->id])
             ->call('next')->set('reviewed', true)->call('prepareExisting')->assertHasNoErrors()->assertSet('step', 3);
         $this->assertSame('ARCHIVED', $senior->fresh()->status->value);
         $this->assertSame('26-0031', $senior->fresh()->osca_id_number);

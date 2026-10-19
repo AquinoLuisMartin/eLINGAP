@@ -7,7 +7,9 @@ use App\Http\Middleware\EnsureUserIsActive;
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
@@ -184,5 +186,33 @@ class AccountManagementTest extends TestCase
         $audit = AuditLog::query()->sole();
         $this->assertSame(['is_active' => true], $audit->old_values);
         $this->assertSame(['is_active' => false], $audit->new_values);
+    }
+
+    public function test_a_stale_account_snapshot_does_not_log_an_already_applied_status_change(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $staff = User::factory()->create();
+        DB::table('users')->where('id', $staff->id)->update(['is_active' => false]);
+        Route::bind('user', fn () => $staff);
+
+        $this->actingAs($admin)->patch(route('administration.users.status.update', $staff), ['is_active' => false])
+            ->assertRedirect();
+
+        $this->assertFalse($staff->fresh()->is_active);
+        $this->assertDatabaseCount('audit_logs', 0);
+    }
+
+    public function test_a_stale_self_edit_cannot_restore_a_concurrently_changed_role(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $staff = User::factory()->create();
+        DB::table('users')->where('id', $admin->id)->update(['role_id' => $staff->role_id]);
+        Route::bind('user', fn () => $admin);
+
+        $this->actingAs($admin)->put(route('administration.users.update', $admin), $admin->only(['role_id', 'username', 'email', 'first_name', 'last_name']))
+            ->assertForbidden();
+
+        $this->assertSame($staff->role_id, $admin->fresh()->role_id);
+        $this->assertDatabaseCount('audit_logs', 0);
     }
 }

@@ -130,13 +130,16 @@ class Dashboard extends Component
 
     public function toggleUserStatus(int $userId): void
     {
-        $user = User::findOrFail($userId);
-        Gate::authorize('manageAccess', $user);
+        Gate::authorize('viewAny', User::class);
 
-        DB::transaction(function () use ($user): void {
+        $user = DB::transaction(function () use ($userId): User {
+            $user = User::query()->lockForUpdate()->findOrFail($userId);
+            Gate::authorize('manageAccess', $user);
             $wasActive = $user->is_active;
             $user->update(['is_active' => ! $wasActive]);
             AuditLog::create(['user_id' => auth()->id(), 'action' => 'user.access_changed', 'auditable_type' => User::class, 'auditable_id' => $user->id, 'old_values' => ['is_active' => $wasActive], 'new_values' => ['is_active' => $user->is_active], 'ip_address' => request()->ip()]);
+
+            return $user;
         });
         unset($this->filteredUsers, $this->userCounts);
 

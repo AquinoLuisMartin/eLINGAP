@@ -2,8 +2,10 @@ import Alpine from 'alpinejs';
 import collapse from '@alpinejs/collapse';
 import idImageEditor from './id-image-editor';
 import initApplicationWizard from './application-wizard';
+import { formatSeniorMobile } from './senior-registration-input';
 
 window.idImageEditor = idImageEditor;
+window.formatSeniorMobile = formatSeniorMobile;
 const modalTriggers = new WeakMap();
 
 // Landing page interactions

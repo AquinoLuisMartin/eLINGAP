@@ -75,17 +75,19 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
-        // Changing your own role could remove your administrator access.
-        if ($user->role_id !== $request->integer('role_id')) {
-            Gate::authorize('manageAccess', $user);
-        }
+        $user = DB::transaction(function () use ($request, $user): User {
+            $user = User::query()->lockForUpdate()->findOrFail($user->id);
+            if ($user->role_id !== $request->integer('role_id')) {
+                Gate::authorize('manageAccess', $user);
+            }
 
-        DB::transaction(function () use ($request, $user): void {
             $oldRole = $user->role_id;
             $user->update($request->validated());
             if ($user->wasChanged()) {
                 AuditLog::create(['user_id' => $request->user()->id, 'action' => 'user.updated', 'auditable_type' => User::class, 'auditable_id' => $user->id, 'old_values' => ['role_id' => $oldRole], 'new_values' => ['role_id' => $user->role_id], 'ip_address' => $request->ip()]);
             }
+
+            return $user;
         });
 
         return redirect()->route('administration.users.index')

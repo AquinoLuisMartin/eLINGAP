@@ -48,7 +48,7 @@ class OscaConsultationTest extends TestCase
         $this->post(route('senior-citizens.store'), [...$input, 'middle_name' => 'beta'])->assertSessionHasErrors('first_name');
 
         $this->assertDatabaseCount('senior_citizens', 2);
-        $this->assertDatabaseHas('senior_citizens', ['middle_name' => 'Beta']);
+        $this->assertDatabaseHas('senior_citizens', ['middle_name' => 'BETA']);
     }
 
     public function test_profile_edits_check_middle_names_and_prevent_identity_collisions(): void
@@ -60,7 +60,7 @@ class OscaConsultationTest extends TestCase
         $this->put(route('senior-citizens.update', $second), $this->registration($second))->assertSessionHasNoErrors();
         $this->put(route('senior-citizens.update', $second), $this->registration($first))->assertSessionHasErrors('first_name');
 
-        $this->assertSame('Beta', $second->fresh()->middle_name);
+        $this->assertSame('BETA', $second->fresh()->middle_name);
     }
 
     public function test_masterlist_filters_programs_and_pensions_and_searches_middle_names(): void

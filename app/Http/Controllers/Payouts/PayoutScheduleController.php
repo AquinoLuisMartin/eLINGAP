@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Payouts\StorePayoutScheduleRequest;
 use App\Models\AuditLog;
 use App\Models\Beneficiary;
+use App\Models\BenefitSchedule;
 use App\Models\Payout;
 use App\Models\PayoutSchedule;
 use App\Models\Program;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PayoutScheduleController extends Controller
@@ -21,15 +24,42 @@ class PayoutScheduleController extends Controller
         Gate::authorize('viewAny', PayoutSchedule::class);
 
         return view('payouts.schedules.index', [
-            'schedules' => PayoutSchedule::query()->with('program')->latest('scheduled_on')->paginate(15),
+            'schedules' => PayoutSchedule::query()->with('program')->latest('scheduled_on')->paginate(15)->withQueryString(),
+            'benefitSchedules' => BenefitSchedule::query()->with('program:id,name')->latest('id')->paginate(15, pageName: 'benefitSchedulesPage')->withQueryString(),
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         Gate::authorize('create', PayoutSchedule::class);
 
-        return view('payouts.schedules.create', ['programs' => Program::query()->whereNull('benefit_code')->orderBy('name')->get(['id', 'name'])]);
+        $canScheduleBenefits = $request->user()->can('manage', BenefitSchedule::class);
+        $selection = $request->validate([
+            'program_id' => $request->input('program_id') === 'other'
+                ? ['nullable', 'in:other']
+                : ['nullable', 'integer', Rule::exists('programs', 'id')],
+            'schedule_id' => ['nullable', 'integer', 'exists:benefit_schedules,id'],
+        ]);
+        $selected = $selection['program_id'] ?? null;
+        $program = filled($selected) && $selected !== 'other' ? Program::findOrFail($selected) : null;
+        $useBenefitForm = $selected === 'other' || $program?->benefit_code !== null;
+        $scheduleId = $selection['schedule_id'] ?? null;
+        if ($scheduleId !== null) {
+            abort_unless($useBenefitForm && $program && BenefitSchedule::query()->where('program_id', $program->id)->whereKey($scheduleId)->exists(), 404);
+        } elseif ($program) {
+            abort_unless(in_array($program->status, ['ACTIVE', 'UPCOMING'], true), 422, 'Select an active or upcoming program.');
+        }
+        if ($useBenefitForm && $scheduleId === null) {
+            Gate::authorize('manage', BenefitSchedule::class);
+        }
+
+        return view('payouts.schedules.create', [
+            'programs' => Program::query()->whereIn('status', ['ACTIVE', 'UPCOMING'])
+                ->when(! $canScheduleBenefits, fn ($query) => $query->whereNull('benefit_code'))
+                ->orderBy('name')->get(['id', 'name']),
+            'selectedProgramId' => $selected, 'selectedProgram' => $program, 'useBenefitForm' => $useBenefitForm,
+            'selectedScheduleId' => $scheduleId, 'canScheduleBenefits' => $canScheduleBenefits,
+        ]);
     }
 
     public function store(StorePayoutScheduleRequest $request): RedirectResponse

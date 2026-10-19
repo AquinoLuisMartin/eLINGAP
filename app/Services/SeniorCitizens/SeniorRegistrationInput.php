@@ -4,6 +4,7 @@ namespace App\Services\SeniorCitizens;
 
 use App\Models\SeniorCitizen;
 use App\Services\Sms\SmsText;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\File;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Validator as InputValidator;
 
 class SeniorRegistrationInput
 {
+    public const UPPERCASE_FIELDS = ['first_name', 'middle_name', 'last_name', 'name_suffix', 'address', 'representative_name', 'representative_relationship'];
+
     public static function requirementsRules(array $input): array
     {
         $checked = ($input['requirements_status'] ?? null) === 'CHECKED';
@@ -28,9 +31,19 @@ class SeniorRegistrationInput
 
     public static function normalize(array $input): array
     {
+        foreach (self::UPPERCASE_FIELDS as $field) {
+            if (is_string($input[$field] ?? null)) {
+                $input[$field] = mb_strtoupper(trim($input[$field]), 'UTF-8');
+            }
+        }
+
         foreach (['contact_number', 'representative_contact'] as $field) {
-            if (is_string($input[$field] ?? null) && $number = SmsText::mobile($input[$field])) {
-                $input[$field] = $number;
+            if (is_string($input[$field] ?? null)) {
+                $local = preg_replace('/[\s()-]/', '', $input[$field]);
+                $number = preg_match('/^9[0-9]{9}\z/', $local) ? '+63'.$local : SmsText::mobile($input[$field]);
+                if ($number !== null) {
+                    $input[$field] = $number;
+                }
             }
         }
 
@@ -40,7 +53,8 @@ class SeniorRegistrationInput
     public static function representativeRules(array $input, ?SeniorCitizen $senior = null): array
     {
         $representative = ($input['applicant_type'] ?? 'SELF') === 'REPRESENTATIVE' || filled($input['representative_contact'] ?? null) || filled($input['representative_name'] ?? null);
-        $changed = ! $senior || collect(['representative_name', 'representative_relationship', 'representative_contact'])->contains(fn ($field) => ($input[$field] ?? null) !== $senior->{$field});
+        $existing = $senior ? self::normalize($senior->only(['representative_name', 'representative_relationship', 'representative_contact'])) : [];
+        $changed = ! $senior || collect(['representative_name', 'representative_relationship', 'representative_contact'])->contains(fn ($field) => ($input[$field] ?? null) !== ($existing[$field] ?? null));
         $proofRequired = $representative && ($changed || ! $senior?->documents()->where('document_type', 'AUTHORIZATION')->exists());
 
         return [
@@ -64,7 +78,7 @@ class SeniorRegistrationInput
             'sex' => ['required', 'string', 'in:MALE,FEMALE,OTHER'], 'civil_status' => ['nullable', 'string', 'in:SINGLE,MARRIED,WIDOWED'],
             'address' => ['required', 'string', 'max:1000'],
             'osca_id_number' => ['missing'],
-            'photo' => ['nullable', 'image', 'mimes:jpeg,png', 'dimensions:max_width=6000,max_height=6000', 'max:2048'],
+            'photo' => ['prohibited'],
             'identification_file' => ['nullable', File::types(['pdf', 'jpg', 'jpeg', 'png'])->max(5120)],
             ...self::representativeRules($input),
         ];
@@ -75,15 +89,20 @@ class SeniorRegistrationInput
         if ($validator->errors()->hasAny(['first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date'])) {
             return;
         }
-        $duplicate = SeniorCitizen::query()->where('birth_date', $input['birth_date'])
-            ->when($senior, fn ($query) => $query->whereKeyNot($senior->id))
-            ->whereRaw('lower(first_name) = ?', [mb_strtolower($input['first_name'])])
-            ->whereRaw("lower(coalesce(middle_name, '')) = ?", [mb_strtolower(trim($input['middle_name'] ?? ''))])
-            ->whereRaw("lower(coalesce(name_suffix, '')) = ?", [mb_strtolower(trim($input['name_suffix'] ?? ''))])
-            ->whereRaw('lower(last_name) = ?', [mb_strtolower($input['last_name'])])->exists();
+        $duplicate = self::identityQuery($input)
+            ->when($senior, fn ($query) => $query->whereKeyNot($senior->id))->exists();
         if ($duplicate) {
             $validator->errors()->add('first_name', 'A senior citizen with this name and birth date already exists.');
         }
+    }
+
+    public static function identityQuery(array $input): Builder
+    {
+        return SeniorCitizen::query()->where('birth_date', $input['birth_date'])
+            ->whereRaw('lower(first_name) = ?', [mb_strtolower($input['first_name'])])
+            ->whereRaw("lower(coalesce(middle_name, '')) = ?", [mb_strtolower(trim($input['middle_name'] ?? ''))])
+            ->whereRaw("lower(coalesce(name_suffix, '')) = ?", [mb_strtolower(trim($input['name_suffix'] ?? ''))])
+            ->whereRaw('lower(last_name) = ?', [mb_strtolower($input['last_name'])]);
     }
 
     public static function validator(array $input, ?array $fields = null): InputValidator
@@ -105,6 +124,8 @@ class SeniorRegistrationInput
         return [
             'photo.max' => 'The photo field must not be greater than 2MB.',
             'birth_date.before_or_equal' => 'The applicant must be at least 60 years old on the application date.',
+            'contact_number.regex' => 'Enter a valid Philippine mobile number: 10 digits starting with 9 after +63 (for example, 967-234-8976).',
+            'representative_contact.regex' => 'Enter a valid representative mobile number: 10 digits starting with 9 after +63 (for example, 967-234-8976).',
         ];
     }
 }

@@ -20,12 +20,15 @@ class UserStatusController extends Controller
             'is_active' => ['required', 'boolean'],
         ]);
 
-        DB::transaction(function () use ($request, $user, $validated): void {
+        $user = DB::transaction(function () use ($request, $user, $validated): User {
+            $user = User::query()->lockForUpdate()->findOrFail($user->id);
             $wasActive = $user->is_active;
             $user->update($validated);
             if ($user->wasChanged('is_active')) {
                 AuditLog::create(['user_id' => $request->user()->id, 'action' => 'user.access_changed', 'auditable_type' => User::class, 'auditable_id' => $user->id, 'old_values' => ['is_active' => $wasActive], 'new_values' => ['is_active' => $user->is_active], 'ip_address' => $request->ip()]);
             }
+
+            return $user;
         });
 
         return back()->with('status', $user->is_active

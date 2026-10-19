@@ -13,7 +13,7 @@ class StoreSeniorCitizenRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->normalizeContacts();
+        $this->normalizeRegistrationInput();
     }
 
     public function authorize(): bool

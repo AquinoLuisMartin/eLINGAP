@@ -13,6 +13,12 @@ use Throwable;
 
 class SeniorRegistration
 {
+    public static function lockIdentityChanges(): void
+    {
+        // Serialize identity changes and historical ID imports until commit.
+        DB::select('select pg_advisory_xact_lock(194701, 1)');
+    }
+
     public function __construct(private SeniorEligibilityRecord $eligibility) {}
 
     public function create(array $input): SeniorCitizen
@@ -22,13 +28,15 @@ class SeniorRegistration
         $paths = [];
         try {
             return DB::transaction(function () use ($data, &$paths) {
+                self::lockIdentityChanges();
+                $data = SeniorRegistrationInput::validator($data)->validate();
                 $senior = SeniorCitizen::create([
                     ...collect($data)->except(['photo', 'authorization_file', 'identification_file', 'requirements_status'])->all(),
                     'registration_number' => 'SC-'.Str::ulid(), 'status' => 'PENDING',
                 ]);
-                foreach (['photo' => 'PHOTO', 'authorization_file' => 'AUTHORIZATION', 'identification_file' => 'IDENTIFICATION'] as $field => $type) {
+                foreach (['authorization_file' => 'AUTHORIZATION', 'identification_file' => 'IDENTIFICATION'] as $field => $type) {
                     if ($file = $data[$field] ?? null) {
-                        $path = $file->store($type === 'PHOTO' ? 'senior-photos' : 'senior-documents', 'local');
+                        $path = $file->store('senior-documents', 'local');
                         $paths[] = $path;
                         $senior->documents()->create(['document_type' => $type, 'path' => $path, 'original_name' => $file->getClientOriginalName(), 'mime_type' => $file->getMimeType(), 'size' => $file->getSize(), 'uploaded_by' => auth()->id()]);
                     }

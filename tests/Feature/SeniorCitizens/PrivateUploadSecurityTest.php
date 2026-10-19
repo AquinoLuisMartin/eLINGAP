@@ -33,7 +33,7 @@ class PrivateUploadSecurityTest extends TestCase
             'requirements_status' => 'REVIEW', 'requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'review_reason' => 'Synthetic document needs checking',
             'barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant',
             'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Synthetic address', 'contact_number' => '09171234567',
-            'photo' => UploadedFile::fake()->createWithContent('synthetic.jpg', file_get_contents(base_path('tests/Fixtures/id-photo.jpg'))),
+            'identification_file' => UploadedFile::fake()->createWithContent('synthetic.pdf', "%PDF-1.4\nSynthetic identification"),
         ])->assertServerError();
 
         $this->assertDatabaseCount('senior_citizens', 0);
@@ -42,7 +42,7 @@ class PrivateUploadSecurityTest extends TestCase
         Exceptions::assertReported(UnableToWriteFile::class);
     }
 
-    public function test_photos_stay_private_when_the_default_disk_is_public(): void
+    public function test_supporting_documents_stay_private_when_the_default_disk_is_public(): void
     {
         Storage::fake('local');
         Storage::fake('public');
@@ -54,21 +54,21 @@ class PrivateUploadSecurityTest extends TestCase
             'requirements_status' => 'REVIEW', 'requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'review_reason' => 'Synthetic document needs checking',
             'barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant',
             'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'contact_number' => '09171234567',
-            'photo' => UploadedFile::fake()->createWithContent('photo.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+nmfwAAAAASUVORK5CYII=')),
+            'identification_file' => UploadedFile::fake()->createWithContent('synthetic.pdf', "%PDF-1.4\nSynthetic identification"),
         ]);
 
         $senior = SeniorCitizen::sole();
         $response->assertRedirect(route('senior-citizens.show', $senior));
-        $photo = $senior->documents()->sole();
-        Storage::disk('local')->assertExists($photo->path);
-        Storage::disk('public')->assertMissing($photo->path);
+        $document = $senior->documents()->sole();
+        Storage::disk('local')->assertExists($document->path);
+        Storage::disk('public')->assertMissing($document->path);
         $this->assertDatabaseHas('audit_logs', ['action' => 'senior_citizen.created', 'user_id' => $staff->id]);
 
-        $photoResponse = $this->get(route('senior-citizens.photo', $senior))->assertOk()
+        $documentResponse = $this->get(route('senior-citizens.document', [$senior, $document->id]))->assertOk()
             ->assertHeader('X-Content-Type-Options', 'nosniff');
-        $this->assertStringContainsString('no-store', $photoResponse->headers->get('Cache-Control'));
+        $this->assertStringContainsString('no-store', $documentResponse->headers->get('Cache-Control'));
 
         auth()->logout();
-        $this->get(route('senior-citizens.photo', $senior))->assertRedirect(route('login'));
+        $this->get(route('senior-citizens.document', [$senior, $document->id]))->assertRedirect(route('login'));
     }
 }
