@@ -2,11 +2,15 @@
 
 namespace Tests\Feature\Programs;
 
+use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Exceptions;
+use RuntimeException;
 use Tests\TestCase;
 
 class ProgramManagementTest extends TestCase
@@ -31,6 +35,21 @@ class ProgramManagementTest extends TestCase
         $this->assertSame('Centenarian Gift Award', $program->name);
         $this->assertSame('UPCOMING', $program->status);
         $this->assertSame($admin->id, $program->created_by);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'program.created', 'auditable_id' => $program->id, 'user_id' => $admin->id]);
+    }
+
+    public function test_program_creation_rolls_back_when_its_crucial_audit_cannot_be_saved(): void
+    {
+        Event::listen('eloquent.creating: '.AuditLog::class, fn () => throw new RuntimeException('Synthetic audit failure'));
+        Exceptions::fake([RuntimeException::class]);
+
+        $this->actingAs(User::factory()->admin()->create())->post(route('administration.programs.store'), [
+            'name' => 'Synthetic program', 'agency' => 'Synthetic agency', 'budget' => 1000,
+        ])->assertServerError();
+
+        $this->assertDatabaseCount('programs', 0);
+        $this->assertDatabaseCount('audit_logs', 0);
+        Exceptions::assertReported(RuntimeException::class);
     }
 
     public function test_staff_cannot_create_a_program(): void

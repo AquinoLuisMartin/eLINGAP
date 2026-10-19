@@ -22,6 +22,15 @@ class AuditResilienceTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_repeated_id_previews_do_not_create_audit_rows(): void
+    {
+        Route::get('/audit-preview', fn () => response('Preview only'))->middleware(['web', AuditActivity::class])->name('senior-citizens.id-card');
+        $this->actingAs(User::factory()->create())->get('/audit-preview')->assertSee('Preview only');
+        $this->get('/audit-preview')->assertSee('Preview only');
+
+        $this->assertDatabaseCount('audit_logs', 0);
+    }
+
     public function test_logging_failure_uses_a_sanitized_fallback_and_preserves_the_response(): void
     {
         $staff = User::factory()->create();

@@ -90,6 +90,9 @@ class Programs extends Component
             $program = $this->editing ? Program::query()->lockForUpdate()->findOrFail($this->editing) : new Program;
             $program->fill(collect($this->form)->only(['name', 'agency', 'government_level', 'status', 'provisional'])->all());
             $program->fill(['benefit_code' => $program->benefit_code ?? 'custom-'.Str::ulid(), 'benefit_rules' => $rules, 'default_amount' => $this->form['default_amount'] ?: null]);
+            if ($program->exists && ! $program->isDirty()) {
+                return;
+            }
             $program->save();
             BenefitAudit::record('benefit.program_configured', $program, ['rules' => $rules, 'default_amount' => $program->default_amount, 'historical_claims_checked' => true]);
         });

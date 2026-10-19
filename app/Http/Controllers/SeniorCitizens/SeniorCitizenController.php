@@ -163,18 +163,28 @@ class SeniorCitizenController extends Controller
                 $validator = validator($data, []);
                 SeniorRegistrationInput::checkDuplicate($validator, $data, $seniorCitizen);
                 $validator->validate();
-                $oldValues = $seniorCitizen->only(array_keys($data));
-                $seniorCitizen->update($data);
+                $before = $seniorCitizen->only(array_keys($data));
+                $seniorCitizen->fill($data);
+                $changedFields = array_keys($seniorCitizen->getDirty());
+                if (! $changedFields && ! $request->hasFile('authorization_file')) {
+                    return;
+                }
+                $oldValues = array_intersect_key($before, array_flip($changedFields));
+                $seniorCitizen->save();
                 if ($proof = $request->file('authorization_file')) {
                     $authorizationPath = $proof->store('senior-documents', 'local');
                     $seniorCitizen->documents()->create(['document_type' => 'AUTHORIZATION', 'path' => $authorizationPath, 'original_name' => $proof->getClientOriginalName(), 'mime_type' => $proof->getMimeType(), 'size' => $proof->getSize(), 'uploaded_by' => $request->user()->id]);
                 }
+                $newValues = $seniorCitizen->only($changedFields);
+                if ($authorizationPath) {
+                    $newValues['authorization_document_added'] = true;
+                }
                 $seniorCitizen->histories()->create([
                     'changed_by' => $request->user()->id,
                     'action' => 'updated',
-                    'changes' => ['from' => $oldValues, 'to' => $seniorCitizen->only(array_keys($data))],
+                    'changes' => ['from' => $oldValues, 'to' => $newValues],
                 ]);
-                $this->recordAudit($request, 'senior_citizen.updated', $seniorCitizen, $oldValues, $seniorCitizen->only(array_keys($data)));
+                $this->recordAudit($request, 'senior_citizen.updated', $seniorCitizen, $oldValues, $newValues);
             });
         } catch (Throwable $exception) {
             if ($authorizationPath) {
@@ -192,6 +202,9 @@ class SeniorCitizenController extends Controller
         DB::transaction(function () use ($request, $seniorCitizen): void {
             $seniorCitizen = SeniorCitizen::query()->lockForUpdate()->findOrFail($seniorCitizen->id);
             abort_if(in_array($seniorCitizen->status, [SeniorCitizenStatus::Deceased, SeniorCitizenStatus::Transferred], true), 409, 'A deceased or transferred record cannot be archived.');
+            if ($seniorCitizen->status === SeniorCitizenStatus::Archived) {
+                return;
+            }
             $old = $seniorCitizen->status->value;
             $seniorCitizen->update(['status' => 'ARCHIVED']);
             $seniorCitizen->histories()->create(['changed_by' => $request->user()->id, 'action' => 'archived', 'changes' => ['from' => $old]]);
@@ -211,7 +224,7 @@ class SeniorCitizenController extends Controller
             'old_values' => $oldValues,
             'new_values' => $newValues,
             'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
+            'user_agent' => mb_substr($request->userAgent() ?? '', 0, 1000),
         ]);
     }
 }

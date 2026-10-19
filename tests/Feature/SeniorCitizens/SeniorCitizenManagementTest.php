@@ -149,6 +149,46 @@ class SeniorCitizenManagementTest extends TestCase
         $this->assertNotNull($audit);
         $this->assertSame('Maria', $audit->old_values['first_name']);
         $this->assertSame('MARIA UPDATED', $audit->new_values['first_name']);
+        $this->assertArrayNotHasKey('birth_date', $audit->new_values);
+        $this->assertArrayNotHasKey('barangay_id', $audit->old_values);
+    }
+
+    public function test_repeating_a_normalized_profile_save_does_not_add_audit_or_history_rows(): void
+    {
+        $senior = $this->seniorCitizen();
+        $data = ['barangay_id' => $senior->barangay_id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Synthetic address', 'contact_number' => '09171234567'];
+        $this->actingAs($this->user('OSCA_STAFF'))->put(route('senior-citizens.update', $senior), $data)->assertRedirect();
+        $this->put(route('senior-citizens.update', $senior), $data)->assertRedirect();
+
+        $this->assertDatabaseCount('audit_logs', 1);
+        $this->assertSame(1, $senior->histories()->count());
+        $this->assertSame('SYNTHETIC', $senior->fresh()->first_name);
+    }
+
+    public function test_repeated_archive_requests_record_one_actual_status_change(): void
+    {
+        $senior = $this->seniorCitizen();
+        $this->actingAs($this->user('ADMIN'))->delete(route('administration.senior-citizens.destroy', $senior))->assertRedirect();
+        $this->delete(route('administration.senior-citizens.destroy', $senior))->assertRedirect();
+
+        $this->assertDatabaseCount('audit_logs', 1);
+        $this->assertSame(1, $senior->histories()->count());
+        $this->assertSame('ARCHIVED', $senior->fresh()->status->value);
+    }
+
+    public function test_new_authorization_evidence_is_audited_even_when_profile_fields_are_unchanged(): void
+    {
+        Storage::fake('local');
+        $senior = $this->seniorCitizen();
+        $data = ['barangay_id' => $senior->barangay_id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Synthetic address', 'contact_number' => '09171234567'];
+        $this->actingAs($this->user('OSCA_STAFF'))->put(route('senior-citizens.update', $senior), $data)->assertRedirect();
+        $this->put(route('senior-citizens.update', $senior), [...$data, 'authorization_file' => UploadedFile::fake()->create('authorization.pdf', 10, 'application/pdf')])->assertRedirect();
+
+        $this->assertDatabaseCount('audit_logs', 2);
+        $audit = AuditLog::latest('id')->firstOrFail();
+        $this->assertSame(['authorization_document_added' => true], $audit->new_values);
+        $this->assertSame([], $audit->old_values);
+        $this->assertSame(1, $senior->documents()->where('document_type', 'AUTHORIZATION')->count());
     }
 
     public function test_death_declaration_requires_valid_date_and_document_and_blocks_edits(): void

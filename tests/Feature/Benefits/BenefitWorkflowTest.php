@@ -840,6 +840,62 @@ class BenefitWorkflowTest extends TestCase
         $component->call('export')->assertStatus(429);
     }
 
+    public function test_unchanged_funding_does_not_add_events_but_changed_funds_are_audited(): void
+    {
+        $schedule = $this->schedule();
+        $service = app(BenefitScheduling::class);
+        $service->fund($schedule, '500.00', '10000.00');
+        $this->assertSame(0, AuditLog::where('action', 'benefit.schedule_funded')->count());
+        $service->fund($schedule, '500', '20000');
+        $service->fund($schedule, '500.00', '20000.00');
+
+        $this->assertSame(1, AuditLog::where('action', 'benefit.schedule_funded')->count());
+        $this->assertSame('20000.00', $schedule->fresh()->available_funds);
+    }
+
+    public function test_identical_recipient_review_is_not_logged_again_but_a_new_reviewer_is_recorded(): void
+    {
+        $this->senior();
+        $schedule = $this->schedule();
+        $entry = $schedule->entitlements()->sole();
+        $service = app(BenefitScheduling::class);
+        $service->review($entry, true, 'Synthetic review');
+        $service->review($entry, true, 'Synthetic review');
+        $this->assertSame(1, AuditLog::where('action', 'benefit.recipient_reviewed')->count());
+        $other = User::factory()->create();
+        $this->actingAs($other);
+        $service->review($entry, true, 'Synthetic review');
+
+        $this->assertSame(2, AuditLog::where('action', 'benefit.recipient_reviewed')->count());
+        $this->assertSame($other->id, $entry->fresh()->reviewed_by);
+    }
+
+    public function test_classification_attestation_is_logged_once_until_eligibility_changes(): void
+    {
+        $senior = $this->senior();
+        $data = ['is_bedridden' => false, 'is_indigent' => false, 'has_national_pension' => false, 'has_local_pension' => false, 'tss_request' => null];
+        $service = app(SeniorEligibilityRecord::class);
+        $service->classify($senior, $data);
+        $service->classify($senior, $data);
+        $this->assertSame(1, AuditLog::where('action', 'senior_citizen.classifications_verified')->count());
+        $service->classify($senior, [...$data, 'is_indigent' => true]);
+
+        $this->assertSame(2, AuditLog::where('action', 'senior_citizen.classifications_verified')->count());
+        $this->assertTrue($senior->fresh()->is_indigent);
+    }
+
+    public function test_saving_unchanged_program_rules_does_not_duplicate_the_configuration_audit(): void
+    {
+        $program = $this->program('december-assistance');
+        $component = Livewire::test(Programs::class)->call('edit', $program->id)->set('historicalClaimsChecked', true)->call('save')->assertHasNoErrors();
+        $component->call('edit', $program->id)->set('historicalClaimsChecked', true)->call('save')->assertHasNoErrors();
+        $this->assertSame(1, AuditLog::where('action', 'benefit.program_configured')->count());
+        $component->call('edit', $program->id)->set('form.name', 'Synthetic revised program')->set('historicalClaimsChecked', true)->call('save')->assertHasNoErrors();
+
+        $this->assertSame(2, AuditLog::where('action', 'benefit.program_configured')->count());
+        $this->assertSame('Synthetic revised program', $program->fresh()->name);
+    }
+
     private function senior(array $attributes = []): SeniorCitizen
     {
         $barangay = Barangay::create(['name' => 'Synthetic Barangay '.Barangay::count(), 'code' => 'T'.Barangay::count()]);

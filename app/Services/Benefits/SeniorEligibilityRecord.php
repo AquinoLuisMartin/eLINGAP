@@ -66,6 +66,10 @@ class SeniorEligibilityRecord
             abort_unless($senior->verified_at && $senior->id_generated_at && $senior->osca_id_number, 422, 'Generate the OSCA ID before assigning benefits or classifications.');
             $fields = ['is_bedridden', 'is_indigent', 'has_national_pension', 'has_local_pension'];
             $before = $senior->only($fields);
+            $senior->forceFill($data);
+            if (! $senior->isDirty(array_keys($data)) && $senior->classification_verified_at && (empty($data['tss_request']) || $senior->tss_verified_at)) {
+                return;
+            }
             $senior->forceFill([
                 ...$data, 'classification_verified_at' => now(), 'classification_verified_by' => auth()->id(),
                 'tss_verified_at' => empty($data['tss_request']) ? null : now(),

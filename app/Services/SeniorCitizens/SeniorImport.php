@@ -123,6 +123,8 @@ class SeniorImport
                 }
                 throw ValidationException::withMessages(['import' => $errors]);
             }
+            $batchId = (string) Str::uuid();
+            $historicalIds = 0;
             foreach ($prepared['rows'] as $row) {
                 if ($row['state'] !== 'ready') {
                     continue;
@@ -132,8 +134,11 @@ class SeniorImport
                     ...collect($data)->except('requirements_status')->all(),
                     'registration_number' => 'SC-'.Str::ulid(), 'status' => 'PENDING',
                 ]);
-                $senior->histories()->create(['changed_by' => auth()->id(), 'action' => 'imported', 'changes' => ['status' => 'PENDING', 'source_row' => $row['row'], 'historical_id_preserved' => filled($senior->osca_id_number)]]);
-                AuditLog::create(['user_id' => auth()->id(), 'action' => 'senior_citizen.imported', 'auditable_type' => SeniorCitizen::class, 'auditable_id' => $senior->id, 'new_values' => ['source_row' => $row['row'], 'historical_id_preserved' => filled($senior->osca_id_number)], 'ip_address' => request()->ip()]);
+                $historicalIds += (int) filled($senior->osca_id_number);
+                $senior->histories()->create(['changed_by' => auth()->id(), 'action' => 'imported', 'changes' => ['batch_id' => $batchId, 'status' => 'PENDING', 'source_row' => $row['row'], 'historical_id_preserved' => filled($senior->osca_id_number)]]);
+            }
+            if ($prepared['ready'] > 0) {
+                AuditLog::create(['user_id' => auth()->id(), 'action' => 'senior_citizen.import_completed', 'new_values' => ['batch_id' => $batchId, 'created' => $prepared['ready'], 'skipped' => $prepared['duplicates'], 'historical_ids_preserved' => $historicalIds], 'ip_address' => request()->ip()]);
             }
 
             return ['created' => $prepared['ready'], 'skipped' => $prepared['duplicates']];

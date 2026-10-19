@@ -62,8 +62,9 @@ class IdAssets
             $senior = SeniorCitizen::query()->lockForUpdate()->findOrFail($senior->id);
             $this->assertEditable($senior);
             // Keep prior signatures privately while excluding them from future prints.
-            $senior->documents()->where('document_type', 'SIGNATURE')->update(['document_type' => 'SIGNATURE_HISTORY']);
-            BenefitAudit::record('senior_citizen.wet_signature_selected', $senior);
+            if ($senior->documents()->where('document_type', 'SIGNATURE')->update(['document_type' => 'SIGNATURE_HISTORY']) > 0) {
+                BenefitAudit::record('senior_citizen.wet_signature_selected', $senior);
+            }
         });
     }
 

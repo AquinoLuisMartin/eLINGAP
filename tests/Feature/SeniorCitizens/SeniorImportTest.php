@@ -61,7 +61,11 @@ class SeniorImportTest extends TestCase
         $this->assertDatabaseCount('beneficiaries', 0);
         $this->assertDatabaseCount('sms_messages', 0);
         $this->assertDatabaseHas('senior_citizen_histories', ['action' => 'imported', 'changed_by' => $staff->id, 'senior_citizen_id' => $senior->id]);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'senior_citizen.imported', 'user_id' => $staff->id, 'auditable_id' => $senior->id]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'senior_citizen.import_completed', 'user_id' => $staff->id]);
+        $audit = AuditLog::sole();
+        $this->assertSame(1, $audit->new_values['created']);
+        $this->assertSame(1, $audit->new_values['historical_ids_preserved']);
+        $this->assertSame($audit->new_values['batch_id'], $senior->histories()->sole()->changes['batch_id']);
         $this->post(route('registrations.import.store', $token), ['reviewed' => 1])->assertStatus(410);
         $this->assertDatabaseCount('senior_citizens', 1);
     }
@@ -157,13 +161,13 @@ class SeniorImportTest extends TestCase
         $this->assertDatabaseCount('audit_logs', 1);
     }
 
-    public function test_a_failed_later_audit_rolls_back_the_whole_batch_and_allows_retry(): void
+    public function test_a_failed_summary_audit_rolls_back_the_whole_batch_and_allows_retry(): void
     {
         $this->actingAs(User::factory()->create());
         $row = $this->row();
         $token = $this->preview([$row, [...$row, 'first_name' => 'Second Synthetic', 'osca_id_number' => '000124']]);
         Event::listen('eloquent.creating: '.AuditLog::class, function (AuditLog $audit): void {
-            if ($audit->action === 'senior_citizen.imported' && $audit->new_values['source_row'] === 3) {
+            if ($audit->action === 'senior_citizen.import_completed') {
                 throw new RuntimeException('Synthetic import audit failure');
             }
         });
@@ -179,7 +183,7 @@ class SeniorImportTest extends TestCase
         Event::forget('eloquent.creating: '.AuditLog::class);
         $this->post(route('registrations.import.store', $token), ['reviewed' => 1])->assertRedirect();
         $this->assertDatabaseCount('senior_citizens', 2);
-        $this->assertDatabaseCount('audit_logs', 2);
+        $this->assertDatabaseCount('audit_logs', 1);
     }
 
     public function test_only_active_staff_can_access_imports_and_templates(): void
@@ -284,7 +288,11 @@ class SeniorImportTest extends TestCase
         $this->get(route('registrations.import.show', [$token, 'page' => 10]))->assertSee('SYNTHETIC 499');
         $this->post(route('registrations.import.store', $token), ['reviewed' => 1])->assertRedirect();
         $this->assertDatabaseCount('senior_citizens', 500);
-        $this->assertDatabaseCount('audit_logs', 500);
+        $this->assertDatabaseCount('audit_logs', 1);
+        $this->assertDatabaseCount('senior_citizen_histories', 500);
+        $audit = AuditLog::sole();
+        $this->assertSame(500, $audit->new_values['created']);
+        $this->assertSame(500, DB::table('senior_citizen_histories')->where('changes->batch_id', $audit->new_values['batch_id'])->count());
     }
 
     public function test_import_content_is_escaped_and_a_busy_preview_cannot_be_confirmed_or_discarded(): void

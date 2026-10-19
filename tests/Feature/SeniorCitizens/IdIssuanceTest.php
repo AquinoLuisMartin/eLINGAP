@@ -4,6 +4,7 @@ namespace Tests\Feature\SeniorCitizens;
 
 use App\Livewire\SeniorCitizens\IdManager;
 use App\Livewire\SeniorCitizens\IdOfficialSettings;
+use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\SeniorCitizen;
 use App\Models\SeniorCitizenIdCredential;
@@ -26,6 +27,22 @@ use Tests\TestCase;
 class IdIssuanceTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_unchanged_id_officials_are_not_logged_again_but_actual_changes_are_recorded(): void
+    {
+        Storage::fake('local');
+        $this->actingAs(User::factory()->create());
+        $names = ['osca_head_name' => 'Synthetic Head', 'municipal_mayor_name' => 'Synthetic Mayor'];
+        $officials = app(IdOfficials::class);
+        $officials->save($names, []);
+        $officials->save($names, []);
+        $this->assertDatabaseCount('audit_logs', 1);
+        $officials->save([...$names, 'osca_head_name' => 'Synthetic Replacement'], []);
+
+        $this->assertDatabaseCount('audit_logs', 2);
+        $audit = AuditLog::latest('id')->firstOrFail();
+        $this->assertSame(['osca_head_name'], $audit->new_values['fields']);
+    }
 
     public function test_issuance_requires_review_without_a_digital_photo(): void
     {
@@ -230,12 +247,16 @@ class IdIssuanceTest extends TestCase
         $senior = $this->senior();
         $assets = app(IdAssets::class);
         $this->assertNull($assets->latest($senior, 'SIGNATURE'));
+        $assets->useWetSignature($senior);
+        $this->assertSame(0, AuditLog::where('action', 'senior_citizen.wet_signature_selected')->count());
         $assets->save($senior, $this->image(), 'SIGNATURE');
         $path = $assets->latest($senior, 'SIGNATURE')->path;
         $assets->useWetSignature($senior);
         $this->assertNull($assets->latest($senior, 'SIGNATURE'));
         Storage::disk('local')->assertExists($path);
         $this->assertDatabaseHas('senior_citizen_documents', ['document_type' => 'SIGNATURE_HISTORY', 'senior_citizen_id' => $senior->id]);
+        $assets->useWetSignature($senior);
+        $this->assertSame(1, AuditLog::where('action', 'senior_citizen.wet_signature_selected')->count());
     }
 
     public function test_id_preparation_uses_physical_photo_and_thumbprint_without_signature_pad(): void

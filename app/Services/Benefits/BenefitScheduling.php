@@ -50,7 +50,6 @@ class BenefitScheduling
             $this->eligibility->periods($schedule->rule_snapshot, $schedule->eligibility_on, $schedule->period_key);
             $token = (string) Str::uuid();
             $schedule->forceFill(['preparation_token' => $token, 'preparation_cursor' => 0, 'preparation_max_id' => SeniorCitizen::query()->max('id') ?? 0])->save();
-            BenefitAudit::record('benefit.preparation_requested', $schedule);
             if (config('queue.default') === 'sync' && ! app()->isProduction()) {
                 $cursor = 0;
                 do {
@@ -75,6 +74,9 @@ class BenefitScheduling
                     throw ValidationException::withMessages(['review' => $reason]);
                 }
                 $this->assignments->assign($senior, $schedule->program);
+                if ($entitlement->reviewed_at && $entitlement->reviewed_by === auth()->id() && $entitlement->review_note === $note) {
+                    return;
+                }
             } else {
                 abort_if(trim($note) === '', 422, 'An exclusion reason is required.');
                 $schedule->recipients()->where('benefit_entitlement_id', $entitlement->id)->update(['outcome' => 'EXCLUDED']);
@@ -122,7 +124,11 @@ class BenefitScheduling
         DB::transaction(function () use ($schedule, $amount, $funds): void {
             $schedule = BenefitSchedule::query()->lockForUpdate()->findOrFail($schedule->id);
             abort_unless($schedule->status === 'DRAFT', 409, 'Approved funding and amounts are immutable.');
-            $schedule->update(['amount' => $amount, 'available_funds' => $funds]);
+            $schedule->fill(['amount' => $amount, 'available_funds' => $funds]);
+            if (! $schedule->isDirty(['amount', 'available_funds'])) {
+                return;
+            }
+            $schedule->save();
             if ($amount !== null) {
                 $schedule->entitlements()->whereNull('amount')->update(['amount' => $amount]);
             }

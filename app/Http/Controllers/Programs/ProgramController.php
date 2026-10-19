@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Programs;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Programs\StoreProgramRequest;
 use App\Models\Program;
+use App\Services\Benefits\BenefitAudit;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -27,7 +29,12 @@ class ProgramController extends Controller
 
     public function store(StoreProgramRequest $request): RedirectResponse
     {
-        $program = Program::create([...$request->validated(), 'created_by' => $request->user()->id, 'status' => 'UPCOMING']);
+        $program = DB::transaction(function () use ($request): Program {
+            $program = Program::create([...$request->validated(), 'created_by' => $request->user()->id, 'status' => 'UPCOMING']);
+            BenefitAudit::record('program.created', $program);
+
+            return $program;
+        });
 
         return redirect()->route('programs.show', $program)->with('status', 'Program created.');
     }

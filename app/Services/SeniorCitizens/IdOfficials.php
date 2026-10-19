@@ -42,11 +42,19 @@ class IdOfficials
                         $values[$key] = null;
                     }
                 }
+                $changed = [];
                 foreach ($values as $key => $value) {
-                    $setting = SystemConfiguration::query()->where('key', $key)->first() ?? new SystemConfiguration;
-                    $setting->forceFill(['key' => $key, 'value' => $value, 'type' => 'string', 'updated_by' => auth()->id()])->save();
+                    $setting = SystemConfiguration::query()->where('key', $key)->lockForUpdate()->first() ?? new SystemConfiguration;
+                    $setting->forceFill(['key' => $key, 'value' => $value, 'type' => 'string']);
+                    if ($setting->exists && ! $setting->isDirty()) {
+                        continue;
+                    }
+                    $setting->forceFill(['updated_by' => auth()->id()])->save();
+                    $changed[] = $key;
                 }
-                BenefitAudit::record('senior_id.officials_updated', new SystemConfiguration, ['fields' => array_keys($values)]);
+                if ($changed) {
+                    BenefitAudit::record('senior_id.officials_updated', new SystemConfiguration, ['fields' => $changed]);
+                }
             });
         } catch (Throwable $exception) {
             Storage::disk('local')->delete($paths);
