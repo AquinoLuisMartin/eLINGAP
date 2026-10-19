@@ -91,7 +91,7 @@ class SchedulePanel extends Component
     public function regenerate(BenefitScheduling $service): void
     {
         $service->prepare($this->schedule());
-        $this->notice = 'Eligible recipient list refreshed.';
+        $this->notice = 'Recipient preparation requested. Review the list once preparation finishes.';
     }
 
     public function fund(BenefitScheduling $service): void

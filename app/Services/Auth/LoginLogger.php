@@ -28,7 +28,7 @@ class LoginLogger
             'username_attempted' => $username === null ? null : mb_substr($username, 0, 100),
             'event' => $event,
             'ip_address' => $this->request->ip(),
-            'user_agent' => $this->request->userAgent(),
+            'user_agent' => mb_substr($this->request->userAgent() ?? '', 0, 1000),
             'success' => $success,
             'failure_reason' => $reason,
         ]);

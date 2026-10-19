@@ -23,10 +23,11 @@ class CheckDeployment extends Command
         $private = is_string($root) && $root !== '' ? realpath($root) : false;
         $public = realpath(public_path());
         $mailer = config('mail.mailers.'.config('mail.default').'.transport');
+        $queue = config('queue.connections.'.config('queue.default'), []);
         $checks = [
             'Production environment' => $this->laravel->isProduction(),
             'Debug disabled' => config('app.debug') === false,
-            'PHP runtime' => PHP_VERSION_ID >= 80300,
+            'PHP runtime' => PHP_VERSION_ID >= 80401,
             'Required PHP extensions' => collect(['ctype', 'curl', 'dom', 'fileinfo', 'filter', 'gd', 'hash', 'mbstring', 'openssl', 'pdo', 'pdo_pgsql', 'session', 'tokenizer', 'xml', 'zip'])->every(fn ($extension) => extension_loaded($extension)),
             'Valid encryption key' => is_string($key) && Encrypter::supported($key, config('app.cipher')),
             'HTTPS application URL' => filter_var($url, FILTER_VALIDATE_URL) !== false
@@ -47,12 +48,20 @@ class CheckDeployment extends Command
             'Development asset server disabled' => ! is_file(public_path('hot')),
             'Environment file outside web root' => ! file_exists(public_path('.env')),
             'Password recovery mail transport' => is_string($mailer) && ! in_array($mailer, ['log', 'array', 'failover', 'roundrobin'], true),
+            'Persistent background queue' => ($queue['driver'] ?? null) === 'database'
+                && ($queue['connection'] ?? config('database.default')) === config('database.default')
+                && ($queue['table'] ?? null) === 'jobs' && ($queue['queue'] ?? null) === 'default',
+            'Verified PostgreSQL TLS' => config('database.connections.'.config('database.default').'.sslmode') === 'verify-full',
         ];
 
         if ($this->option('database')) {
             try {
                 DB::connection()->getPdo();
                 $checks['Database connection'] = true;
+                if (DB::connection()->getDriverName() === 'pgsql') {
+                    $checks['Database TLS active'] = (bool) DB::scalar('SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()');
+                    $checks['Restricted database role'] = ! (bool) DB::scalar("SELECT EXISTS (SELECT 1 FROM pg_roles WHERE (rolsuper OR rolcreatedb OR rolcreaterole OR rolbypassrls) AND pg_has_role(current_user, oid, 'MEMBER'))");
+                }
                 $migrator = $this->laravel->make('migrator');
                 $repository = $migrator->getRepository();
                 $checks['Migrations applied'] = $repository->repositoryExists()

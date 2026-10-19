@@ -13,7 +13,6 @@ use App\Models\LoginLog;
 use App\Models\Payout;
 use App\Models\SeniorCitizen;
 use App\Models\SmsMessage;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class AdminDashboardReport
@@ -82,14 +81,15 @@ class AdminDashboardReport
         $plans = BenefitEntitlement::query()->join('benefit_schedules', 'benefit_entitlements.benefit_schedule_id', '=', 'benefit_schedules.id')
             ->whereIn('benefit_schedules.status', ['APPROVED', 'CLOSED'])
             ->whereBetween('benefit_schedules.scheduled_at', [now()->startOfYear(), now()->endOfYear()])
-            ->selectRaw('benefit_schedules.scheduled_at, sum(benefit_entitlements.amount) as total')
-            ->groupBy('benefit_schedules.scheduled_at')->toBase()->get();
+            ->selectRaw('extract(month from benefit_schedules.scheduled_at at time zone ?)::integer as month, sum(benefit_entitlements.amount) as total', [config('app.timezone')])
+            ->groupBy('month')->toBase()->get();
         $payments = BenefitPayment::query()->whereNull('reversed_at')
             ->whereBetween('paid_at', [now()->startOfYear(), now()->endOfYear()])
-            ->selectRaw('paid_at, sum(amount) as total')->groupBy('paid_at')->toBase()->get();
+            ->selectRaw('extract(month from paid_at at time zone ?)::integer as month, sum(amount) as total', [config('app.timezone')])
+            ->groupBy('month')->toBase()->get();
         foreach (['planned' => $plans, 'released' => $payments] as $key => $totals) {
             foreach ($totals as $row) {
-                $month = Carbon::parse($key === 'planned' ? $row->scheduled_at : $row->paid_at)->setTimezone(config('app.timezone'))->month - 1;
+                $month = (int) $row->month - 1;
                 $index = $quarterly ? intdiv($month, 3) : $month;
                 $buckets[$index][$key] += (float) $row->total;
             }

@@ -115,7 +115,7 @@ Route::middleware(['auth', 'auth.session', 'active', AuditActivity::class])->gro
     Route::get('reports/demographics', DemographicsReportController::class)->name('reports.demographics');
     Route::get('reports/payouts', PayoutReportController::class)->name('reports.payouts');
     Route::get('reports/workspace/{type}', [StaffReportController::class, 'show'])->name('reports.workspace');
-    Route::get('reports/workspace/{type}/export', [StaffReportController::class, 'export'])->name('reports.export');
+    Route::get('reports/workspace/{type}/export', [StaffReportController::class, 'export'])->middleware('throttle:3,1,report-export')->name('reports.export');
 
     Route::get('dashboard', DashboardController::class)
         ->middleware('role:'.UserRole::OscaStaff->value.','.UserRole::Admin->value)

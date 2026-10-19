@@ -12,6 +12,7 @@ use App\Services\Benefits\BenefitScheduling;
 use App\Support\CsvCell;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\View\View;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -74,6 +75,7 @@ class EntitlementReport extends Component
     public function export(): StreamedResponse
     {
         Gate::authorize('viewAny', BenefitSchedule::class);
+        abort_unless(RateLimiter::attempt('benefit-export:'.auth()->id(), 3, fn () => true, 60), 429, 'Please wait before exporting another report.');
         $query = $this->query();
         $first = (clone $query)->withoutEagerLoads()->first(['id']);
         if ($first) {

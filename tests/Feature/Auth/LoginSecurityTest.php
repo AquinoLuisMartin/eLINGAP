@@ -3,15 +3,32 @@
 namespace Tests\Feature\Auth;
 
 use App\Enums\LoginEvent;
+use App\Models\LoginLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\TestWith;
+use RuntimeException;
 use Tests\TestCase;
 
 class LoginSecurityTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_logout_ends_the_session_when_audit_storage_fails(): void
+    {
+        $user = User::factory()->create();
+        Log::spy();
+        Event::listen('eloquent.creating: '.LoginLog::class, fn () => throw new RuntimeException('Synthetic audit failure'));
+
+        $this->actingAs($user)->withSession(['sensitive-session-marker' => 'synthetic'])->post(route('logout'))
+            ->assertRedirect(route('home'))->assertSessionMissing('sensitive-session-marker');
+
+        $this->assertGuest();
+        Log::shouldHaveReceived('warning')->once()->with('Logout audit could not be recorded.');
+    }
 
     public function test_invalid_long_identities_return_a_validation_error_and_are_logged(): void
     {

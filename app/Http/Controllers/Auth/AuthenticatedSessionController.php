@@ -9,8 +9,10 @@ use App\Services\Auth\LoginLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Throwable;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -43,11 +45,15 @@ class AuthenticatedSessionController extends Controller
 
     public function destroy(Request $request, LoginLogger $logger): RedirectResponse
     {
-        $logger->success(LoginEvent::Logout, $request->user());
-
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        try {
+            $logger->success(LoginEvent::Logout, $request->user());
+        } catch (Throwable) {
+            Log::warning('Logout audit could not be recorded.');
+        } finally {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return redirect()->route('home');
     }

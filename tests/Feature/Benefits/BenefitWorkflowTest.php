@@ -3,6 +3,7 @@
 namespace Tests\Feature\Benefits;
 
 use App\Enums\BenefitStatus;
+use App\Jobs\Benefits\PrepareBenefitRecipients;
 use App\Jobs\Sms\SendSmsJob;
 use App\Livewire\Administration\Dashboard;
 use App\Livewire\Benefits\EntitlementReport;
@@ -749,6 +750,94 @@ class BenefitWorkflowTest extends TestCase
         $this->assertSame('FAILED', $message->fresh()->status->value);
         $this->post(route('sms.messages.retry', $message))->assertStatus(422);
         $this->assertSame(BenefitStatus::Unpaid, $second->entitlements()->sole()->status);
+    }
+
+    public function test_background_preparation_is_bounded_and_replaying_a_chunk_does_not_duplicate_recipients(): void
+    {
+        config(['queue.default' => 'database']);
+        for ($index = 0; $index < 101; $index++) {
+            $this->senior();
+        }
+        $schedule = $this->schedule()->fresh();
+        $token = $schedule->preparation_token;
+        $this->assertNotNull($token);
+        $this->assertSame(0, $schedule->entitlements()->count());
+        $this->assertDatabaseCount('jobs', 1);
+
+        DB::connection()->enableQueryLog();
+        DB::connection()->flushQueryLog();
+        app()->call([new PrepareBenefitRecipients($schedule->id, $token, 0, auth()->id()), 'handle']);
+        $queries = DB::connection()->getQueryLog();
+        DB::connection()->disableQueryLog();
+        $this->assertLessThanOrEqual(16, count($queries), 'One hundred recipients should use bounded bulk queries.');
+        $this->assertSame(100, $schedule->entitlements()->count());
+        $cursor = (int) $schedule->fresh()->preparation_cursor;
+        Livewire::test(SchedulePanel::class, ['scheduleId' => $schedule->id])->assertSee('Preparing eligible recipients.')->assertDontSee('Check and include');
+        app()->call([new PrepareBenefitRecipients($schedule->id, $token, 0, auth()->id()), 'handle']);
+        $this->assertSame(100, $schedule->entitlements()->count());
+        app()->call([new PrepareBenefitRecipients($schedule->id, $token, $cursor, auth()->id()), 'handle']);
+
+        $this->assertSame(101, $schedule->entitlements()->count());
+        $this->assertNull($schedule->fresh()->preparation_token);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'benefit.recipients_prepared', 'auditable_id' => $schedule->id, 'user_id' => auth()->id()]);
+    }
+
+    public function test_preparing_schedule_cannot_be_approved_and_cancelled_work_cannot_add_recipients(): void
+    {
+        config(['queue.default' => 'database']);
+        $this->senior();
+        $schedule = $this->schedule()->fresh();
+        Livewire::test(SchedulePanel::class, ['scheduleId' => $schedule->id])->call('approve')->assertStatus(409);
+        $this->assertDatabaseHas('benefit_schedules', ['id' => $schedule->id, 'status' => 'DRAFT']);
+
+        app(BenefitScheduling::class)->cancel($schedule);
+        app()->call([new PrepareBenefitRecipients($schedule->id, $schedule->preparation_token, 0, auth()->id()), 'handle']);
+
+        $this->assertSame(0, $schedule->entitlements()->count());
+        $this->assertNull($schedule->fresh()->preparation_token);
+    }
+
+    public function test_refreshed_preparation_ignores_stale_jobs_and_preserves_existing_reviews(): void
+    {
+        config(['queue.default' => 'database']);
+        $this->senior();
+        $schedule = $this->schedule()->fresh();
+        $oldToken = $schedule->preparation_token;
+        app(BenefitScheduling::class)->prepare($schedule);
+        app()->call([new PrepareBenefitRecipients($schedule->id, $oldToken, 0, auth()->id()), 'handle']);
+        $this->assertSame(0, $schedule->entitlements()->count());
+        $token = $schedule->fresh()->preparation_token;
+        app()->call([new PrepareBenefitRecipients($schedule->id, $token, 0, auth()->id()), 'handle']);
+        $entry = $schedule->entitlements()->sole();
+        app(BenefitScheduling::class)->review($entry, true, 'Synthetic review');
+        app(BenefitScheduling::class)->prepare($schedule);
+        app()->call([new PrepareBenefitRecipients($schedule->id, $schedule->fresh()->preparation_token, 0, auth()->id()), 'handle']);
+        $this->assertSame('Synthetic review', $entry->fresh()->review_note);
+        $this->assertSame(1, $schedule->entitlements()->count());
+    }
+
+    #[TestWith(['amount', '-1'])]
+    #[TestWith(['available_funds', '-1'])]
+    #[TestWith(['status', 'INVALID'])]
+    public function test_database_rejects_invalid_schedule_values(string $field, string $value): void
+    {
+        $schedule = $this->schedule();
+        try {
+            DB::transaction(fn () => DB::table('benefit_schedules')->where('id', $schedule->id)->update([$field => $value]));
+            $this->fail('Invalid schedule data must be rejected by PostgreSQL.');
+        } catch (QueryException $exception) {
+            $this->assertSame('23514', (string) $exception->getCode());
+        }
+        $this->assertDatabaseHas('benefit_schedules', ['id' => $schedule->id, 'status' => 'DRAFT', 'available_funds' => '10000.00']);
+    }
+
+    public function test_repeated_benefit_exports_are_throttled(): void
+    {
+        $component = Livewire::test(EntitlementReport::class);
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            $component->call('export')->assertFileDownloaded('benefit-entitlements.csv');
+        }
+        $component->call('export')->assertStatus(429);
     }
 
     private function senior(array $attributes = []): SeniorCitizen

@@ -3,6 +3,9 @@
     @if (($schedule->rule_snapshot['government_level'] ?? $schedule->program->government_level) !== 'LGU')<p class="my-3 rounded bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950 dark:text-blue-200">External benefit tracking: confirm the provincial or national receipt rather than recording an LGU disbursement.</p>@endif
     @if ($notice)<p class="my-3 text-sm text-emerald-700 dark:text-emerald-300" role="status">{{ $notice }}</p>@endif
     <x-benefit-errors />
+    @if ($schedule->preparation_token)
+        <p wire:poll.10s class="my-3 text-sm" role="status">Preparing eligible recipients. Review and approval will be available when preparation finishes. If preparation stops, use Refresh eligibility list to retry.</p>
+    @endif
     @can('manage', \App\Models\BenefitSchedule::class)
         @if ($schedule->status === 'DRAFT')
             <form wire:submit="fund" class="my-4 flex flex-wrap items-end gap-3">
@@ -13,7 +16,7 @@
             <label class="field-label">Review or exclusion note<textarea wire:model="reviewNote" rows="2" maxlength="1000" placeholder="Required when excluding a recipient"></textarea></label>
             <div class="my-4 flex flex-wrap gap-3">
                 <button type="button" class="secondary-button" wire:click="regenerate" wire:loading.attr="disabled">Refresh eligibility list</button>
-                <button type="button" class="primary-button" wire:click="approve" wire:confirm="Confirm every included recipient was checked and funds are sufficient?" wire:loading.attr="disabled">Approve reviewed list</button>
+                <button type="button" class="primary-button" wire:click="approve" wire:confirm="Confirm every included recipient was checked and funds are sufficient?" wire:loading.attr="disabled" @disabled($schedule->preparation_token)>Approve reviewed list</button>
                 <button type="button" class="secondary-button" wire:click="cancel" wire:confirm="Cancel this draft and keep all benefits pending?" wire:loading.attr="disabled">Cancel draft</button>
             </div>
         @elseif ($schedule->status === 'APPROVED')
@@ -32,7 +35,7 @@
         @forelse ($entries as $entry)
             <tr wire:key="schedule-entry-{{ $entry->id }}"><td><a href="{{ route('senior-citizens.show', $entry->seniorCitizen) }}" class="text-button">{{ $entry->seniorCitizen->full_name }}</a><p class="text-xs text-slate-500">{{ $entry->seniorCitizen->osca_id_number }}</p></td><td>{{ $entry->seniorCitizen->barangay->name }}</td><td>{{ $entry->period_key }}</td><td>{{ $entry->amount === null ? 'Awaiting funds' : 'PHP '.number_format((float) $entry->amount, 2) }}</td><td>{{ $entry->status->label() }}<p class="text-xs text-slate-500">{{ $entry->reviewed_at ? 'Staff checked' : 'Needs staff review' }}</p><p class="text-xs text-slate-500">{{ $entry->seniorCitizen->status->value }}</p></td><td>
                 @can('manage', \App\Models\BenefitSchedule::class)
-                    @if ($schedule->status === 'DRAFT')<div class="flex gap-3"><button type="button" class="text-button" wire:click="review({{ $entry->id }}, true)" wire:loading.attr="disabled">Check and include</button><button type="button" class="text-button" wire:click="review({{ $entry->id }}, false)" wire:loading.attr="disabled">Exclude</button></div>
+                    @if ($schedule->status === 'DRAFT' && ! $schedule->preparation_token)<div class="flex gap-3"><button type="button" class="text-button" wire:click="review({{ $entry->id }}, true)" wire:loading.attr="disabled">Check and include</button><button type="button" class="text-button" wire:click="review({{ $entry->id }}, false)" wire:loading.attr="disabled">Exclude</button></div>
                     @elseif ($schedule->status === 'APPROVED' && $entry->status->value === 'UNPAID')<button type="button" class="primary-button" wire:click="claim({{ $entry->id }})" wire:confirm="Confirm receipt for this senior and generate a unique payment reference?" wire:loading.attr="disabled">{{ ($schedule->rule_snapshot['government_level'] ?? $schedule->program->government_level) === 'LGU' ? 'Confirm payment' : 'Record external receipt' }}</button>@endif
                 @endcan
                 @foreach ($entry->payments as $payment)<p wire:key="schedule-payment-{{ $payment->id }}" class="text-xs">{{ $payment->reference_number }} {{ $payment->reversed_at ? '(reversed)' : '' }}</p>@endforeach

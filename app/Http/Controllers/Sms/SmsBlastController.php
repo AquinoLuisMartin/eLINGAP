@@ -108,7 +108,7 @@ class SmsBlastController extends Controller
             $locked->queued_at = now();
             $locked->save();
             AuditLog::create(['user_id' => $request->user()->id, 'action' => 'sms.retried', 'auditable_type' => SmsMessage::class, 'auditable_id' => $locked->id, 'ip_address' => $request->ip()]);
-            SendSmsJob::dispatch($locked->id)->afterCommit();
+            SendSmsJob::dispatch($locked->id)->onConnection('database-atomic')->beforeCommit();
         });
 
         return back()->with('status', 'Failed SMS queued for retry.');

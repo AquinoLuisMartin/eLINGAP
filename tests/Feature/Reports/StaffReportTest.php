@@ -14,6 +14,17 @@ class StaffReportTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_repeated_exports_are_throttled_per_staff_account(): void
+    {
+        $this->actingAs(User::factory()->create());
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            $this->get(route('reports.export', ['type' => 'masterlist']))->assertOk();
+        }
+        $this->get(route('reports.export', ['type' => 'masterlist']))->assertTooManyRequests();
+        $this->flushSession();
+        $this->actingAs(User::factory()->create())->get(route('reports.export', ['type' => 'masterlist']))->assertOk();
+    }
+
     public function test_transferred_status_is_available_in_preview_and_export(): void
     {
         $barangay = Barangay::create(['name' => 'Synthetic barangay', 'code' => 'SYN']);

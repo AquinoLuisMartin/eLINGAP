@@ -3,6 +3,7 @@
 namespace App\Services\Benefits;
 
 use App\Enums\BenefitStatus;
+use App\Jobs\Benefits\PrepareBenefitRecipients;
 use App\Models\BenefitEntitlement;
 use App\Models\BenefitSchedule;
 use App\Models\BenefitScheduleRecipient;
@@ -46,30 +47,18 @@ class BenefitScheduling
             Program::query()->lockForUpdate()->findOrFail($schedule->program_id);
             $schedule = BenefitSchedule::query()->lockForUpdate()->findOrFail($schedule->id);
             abort_unless($schedule->status === 'DRAFT', 409, 'Only draft schedules may generate recipients.');
-            $periods = $this->eligibility->periods($schedule->rule_snapshot, $schedule->eligibility_on, $schedule->period_key);
-            SeniorCitizen::query()->where('status', 'VERIFIED')->whereNotNull('id_generated_at')
-                ->when($schedule->barangay_ids, fn ($query) => $query->whereIn('barangay_id', $schedule->barangay_ids))
-                ->chunkById(200, function ($seniors) use ($schedule, $periods): void {
-                    foreach ($seniors as $senior) {
-                        foreach ($periods as $period) {
-                            $on = $this->eligibility->periodDate($schedule->rule_snapshot, $schedule->eligibility_on, $period['key']);
-                            if ($this->eligibility->reason($senior, $schedule->rule_snapshot, $on, $period['age'])) {
-                                continue;
-                            }
-                            $amount = $period['age'] ? $schedule->rule_snapshot['milestones'][$period['age']] : $schedule->amount;
-                            $entitlement = BenefitEntitlement::firstOrCreate([
-                                'program_id' => $schedule->program_id, 'senior_citizen_id' => $senior->id, 'period_key' => $period['key'],
-                            ], ['milestone_age' => $period['age'], 'eligibility_on' => $on, 'amount' => $amount, 'rule_snapshot' => $schedule->rule_snapshot]);
-                            $entitlement = BenefitEntitlement::query()->lockForUpdate()->findOrFail($entitlement->id);
-                            if ($entitlement->status === BenefitStatus::Claimed || $entitlement->benefit_schedule_id || $schedule->recipients()->where('benefit_entitlement_id', $entitlement->id)->exists()) {
-                                continue;
-                            }
-                            $entitlement->update(['benefit_schedule_id' => $schedule->id, 'amount' => $entitlement->amount ?? $amount]);
-                            BenefitScheduleRecipient::create(['benefit_schedule_id' => $schedule->id, 'benefit_entitlement_id' => $entitlement->id]);
-                        }
-                    }
-                });
-            BenefitAudit::record('benefit.recipients_prepared', $schedule);
+            $this->eligibility->periods($schedule->rule_snapshot, $schedule->eligibility_on, $schedule->period_key);
+            $token = (string) Str::uuid();
+            $schedule->forceFill(['preparation_token' => $token, 'preparation_cursor' => 0, 'preparation_max_id' => SeniorCitizen::query()->max('id') ?? 0])->save();
+            BenefitAudit::record('benefit.preparation_requested', $schedule);
+            if (config('queue.default') === 'sync' && ! app()->isProduction()) {
+                $cursor = 0;
+                do {
+                    $cursor = app(BenefitRecipientPreparation::class)->process($schedule->id, $token, $cursor, auth()->id(), false);
+                } while ($cursor !== null);
+            } else {
+                PrepareBenefitRecipients::dispatch($schedule->id, $token, 0, auth()->id())->onConnection('database-atomic')->beforeCommit();
+            }
         });
     }
 
@@ -79,7 +68,7 @@ class BenefitScheduling
         DB::transaction(function () use ($entitlement, $include, $note): void {
             $schedule = BenefitSchedule::query()->lockForUpdate()->findOrFail($entitlement->benefit_schedule_id);
             $entitlement = BenefitEntitlement::query()->lockForUpdate()->findOrFail($entitlement->id);
-            abort_unless($schedule->status === 'DRAFT' && $entitlement->benefit_schedule_id === $schedule->id, 409);
+            abort_unless($schedule->status === 'DRAFT' && ! $schedule->preparation_token && $entitlement->benefit_schedule_id === $schedule->id, 409, 'Wait for recipient preparation to finish.');
             if ($include) {
                 $senior = SeniorCitizen::query()->lockForUpdate()->findOrFail($entitlement->senior_citizen_id);
                 if ($reason = $this->eligibility->reason($senior, $entitlement->rule_snapshot, $entitlement->eligibility_on, $entitlement->milestone_age)) {
@@ -101,6 +90,7 @@ class BenefitScheduling
         DB::transaction(function () use ($schedule): void {
             $schedule = BenefitSchedule::query()->lockForUpdate()->findOrFail($schedule->id);
             abort_unless($schedule->status === 'DRAFT', 409);
+            abort_if($schedule->preparation_token, 409, 'Wait for recipient preparation to finish before approval.');
             $recipientCount = $schedule->entitlements()->count();
             if (! $recipientCount || $schedule->entitlements()->where(fn ($query) => $query->whereNull('reviewed_at')->orWhereNull('amount'))->exists()) {
                 throw ValidationException::withMessages(['approval' => 'Review every included recipient and set an amount before approval.']);
@@ -148,7 +138,7 @@ class BenefitScheduling
             abort_unless($schedule->status === 'DRAFT', 409);
             $schedule->entitlements()->update(['benefit_schedule_id' => null, 'status' => BenefitStatus::Pending->value, 'reviewed_at' => null, 'reviewed_by' => null]);
             $schedule->recipients()->update(['outcome' => 'PENDING']);
-            $schedule->update(['status' => 'CANCELLED']);
+            $schedule->forceFill(['status' => 'CANCELLED', 'preparation_token' => null])->save();
             BenefitAudit::record('benefit.schedule_cancelled', $schedule);
         });
     }
@@ -175,6 +165,7 @@ class BenefitScheduling
             $target = $schedules->get($target->id);
             $entitlement = BenefitEntitlement::query()->lockForUpdate()->findOrFail($entitlement->id);
             abort_unless($target->status === 'DRAFT' && $target->program_id === $entitlement->program_id, 422, 'Use a draft schedule for the same program.');
+            abort_if($target->preparation_token, 409, 'Wait for recipient preparation to finish before rescheduling.');
             abort_if($entitlement->status === BenefitStatus::Claimed, 409, 'Claimed benefits cannot be rescheduled.');
             if ($entitlement->benefit_schedule_id) {
                 abort_unless($schedules->get($entitlement->benefit_schedule_id)?->status === 'CLOSED', 409, 'Close the previous schedule before rescheduling.');

@@ -13,6 +13,8 @@ class DeploymentCheckTest extends TestCase
     #[TestWith(['app.key', null, 'Valid encryption key'])]
     #[TestWith(['filesystems.disks.local.root', '', 'Private local uploads'])]
     #[TestWith(['cache.default', 'missing-store', 'Persistent sessions and cache'])]
+    #[TestWith(['database.connections.pgsql.sslmode', 'prefer', 'Verified PostgreSQL TLS'])]
+    #[TestWith(['queue.default', 'sync', 'Persistent background queue'])]
     public function test_missing_configuration_fails_safely(string $key, mixed $value, string $check): void
     {
         config([$key => $value]);
@@ -42,8 +44,7 @@ class DeploymentCheckTest extends TestCase
 
     public function test_configured_prerequisites_pass_and_public_uploads_are_rejected(): void
     {
-        Storage::fake('deployment');
-        $disk = Storage::disk('deployment');
+        $disk = Storage::fake('local');
         $disk->makeDirectory('public/build/assets');
         $disk->makeDirectory('private');
         $this->app->usePublicPath($disk->path('public'));
@@ -60,6 +61,7 @@ class DeploymentCheckTest extends TestCase
             'session.same_site' => 'lax', 'session.encrypt' => true, 'session.driver' => 'database',
             'cache.default' => 'database', 'filesystems.disks.local.driver' => 'local',
             'filesystems.disks.local.root' => $disk->path('private'), 'mail.default' => 'smtp',
+            'queue.default' => 'database', 'database.connections.pgsql.sslmode' => 'verify-full',
         ]);
 
         $this->assertSame(0, Artisan::call('app:check-deployment', ['--json' => true]), Artisan::output());
@@ -82,8 +84,7 @@ class DeploymentCheckTest extends TestCase
 
     public function test_missing_build_files_cannot_pass_with_a_manifest_alone(): void
     {
-        Storage::fake('deployment');
-        $disk = Storage::disk('deployment');
+        $disk = Storage::fake('local');
         $disk->put('public/build/manifest.json', '{"resources/css/app.css":{"file":"missing.css"}}');
         $this->app->usePublicPath($disk->path('public'));
 

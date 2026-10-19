@@ -31,6 +31,16 @@ return [
 
     'connections' => [
 
+        // Domain records and queued work commit on the same database connection.
+        'database-atomic' => [
+            'driver' => 'database',
+            'connection' => null,
+            'table' => 'jobs',
+            'queue' => 'default',
+            'retry_after' => 90,
+            'after_commit' => false,
+        ],
+
         'sync' => [
             'driver' => 'sync',
         ],
