@@ -2,8 +2,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
         <div class="max-w-4xl">
             <img src="{{ asset('images/eLINGAP.png') }}" alt="eLINGAP logo" class="mb-5 size-24 object-contain" width="96" height="96" loading="lazy">
-            <p class="text-xs font-semibold tracking-[0.15em] text-osca-primary uppercase">About eLINGAP</p>
-            <h1 id="about-elingap-title" class="mt-2 text-slate-900 text-3xl sm:text-4xl font-semibold tracking-tight">Dedicated to the Dignity and Welfare of Our Elders</h1>
+            <h1 id="about-elingap-title" class="text-slate-900 text-3xl sm:text-4xl font-semibold tracking-tight">About eLINGAP</h1>
             <p class="mt-5 text-slate-600 text-sm sm:text-base leading-relaxed max-w-3xl">
                 eLINGAP supports the Office of the Senior Citizens Affairs (OSCA) in Santa Maria, Bulacan with organized senior citizen records, benefit coordination, and SMS notifications. It helps authorized staff review information and keep seniors and their recorded representatives informed.
             </p>
