@@ -373,11 +373,6 @@
         max-width: 100%;
     }
 
-    .landing-page #hero {
-        background: var(--color-osca-muted);
-        border-bottom: 1px solid var(--color-osca-border);
-    }
-
     .landing-page :where(a, button, input, select, textarea):focus-visible {
         outline: 2px solid var(--color-osca-primary);
         outline-offset: 4px;
@@ -407,5 +402,12 @@
 
     .landing-page footer {
         border-top: 1px solid var(--color-osca-border);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .landing-page *, .landing-page *::before, .landing-page *::after {
+            scroll-behavior: auto !important;
+            transition: none !important;
+        }
     }
 }

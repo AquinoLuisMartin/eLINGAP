@@ -1,30 +1,29 @@
-<section id="about-view" class="hidden bg-white text-slate-900" aria-labelledby="about-elingap-title">
+<section id="about-view" class="hidden min-h-[65vh] bg-slate-50 text-slate-900" aria-labelledby="about-elingap-title">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
         <div class="max-w-4xl">
             <img src="{{ asset('images/eLINGAP.png') }}" alt="eLINGAP logo" class="mb-5 size-24 object-contain" width="96" height="96" loading="lazy">
-            <span class="text-blue-700 font-normal text-sm">About the Platform</span>
+            <p class="text-xs font-semibold tracking-[0.15em] text-osca-primary uppercase">About eLINGAP</p>
             <h1 id="about-elingap-title" class="mt-2 text-slate-900 text-3xl sm:text-4xl font-semibold tracking-tight">Dedicated to the Dignity and Welfare of Our Elders</h1>
-            <p class="text-slate-600 text-sm sm:text-base leading-relaxed max-w-3xl">
-                eLINGAP is the dedicated digital records management and automated SMS notification system of the Office of the Senior Citizens Affairs (OSCA) in the Municipality of Santa Maria, Bulacan. Built to modernize welfare services, it replaces manual paper records with a unified digital registry, streamlined benefit verification, and direct mobile updates sent to every senior household.
+            <p class="mt-5 text-slate-600 text-sm sm:text-base leading-relaxed max-w-3xl">
+                eLINGAP supports the Office of the Senior Citizens Affairs (OSCA) in Santa Maria, Bulacan with organized senior citizen records, benefit coordination, and SMS notifications. It helps authorized staff review information and keep seniors and their recorded representatives informed.
             </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
-            <article class="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+            <article class="bg-white rounded-xl border border-slate-200 p-6">
                 <h2 class="text-slate-900 font-semibold text-lg">Unified Masterlist</h2>
                 <p class="mt-2 text-sm text-slate-600 leading-relaxed">A centralized registry connecting senior citizen records across participating barangays.</p>
             </article>
-            <article class="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+            <article class="bg-white rounded-xl border border-slate-200 p-6">
                 <h2 class="text-slate-900 font-semibold text-lg">Automated SMS Broadcasts</h2>
-                <p class="mt-2 text-sm text-slate-600 leading-relaxed">Direct mobile notifications for social pension distributions, free medical missions, and barangay assemblies.</p>
+                <p class="mt-2 text-sm text-slate-600 leading-relaxed">Office announcements and confirmed payout details sent to registered mobile numbers.</p>
             </article>
-            <article class="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+            <article class="bg-white rounded-xl border border-slate-200 p-6">
                 <h2 class="text-slate-900 font-semibold text-lg">Paperless Verification</h2>
-                <p class="mt-2 text-sm text-slate-600 leading-relaxed">Instant frontline validation of OSCA IDs, booklets, and subsidies to eliminate lengthy office queues.</p>
+                <p class="mt-2 text-sm text-slate-600 leading-relaxed">Staff review of registration documents, ID issuance, and benefit eligibility in a shared workspace.</p>
             </article>
         </div>
 
-        <p class="text-xs text-slate-400 mt-8">Operating in full compliance with Republic Act No. 7432 and Republic Act No. 9994 (Expanded Senior Citizens Act).</p>
-        <button type="button" data-view="home" class="mt-6 bg-[#0B3B75] hover:bg-blue-900 text-white font-medium px-6 py-2.5 rounded-lg text-sm transition">Back to Home</button>
+        <button type="button" data-view="home" class="mt-8 inline-flex min-h-11 cursor-pointer items-center gap-3 rounded-lg bg-osca-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-osca-primary-dark"><span aria-hidden="true">&larr;</span>Back to home</button>
     </div>
 </section>

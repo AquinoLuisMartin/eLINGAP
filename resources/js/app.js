@@ -109,6 +109,12 @@ function initMobileMenu() {
     menu.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', () => closeMobileMenu(menu, bars, close, btn));
     });
+
+    menu.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        closeMobileMenu(menu, bars, close, btn);
+        btn.focus();
+    });
 }
 
 function closeMobileMenu(menu, bars, close, btn) {
@@ -152,7 +158,7 @@ function initModal(prefix) {
 function openModal(modal, focusTarget) {
     // Close mobile menu if open
     const menu = document.getElementById('mobile-menu');
-    if (menu) menu.classList.add('hidden');
+    if (menu) closeMobileMenu(menu, document.getElementById('menu-icon-bars'), document.getElementById('menu-icon-close'), document.getElementById('mobile-menu-btn'));
 
     modalTriggers.set(modal, document.activeElement);
     modal.dataset.bodyOverflow = document.body.style.overflow;
@@ -205,7 +211,7 @@ function initPasswordToggle() {
 function initBackToTop() {
     document.querySelectorAll('[data-back-to-top]').forEach(button => {
         button.addEventListener('click', () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
         });
     });
 }
@@ -218,21 +224,22 @@ function initViewSwitcher() {
 
     if (!landingView || !aboutView) return;
 
-    const setView = (view) => {
+    const setView = (view, scroll = true) => {
         const showingAbout = view === 'about';
         landingView.classList.toggle('hidden', showingAbout);
         aboutView.classList.toggle('hidden', !showingAbout);
 
         viewLinks.forEach(link => {
-            const active = link.dataset.view === view;
-            link.classList.toggle('text-osca-primary', active);
-            link.classList.toggle('font-semibold', active);
-            link.classList.toggle('border-b-2', active);
-            link.classList.toggle('border-osca-primary', active);
-            link.classList.toggle('bg-osca-muted', active);
+            if (link.dataset.view === view) link.setAttribute('aria-current', 'page');
+            else link.removeAttribute('aria-current');
         });
 
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (scroll) {
+            const heading = (showingAbout ? aboutView : landingView).querySelector('h1');
+            heading.setAttribute('tabindex', '-1');
+            heading.focus({ preventScroll: true });
+            window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+        }
     };
 
     links.forEach(link => {
@@ -242,7 +249,11 @@ function initViewSwitcher() {
         });
     });
 
-    setView('home');
+    document.querySelectorAll('[data-home-section]').forEach(link => {
+        link.addEventListener('click', () => setView('home', false));
+    });
+
+    setView(window.location.hash === '#about-view' ? 'about' : 'home', false);
 }
 
 // Close all modals on Escape key

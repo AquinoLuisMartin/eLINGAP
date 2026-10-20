@@ -33,8 +33,8 @@ class PublicContentTest extends TestCase
     {
         $this->get($path)->assertOk()
             ->assertSee('No active programs are currently published.')
-            ->assertSee('Office email not configured.')
-            ->assertSee('Office phone not configured.');
+            ->assertSee('Contact OSCA Santa Maria, Bulacan for directions to the office.')
+            ->assertSee('Please confirm current office hours before your visit.');
     }
 
     #[TestWith(['/'])]
