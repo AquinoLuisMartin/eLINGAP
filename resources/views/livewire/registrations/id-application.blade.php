@@ -26,16 +26,15 @@
     @if ($modal) role="dialog" aria-modal="true" aria-labelledby="id-application-title" x-trap.inert.noscroll="true" @keydown.escape.window="$wire.cancel()" @endif>
     <div class="mx-auto w-full max-w-4xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900" @if ($modal) style="max-height: 90dvh; overflow-y: auto" @endif>
         <header class="flex items-start justify-between gap-4 border-b border-slate-200 p-5 sm:p-6 dark:border-slate-700">
-            <div><p class="section-kicker">Central senior registration</p><h2 id="id-application-title" class="mt-1 text-xl font-semibold sm:text-2xl">New ID Application</h2><p class="mt-2 max-w-xl text-sm text-slate-500">Check requirements, register the senior, and continue to ID preparation.</p></div>
+            <div><h2 id="id-application-title" class="text-xl font-semibold sm:text-2xl">New ID Application</h2><p class="mt-2 max-w-xl text-sm text-slate-500">Check requirements, register the senior, and continue to ID preparation.</p></div>
             <button type="button" wire:click="cancel" class="icon-button shrink-0" aria-label="Close ID application"><x-admin.icon name="x" size="20" /></button>
         </header>
         <nav aria-label="ID application progress" class="border-b border-slate-200 px-3 py-5 sm:px-8 dark:border-slate-700">
-            <ol class="flex max-w-2xl gap-2">
+            <ol class="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 @foreach ([0 => 'Requirements', 1 => 'Personal Info', 2 => 'Address & Applicant', 3 => 'Confirm & Save'] as $number => $label)
-                    <li wire:key="registration-step-{{ $number }}" class="relative flex flex-1 flex-col items-center gap-2 text-center" @if ($step === $number) aria-current="step" @endif>
-                        @if ($number < 3)<span aria-hidden="true" @class(['absolute left-1/2 top-5 h-px w-full', 'bg-osca-primary' => $step > $number, 'bg-slate-200 dark:bg-slate-700' => $step <= $number])></span>@endif
-                        <span @class(['relative z-10 flex size-10 items-center justify-center rounded-full border-2 text-sm font-medium', 'border-osca-primary bg-osca-primary text-white' => $step >= $number, 'border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900' => $step < $number])>{{ $number + 1 }}</span>
-                        <span @class(['relative px-1 text-xs font-semibold sm:text-sm', 'text-osca-primary dark:text-blue-300' => $step === $number, 'text-slate-500' => $step !== $number])>{{ $label }}</span>
+                    <li wire:key="registration-step-{{ $number }}" @class(['border-b-2 pb-3', 'border-osca-primary' => $step === $number, 'border-slate-200 dark:border-slate-700' => $step !== $number]) @if ($step === $number) aria-current="step" @endif>
+                        <span class="block text-xs text-slate-500">Step {{ $number + 1 }}</span>
+                        <span @class(['mt-1 block text-sm font-medium', 'text-osca-primary dark:text-blue-300' => $step === $number, 'text-slate-500' => $step !== $number])>{{ $label }}</span>
                     </li>
                 @endforeach
             </ol>
@@ -114,7 +113,7 @@
                     @error('informationReviewed')<p class="text-sm text-red-700 dark:text-red-300" role="alert">{{ $message }}</p>@enderror
                 @endif
             </div>
-            <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:px-6 dark:border-slate-700 dark:bg-slate-800">
+            <footer class="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:px-6 dark:border-slate-700 dark:bg-slate-800">
                 <button type="button" class="secondary-button" wire:click="{{ $step > 0 ? 'back' : 'cancel' }}" wire:loading.attr="disabled">{{ $step > 0 ? 'Back' : 'Cancel' }}</button>
                 <div class="flex flex-wrap items-center gap-3"><span wire:loading wire:target="next,submit" class="text-sm text-slate-500" role="status">{{ $step === 3 ? 'Saving application...' : 'Checking details...' }}</span><button type="submit" class="primary-button disabled:cursor-not-allowed disabled:opacity-50" wire:loading.attr="disabled" @disabled($step === 1 && ($this->age === null || $this->age < 60))>{{ $step === 3 ? ($form['requirements_status'] === 'CHECKED' ? 'Save and prepare ID' : 'Save for review') : 'Continue' }}<x-admin.icon name="chevron-right" size="16" /></button></div>
             </footer>

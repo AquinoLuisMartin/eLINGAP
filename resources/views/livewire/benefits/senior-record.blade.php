@@ -40,13 +40,13 @@
     </x-benefit-panel>
     <x-benefit-panel>
         <h2 class="text-xl font-semibold">Benefit and Payment History</h2>
-        <div class="table-scroll mt-4"><table><thead><tr><th scope="col">Program</th><th scope="col">Original period</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Payment references</th></tr></thead><tbody>
+        <x-staff.table label="Senior benefit history" class="mt-4"><table><thead><tr><th scope="col">Program</th><th scope="col">Original period</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Payment references</th></tr></thead><tbody>
             @forelse ($entitlements as $entry)
                 <tr wire:key="senior-entitlement-{{ $entry->id }}"><td>{{ $entry->program->name }}</td><td>{{ $entry->period_key }}</td><td>{{ $entry->amount === null ? 'Awaiting funds' : 'PHP '.number_format((float) $entry->amount, 2) }}</td><td>{{ $entry->status->label() }}</td><td>@foreach ($entry->payments as $payment)<p wire:key="senior-payment-{{ $payment->id }}">{{ $payment->reference_number }} {{ $payment->reversed_at ? '(reversed)' : '' }}</p>@endforeach</td></tr>
             @empty
                 <tr><td colspan="5">No benefit entitlements prepared yet.</td></tr>
             @endforelse
-        </tbody></table></div>
+        </tbody></table></x-staff.table>
         {{ $entitlements->links() }}
     </x-benefit-panel>
 </div>

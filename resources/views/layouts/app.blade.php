@@ -27,7 +27,7 @@
     @php($isAdmin = $user->isAdmin())
     @php($portalLabel = $isAdmin ? 'System Administration' : 'OSCA Staff Portal')
     @php($lastLoginAt = array_key_exists('last_login_at', $user->getAttributes()) ? $user->last_login_at : null)
-    <div class="admin-shell staff-shell" x-data="{
+    <div class="admin-shell staff-shell {{ $isAdmin ? '' : 'osca-workspace' }}" x-data="{
         sidebarOpen: false,
         sidebarTrigger: null,
         adminOpen: true,

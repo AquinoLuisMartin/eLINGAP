@@ -1,13 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
-<section class="welcome-row">
-    <div>
-        <p class="section-kicker">{{ now()->format('l, F j, Y') }}</p>
-        <h2>Staff dashboard</h2>
-        <p class="section-subtitle">Current registry and processing activity across OSCA Santa Maria.</p>
-    </div>
-</section>
+<x-staff.page-header title="Staff dashboard" description="Current registry, benefit activity, and records needing attention.">
+    <a href="{{ route('registrations.index') }}" class="primary-button">Review registrations</a>
+    <a href="{{ route('benefits.workspace') }}" class="secondary-button">Open benefits</a>
+</x-staff.page-header>
 
 <section class="mb-4 grid gap-3 xl:grid-cols-2" aria-label="Dashboard totals">
     <div class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
@@ -81,7 +78,6 @@
         <div class="activity-list">
             @forelse ($genders as $sex => $count)
                 <div class="task-row">
-                    <span class="task-icon blue"><x-admin.icon name="users" size="15" /></span>
                     <div><strong>{{ ucfirst(strtolower($sex)) }}</strong><small>Verified senior citizens</small></div>
                     <strong>{{ number_format($count) }}</strong>
                 </div>
@@ -98,7 +94,6 @@
         <div class="activity-list">
             @forelse ($statuses as $status => $count)
                 <div class="task-row">
-                    <span class="task-icon mint"><x-admin.icon name="clipboard-list" size="15" /></span>
                     <div><span><x-badge :status="$status" /></span><small>Registry records</small></div>
                     <strong>{{ number_format($count) }}</strong>
                 </div>

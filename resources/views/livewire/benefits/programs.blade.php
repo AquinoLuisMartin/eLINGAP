@@ -1,10 +1,9 @@
 <div class="space-y-6">
-    <section class="page-intro">
-        <div><p class="section-kicker">Central benefits registry</p><h2>Program Rules</h2><p class="section-subtitle">LGU payouts are prioritized. Provincial and national receipt records are tracked separately.</p></div>
+    <x-staff.page-header title="Program rules" description="Configure eligibility, amounts, and program status. Provincial and national receipts are tracked separately.">
         @can('manage', \App\Models\BenefitSchedule::class)
             <button type="button" class="primary-button" wire:click="installCatalog" wire:loading.attr="disabled">Initialize approved programs</button>
         @endcan
-    </section>
+    </x-staff.page-header>
     @if ($notice)<p class="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200" role="status">{{ $notice }}</p>@endif
     <x-benefit-errors />
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

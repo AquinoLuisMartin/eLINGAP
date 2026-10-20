@@ -3,6 +3,7 @@
 @import './dropdowns.css';
 @import './uploads.css';
 @import './textareas.css';
+@import './staff-workspace.css';
 
 [hidden] { display: none !important; }
 @custom-variant dark (&:where(.dark, .dark *, .theme-dark, .theme-dark *));
@@ -260,6 +261,28 @@
 
 .registry-filters .field-label { margin-top: 0; }
 
+.staff-shell .registry-workspace {
+    font-family: var(--font-sans);
+}
+
+.staff-shell .registry-workspace :where(a, button) {
+    font-family: inherit;
+}
+
+.staff-shell .registry-workspace .field-label {
+    margin: 0;
+}
+
+.staff-shell .registry-workspace summary:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+}
+
+.staff-shell .registry-workspace .table-scroll:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: -2px;
+}
+
 .registration-filters .field-label { margin-top: 0; }
 
 .barangay-filter-trigger {
@@ -284,13 +307,14 @@
 
 .barangay-filter-options {
     position: absolute;
+    display: flex;
+    flex-direction: column;
     top: calc(100% + 6px);
     inset-inline: 0;
     z-index: 30;
     max-height: min(16rem, 40vh);
-    overflow-y: auto;
+    overflow: hidden;
     overscroll-behavior: contain;
-    padding: 4px;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: var(--white);

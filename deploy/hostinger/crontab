@@ -1,0 +1,1 @@
+* * * * * www-data cd /var/www/elingap/current && /usr/bin/flock -n /var/www/elingap/shared/storage/framework/scheduler.lock /usr/bin/php artisan schedule:run >> /var/www/elingap/shared/storage/logs/scheduler.log 2>&1

@@ -88,11 +88,14 @@ class BenefitSms
             }
             $blast = SmsBlast::create(['created_by' => auth()->id(), 'barangay_id' => $barangay, 'benefit_schedule_id' => $schedule->id, 'approval_hash' => $previewHash, 'message' => $message, 'recipient_count' => $preview['eligible'], 'excluded_count' => $preview['excluded']]);
             $this->entries($schedule, $barangay)->chunkById(200, function ($entries) use ($blast, $message): void {
+                $messages = [];
                 foreach ($entries as $entry) {
                     if ($this->eligible($entry) && $number = $entry->seniorCitizen->smsContact()) {
-                        app(SmsService::class)->queue($number, $this->personalize($message, $entry), auth()->id(), $entry->senior_citizen_id, $blast->id, $entry->id);
+                        $messages[] = ['recipient_number' => $number, 'message' => $this->personalize($message, $entry), 'created_by' => auth()->id(),
+                            'senior_citizen_id' => $entry->senior_citizen_id, 'sms_blast_id' => $blast->id, 'benefit_entitlement_id' => $entry->id];
                     }
                 }
+                app(SmsService::class)->queueMany($messages);
             });
             BenefitAudit::record('benefit.sms_approved', $blast, ['schedule_id' => $schedule->id, 'recipients' => $preview['eligible']]);
 

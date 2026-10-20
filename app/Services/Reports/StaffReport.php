@@ -31,12 +31,14 @@ class StaffReport
     {
         return match ($type) {
             'masterlist', 'milestones', 'archived' => $this->seniors($type, $filters),
-            'applications' => Application::query()->with(['seniorCitizen.barangay', 'program'])
+            'applications' => Application::query()->select(['id', 'senior_citizen_id', 'program_id', 'application_number', 'applied_on', 'status'])
+                ->with(['seniorCitizen:id,barangay_id,first_name,middle_name,last_name,name_suffix', 'seniorCitizen.barangay:id,name', 'program:id,name'])
                 ->when($filters['barangay_id'] ?? null, fn ($query, $id) => $query->whereHas('seniorCitizen', fn ($senior) => $senior->where('barangay_id', $id)))
                 ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
                 ->when($filters['from'] ?? null, fn ($query, $date) => $query->whereDate('applied_on', '>=', $date))
                 ->when($filters['to'] ?? null, fn ($query, $date) => $query->whereDate('applied_on', '<=', $date)),
-            'payouts', 'proxy' => Payout::query()->with(['seniorCitizen.barangay', 'schedule.program'])
+            'payouts', 'proxy' => Payout::query()->select(['id', 'senior_citizen_id', 'payout_schedule_id', 'amount', 'claimant_name', 'status'])
+                ->with(['seniorCitizen:id,barangay_id,osca_id_number,first_name,middle_name,last_name,name_suffix', 'seniorCitizen.barangay:id,name', 'schedule:id,program_id', 'schedule.program:id,name'])
                 ->when($type === 'proxy', fn ($query) => $query->where('claimant_type', 'PROXY')->where('status', 'RELEASED'))
                 ->when($filters['barangay_id'] ?? null, fn ($query, $id) => $query->whereHas('seniorCitizen', fn ($senior) => $senior->where('barangay_id', $id)))
                 ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
@@ -48,7 +50,8 @@ class StaffReport
 
     private function seniors(string $type, array $filters): Builder
     {
-        return SeniorCitizen::query()->with('barangay')
+        return SeniorCitizen::query()->select(['id', 'barangay_id', 'osca_id_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'status'])
+            ->with('barangay:id,name')
             ->when($type === 'archived', fn ($query) => $query->whereIn('status', ['ARCHIVED', 'DECEASED', 'TRANSFERRED']))
             ->when($type === 'milestones', function ($query) use ($filters) {
                 $age = $filters['milestone'] ?? $this->milestoneAges()->first();

@@ -38,7 +38,7 @@ class SeniorCitizenController extends Controller
             'sort' => ['nullable', 'in:id,last_name,first_name,middle_name,benefits'],
             'direction' => ['nullable', 'in:asc,desc'],
         ]);
-        $query = SeniorCitizen::query()->with(['barangay', 'activeAssignments.program'])
+        $query = SeniorCitizen::query()->with(['barangay:id,name', 'activeAssignments:id,senior_citizen_id,program_id', 'activeAssignments.program:id,name'])
             ->when($filters['search'] ?? null, fn ($query, $search) => $query->searchable($search))
             ->when($filters['barangay_id'] ?? null, fn ($query, $id) => $query->where('barangay_id', $id))
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
@@ -67,13 +67,18 @@ class SeniorCitizenController extends Controller
             $query->orderBy($sort, $direction);
         }
 
+        $counts = (clone $query)->reorder()->toBase()->selectRaw(
+            'count(*) as total, count(case when birth_date > ? then 1 end) as age_60_69, count(case when birth_date between ? and ? then 1 end) as age_70_79, count(case when birth_date <= ? then 1 end) as age_80_plus',
+            [today()->subYears(70), today()->subYears(80)->addDay(), today()->subYears(70), today()->subYears(80)]
+        )->first();
+
         return view('senior-citizens.index', [
-            'seniorCitizens' => (clone $query)->orderBy('id')->paginate(15)->withQueryString(),
+            'seniorCitizens' => (clone $query)->select(['id', 'barangay_id', 'osca_id_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'status', 'verified_at', 'id_generated_at', 'has_national_pension', 'has_local_pension'])->orderBy('id')->paginate(15)->withQueryString(),
             'counts' => [
-                'Total registry' => (clone $query)->count(),
-                'Age 60–69' => (clone $query)->where('birth_date', '>', today()->subYears(70))->count(),
-                'Age 70–79' => (clone $query)->whereBetween('birth_date', [today()->subYears(80)->addDay(), today()->subYears(70)])->count(),
-                'Age 80+' => (clone $query)->where('birth_date', '<=', today()->subYears(80))->count(),
+                'Total registry' => (int) $counts->total,
+                'Age 60–69' => (int) $counts->age_60_69,
+                'Age 70–79' => (int) $counts->age_70_79,
+                'Age 80+' => (int) $counts->age_80_plus,
             ],
             'barangays' => Barangay::query()->orderBy('name')->get(['id', 'name']),
             'programs' => Program::query()->orderBy('name')->get(['id', 'name']),

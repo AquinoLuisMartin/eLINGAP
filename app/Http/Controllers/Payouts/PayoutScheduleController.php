@@ -73,9 +73,11 @@ class PayoutScheduleController extends Controller
             Beneficiary::query()->where('program_id', $schedule->program_id)->where('status', 'ACTIVE')
                 ->whereHas('seniorCitizen', fn ($query) => $query->where('status', 'VERIFIED'))
                 ->select(['id', 'senior_citizen_id'])->chunkById(200, function ($beneficiaries) use ($schedule): void {
-                    foreach ($beneficiaries as $beneficiary) {
-                        Payout::create(['payout_schedule_id' => $schedule->id, 'senior_citizen_id' => $beneficiary->senior_citizen_id, 'amount' => $schedule->amount, 'status' => 'PENDING']);
-                    }
+                    $now = now();
+                    Payout::query()->insert($beneficiaries->map(fn ($beneficiary) => [
+                        'payout_schedule_id' => $schedule->id, 'senior_citizen_id' => $beneficiary->senior_citizen_id,
+                        'amount' => $schedule->amount, 'status' => 'PENDING', 'created_at' => $now, 'updated_at' => $now,
+                    ])->all());
                 });
 
             AuditLog::create(['user_id' => $request->user()->id, 'action' => 'payout.schedule_created', 'auditable_type' => PayoutSchedule::class, 'auditable_id' => $schedule->id, 'ip_address' => $request->ip()]);

@@ -238,13 +238,16 @@ class Dashboard extends Component
     public function registryCounts(): array
     {
         $today = now()->startOfDay();
-        $query = SeniorCitizen::query();
+        $counts = SeniorCitizen::query()->toBase()->selectRaw(
+            'count(*) as total, count(case when birth_date > ? and birth_date <= ? then 1 end) as age_60_69, count(case when birth_date > ? and birth_date <= ? then 1 end) as age_70_79, count(case when birth_date <= ? then 1 end) as age_80_plus',
+            [$today->copy()->subYears(70)->toDateString(), $today->copy()->subYears(60)->toDateString(), $today->copy()->subYears(80)->toDateString(), $today->copy()->subYears(70)->toDateString(), $today->copy()->subYears(80)->toDateString()]
+        )->first();
 
         return [
-            'Total registry' => $query->count(),
-            'Age 60-69' => (clone $query)->where('birth_date', '>', $today->copy()->subYears(70)->toDateString())->where('birth_date', '<=', $today->copy()->subYears(60)->toDateString())->count(),
-            'Age 70-79' => (clone $query)->where('birth_date', '>', $today->copy()->subYears(80)->toDateString())->where('birth_date', '<=', $today->copy()->subYears(70)->toDateString())->count(),
-            'Age 80+' => (clone $query)->where('birth_date', '<=', $today->copy()->subYears(80)->toDateString())->count(),
+            'Total registry' => (int) $counts->total,
+            'Age 60-69' => (int) $counts->age_60_69,
+            'Age 70-79' => (int) $counts->age_70_79,
+            'Age 80+' => (int) $counts->age_80_plus,
         ];
     }
 

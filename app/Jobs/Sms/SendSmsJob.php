@@ -19,6 +19,8 @@ class SendSmsJob implements ShouldQueue
 
     public int $tries = 3;
 
+    public int $timeout = 60;
+
     public array $backoff = [5, 30];
 
     public function __construct(public readonly int $smsMessageId) {}

@@ -1,17 +1,44 @@
 @extends('layouts.app')
+
 @section('content')
-<x-workspace-navigation section="messaging" />
-<a href="{{ route('sms.blasts.index') }}" class="text-sm text-osca-primary underline">Back to messaging</a>
-<h2 class="mt-3 text-3xl font-semibold">New SMS broadcast</h2>
-<p class="mb-6 text-slate-600">Send a message to verified seniors with valid mobile numbers.</p>
-<form method="GET" class="mb-5 flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4"><label>Target barangay <select name="barangay_id" class="mt-1 block rounded border p-2"><option value="">All barangays</option>@foreach ($barangays as $barangay)<option value="{{ $barangay->id }}" @selected(request('barangay_id') == $barangay->id)>{{ $barangay->name }}</option>@endforeach</select></label><button class="rounded border px-4 py-2">Update audience</button></form>
-<div class="mb-5 grid gap-3 sm:grid-cols-2"><div class="rounded-lg border bg-white p-4"><p>Eligible recipients</p><strong class="text-2xl">{{ $eligible }}</strong></div><div class="rounded-lg border bg-white p-4"><p>Excluded: ineligible, missing or invalid mobile</p><strong class="text-2xl">{{ $excluded }}</strong></div></div>
-<form method="POST" action="{{ route('sms.blasts.store') }}" id="sms-broadcast-form" data-eligible="{{ $eligible }}" data-excluded="{{ $excluded }}" data-audience="{{ $barangays->firstWhere('id', request('barangay_id'))?->name ?: 'All barangays' }}" class="grid max-w-3xl gap-4 rounded-lg border bg-white p-5">
-    @csrf <input type="hidden" name="barangay_id" value="{{ request('barangay_id') }}">
-    <label>Quick template <select id="broadcast-template" class="mt-1 w-full rounded border p-2"><option value="">Write a message</option>@foreach ($templates as $template)<option value="{{ $template->id }}" data-body="{{ $template->body }}">{{ $template->name }}</option>@endforeach</select></label>
-    <label>Message <textarea id="broadcast-message" name="message" rows="7" maxlength="1600" required class="mt-1 w-full rounded border p-2">{{ old('message') }}</textarea></label>
-    <p id="sms-count" class="text-sm text-slate-600" aria-live="polite">Enter a message to see SMS segment usage.</p>
-    <label class="rounded bg-slate-50 p-3"><input type="checkbox" name="confirmed" value="1" required> I reviewed the audience and message, and confirm this broadcast.</label>
-    <button type="submit" class="rounded bg-osca-primary px-4 py-2 font-semibold text-white">Queue broadcast</button>
-</form>
+    <x-workspace-navigation section="messaging" />
+    <x-staff.page-header title="New SMS broadcast" description="Select an audience, review your message, then confirm it for delivery.">
+        <a href="{{ route('sms.blasts.index') }}" class="secondary-button">Back to messaging</a>
+    </x-staff.page-header>
+
+    <div class="grid items-start gap-5 xl:grid-cols-12">
+        <aside class="panel xl:order-last xl:col-span-4" aria-labelledby="broadcast-audience-title">
+            <h3 id="broadcast-audience-title" class="text-lg font-semibold">Audience</h3>
+            <p class="mt-2 text-sm text-[var(--muted)]">Only verified seniors with valid mobile numbers are included.</p>
+            <form method="GET" class="mt-5 grid gap-4">
+                <label class="field-label">Target barangay
+                    <select name="barangay_id">
+                        <option value="">All barangays</option>
+                        @foreach ($barangays as $barangay)<option value="{{ $barangay->id }}" @selected(request('barangay_id') == $barangay->id)>{{ $barangay->name }}</option>@endforeach
+                    </select>
+                </label>
+                <button class="secondary-button">Update audience</button>
+            </form>
+            <dl class="mt-5 grid grid-cols-2 gap-4 border-t border-[var(--line)] pt-5">
+                <div><dt class="text-sm text-[var(--muted)]">Eligible recipients</dt><dd class="mt-2 text-2xl font-semibold tabular-nums"><strong>{{ $eligible }}</strong></dd></div>
+                <div><dt class="text-sm text-[var(--muted)]">Excluded</dt><dd class="mt-2 text-2xl font-semibold tabular-nums"><strong>{{ $excluded }}</strong></dd></div>
+            </dl>
+            <p class="mt-4 text-sm text-[var(--muted)]">Excluded records are ineligible or have a missing or invalid mobile number.</p>
+        </aside>
+
+        <form method="POST" action="{{ route('sms.blasts.store') }}" id="sms-broadcast-form" data-eligible="{{ $eligible }}" data-excluded="{{ $excluded }}" data-audience="{{ $barangays->firstWhere('id', request('barangay_id'))?->name ?: 'All barangays' }}" class="panel grid gap-5 xl:col-span-8">
+            @csrf
+            <input type="hidden" name="barangay_id" value="{{ request('barangay_id') }}">
+            <h3 class="text-lg font-semibold">Compose message</h3>
+            <label class="field-label">Quick template
+                <select id="broadcast-template"><option value="">Write a message</option>@foreach ($templates as $template)<option value="{{ $template->id }}" data-body="{{ $template->body }}">{{ $template->name }}</option>@endforeach</select>
+            </label>
+            <label class="field-label">Message
+                <textarea id="broadcast-message" name="message" rows="8" maxlength="1600" required aria-describedby="sms-count">{{ old('message') }}</textarea>
+            </label>
+            <p id="sms-count" class="text-sm text-[var(--muted)]" aria-live="polite">Enter a message to see SMS segment usage.</p>
+            <label class="flex items-start gap-3 rounded-lg border border-[var(--line)] p-4 text-sm"><input type="checkbox" name="confirmed" value="1" required class="mt-1"> <span>I reviewed the audience and message, and confirm this broadcast.</span></label>
+            <div class="staff-form-actions"><button type="submit" class="primary-button">Queue broadcast</button><a href="{{ route('sms.blasts.index') }}" class="secondary-button">Cancel</a></div>
+        </form>
+    </div>
 @endsection

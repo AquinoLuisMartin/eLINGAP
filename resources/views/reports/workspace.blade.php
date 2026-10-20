@@ -1,8 +1,8 @@
 @extends('layouts.app')
 @section('content')
-<a href="{{ route('reports.index') }}" class="text-sm text-osca-primary underline">Back to reports</a>
-<h2 class="mt-3 text-3xl font-semibold">{{ $title }}</h2>
-<p class="mb-6 text-slate-600">Office for Senior Citizens Affairs · Santa Maria, Bulacan</p>
+<x-staff.page-header :title="$title" description="Filter the report below, review the matching records, and export the selected data.">
+    <a href="{{ route('reports.index') }}" class="secondary-button">Back to reports</a>
+</x-staff.page-header>
 <form method="GET" class="mb-5 grid gap-3 rounded-lg border bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
     <label>Barangay <select name="barangay_id" class="mt-1 w-full rounded border p-2"><option value="">All barangays</option>@foreach ($barangays as $barangay)<option value="{{ $barangay->id }}" @selected(request('barangay_id') == $barangay->id)>{{ $barangay->name }}</option>@endforeach</select></label>
     @if (in_array($type, ['masterlist', 'applications', 'payouts']))
@@ -15,6 +15,6 @@
     <div class="flex items-end gap-2"><button class="rounded bg-osca-primary px-4 py-2 text-white">Apply filters</button><a href="{{ route('reports.workspace', $type) }}" class="p-2 underline">Reset</a></div>
 </form>
 <div class="mb-3 flex flex-wrap items-center justify-between gap-3"><p class="text-sm text-slate-600">{{ $records->total() }} records · {{ $filters ? collect($filters)->map(fn ($value, $key) => str_replace('_', ' ', $key).': '.$value)->join(' · ') : 'All records' }}</p><a class="rounded bg-osca-primary px-4 py-2 text-white" href="{{ route('reports.export', ['type' => $type] + request()->query()) }}">Export CSV</a></div>
-<div class="overflow-x-auto rounded-lg border bg-white focus:outline-2 focus:outline-blue-600" role="region" aria-label="{{ $title }} table" tabindex="0"><table class="w-full min-w-150 text-left text-sm"><caption class="sr-only">{{ $title }}</caption><thead class="bg-slate-100"><tr>@foreach ($headings as $heading)<th scope="col" class="p-3">{{ $heading }}</th>@endforeach</tr></thead><tbody class="divide-y">@forelse ($records as $record)<tr>@foreach ($report->row($type, $record) as $value)<td class="p-3">{{ $value }}</td>@endforeach</tr>@empty<tr><td colspan="{{ count($headings) }}" class="p-6 text-center">No records match these filters.</td></tr>@endforelse</tbody></table></div>
+<x-staff.table label="Report records" class="rounded-lg border bg-white"><table class="w-full min-w-150 text-left text-sm"><caption class="sr-only">{{ $title }}</caption><thead class="bg-slate-100"><tr>@foreach ($headings as $heading)<th scope="col" class="p-3">{{ $heading }}</th>@endforeach</tr></thead><tbody class="divide-y">@forelse ($records as $record)<tr>@foreach ($report->row($type, $record) as $value)<td class="p-3">{{ $value }}</td>@endforeach</tr>@empty<tr><td colspan="{{ count($headings) }}" class="p-6 text-center">No records match these filters.</td></tr>@endforelse</tbody></table></x-staff.table>
 <div class="mt-4">{{ $records->links() }}</div>
 @endsection

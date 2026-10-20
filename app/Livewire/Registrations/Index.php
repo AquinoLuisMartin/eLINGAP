@@ -62,7 +62,7 @@ class Index extends Component
         };
 
         return view('livewire.registrations.index', [
-            'registrations' => $query->latest('id')->paginate(15),
+            'registrations' => $query->select(['id', 'barangay_id', 'registration_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'applicant_type', 'created_at', 'status', 'id_generated_at'])->latest('id')->paginate(15),
             'barangays' => Barangay::query()->orderBy('name')->get(['id', 'name']),
             'counts' => SeniorCitizen::query()->selectRaw("sum(case when status = 'PENDING' then 1 else 0 end) as pending, sum(case when status = 'VERIFIED' and id_generated_at is null then 1 else 0 end) as verified, sum(case when status = 'VERIFIED' and id_generated_at is not null then 1 else 0 end) as issued")->toBase()->first(),
         ]);

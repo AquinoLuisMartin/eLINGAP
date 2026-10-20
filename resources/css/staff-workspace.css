@@ -1,0 +1,125 @@
+.osca-workspace.staff-shell {
+    --font-page-title: 28px;
+    --font-section-title: 18px;
+    --font-body: 15px;
+    --font-meta: 13px;
+    --muted: #5f6f82;
+    font-family: var(--font-sans);
+}
+
+.osca-workspace.staff-shell :where(.admin-header, .admin-sidebar) :where(h1, button, a, strong) {
+    font-family: var(--font-sans);
+}
+
+.osca-workspace.staff-shell .admin-content :where(h1, h2, h3, h4, button, a, input, select, textarea) {
+    font-family: var(--font-sans);
+}
+
+.osca-workspace.staff-shell .admin-content {
+    padding-block: 28px 44px;
+}
+
+.osca-workspace.staff-shell :where(.mini-stat-dot, .active-dot) { display: none; }
+
+.osca-workspace.staff-shell :where(.page-intro, .welcome-row, .staff-page-heading) {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.osca-workspace.staff-shell :where(.page-intro, .welcome-row) .section-kicker { display: none; }
+
+.osca-workspace.staff-shell .admin-content :where(.page-intro, .welcome-row, .staff-page-heading) h2 {
+    margin: 0;
+    font-size: clamp(23px, 2.5vw, 28px);
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -.5px;
+}
+
+.osca-workspace.staff-shell .staff-page-heading p,
+.osca-workspace.staff-shell :where(.page-intro, .welcome-row) .section-subtitle {
+    max-width: 48rem;
+    margin: 7px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.osca-workspace.staff-shell .staff-page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 10px;
+}
+
+.osca-workspace.staff-shell .admin-content :where(.panel, .mini-stat, .metric-card, .staff-filter-panel, .staff-results-panel) {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--white);
+    box-shadow: none;
+}
+
+.osca-workspace.staff-shell .panel { padding: 20px; }
+.osca-workspace.staff-shell .staff-filter-panel { padding: 20px; margin-bottom: 20px; }
+.osca-workspace.staff-shell .staff-results-panel { overflow: hidden; }
+.osca-workspace.staff-shell .staff-panel-heading { padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.osca-workspace.staff-shell .staff-panel-heading h3 { margin: 0; font-size: 16px; }
+.osca-workspace.staff-shell .staff-panel-heading p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+.osca-workspace.staff-shell .staff-summary-grid {
+    display: grid;
+    gap: 1px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--line);
+}
+
+.osca-workspace.staff-shell .staff-summary-item { min-width: 0; padding: 16px 20px; border: 0; border-radius: 0; background: var(--white); }
+.osca-workspace.staff-shell button.staff-summary-item { border: 0; text-align: left; cursor: pointer; }
+.osca-workspace.staff-shell .staff-summary-item[aria-pressed=true] { box-shadow: inset 0 -3px var(--blue); }
+.osca-workspace.staff-shell .staff-summary-item :where(dt, .staff-summary-label) { display: block; color: var(--muted); font-size: 13px; }
+.osca-workspace.staff-shell .staff-summary-item :where(dd, .staff-summary-value) { display: block; margin: 5px 0 0; color: var(--ink); font-size: 25px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.osca-workspace.staff-shell .staff-filter-grid { display: grid; gap: 16px; align-items: end; }
+.osca-workspace.staff-shell .staff-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-top: 16px; margin-top: 20px; border-top: 1px solid var(--line); }
+.osca-workspace.staff-shell form.grid > .staff-form-actions { margin-top: 0; }
+.osca-workspace.staff-shell .admin-content .field-label { margin-top: 0; margin-bottom: 0; font-size: 14px; font-weight: 500; line-height: 1.5; }
+.osca-workspace.staff-shell .admin-content .panel:not(.grid) > .field-label { margin-top: 16px; }
+.osca-workspace.staff-shell .admin-content :where(form.grid, form[method=GET]) > label:not(:has(input[type=checkbox], input[type=radio])) { display: flex; flex-direction: column; gap: 7px; font-size: 14px; }
+.osca-workspace.staff-shell .admin-content form[method=GET] { align-items: end; }
+.osca-workspace.staff-shell .admin-content form[method=GET] > label :where(input, select) { margin-top: 0; }
+.osca-workspace.staff-shell .admin-content :where(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]), select) { min-height: 44px; }
+.osca-workspace.staff-shell .admin-content :where(.primary-button, .secondary-button, a.bg-osca-primary, button.bg-osca-primary) { min-height: 44px; padding: 10px 16px; border-radius: 7px; font-size: 14px; line-height: 1.4; }
+.osca-workspace.staff-shell .admin-content :where(button, input, select, textarea):disabled { cursor: not-allowed; opacity: .55; }
+.osca-workspace.staff-shell .admin-content summary { width: fit-content; max-width: 100%; cursor: pointer; line-height: 1.6; }
+.osca-workspace.staff-shell .admin-content :where(summary, .table-scroll, .staff-table):focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.osca-workspace.staff-shell .admin-content :where(.table-scroll, .staff-table) { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+.osca-workspace.staff-shell .staff-table > table { min-width: 42rem; }
+.osca-workspace.staff-shell .admin-content :where(th, td) { padding: 13px 16px; vertical-align: top; line-height: 1.55; }
+.osca-workspace.staff-shell .admin-content th { color: var(--muted); background: var(--paper); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.osca-workspace.staff-shell .admin-content td { font-size: 14px; }
+.osca-workspace.staff-shell .admin-content td :where(p, a) { overflow-wrap: anywhere; }
+.osca-workspace.staff-shell .admin-content .text-button { min-height: 32px; font-size: 13px; line-height: 1.5; }
+.osca-workspace.staff-shell .admin-content .staff-pagination { padding: 16px 20px; border-top: 1px solid var(--line); }
+.osca-workspace.staff-shell .workspace-navigation { gap: 0; margin-bottom: 24px; padding: 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
+.osca-workspace.staff-shell .workspace-navigation a { min-height: 44px; padding: 10px 16px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: var(--muted); background: transparent; white-space: nowrap; }
+.osca-workspace.staff-shell .workspace-navigation a[aria-current=page] { border-bottom-color: var(--blue); color: var(--blue); font-weight: 600; }
+.osca-workspace.staff-shell.theme-dark .admin-content .text-button,
+.osca-workspace.staff-shell.theme-dark .workspace-navigation a[aria-current=page] { color: #93c5fd; }
+.osca-workspace.staff-shell.theme-dark { --muted: #a8b6c8; }
+.osca-workspace.staff-shell.theme-dark .admin-content :where(a, button, input, select, textarea, summary, .table-scroll, .staff-table):focus-visible { outline-color: #93c5fd; }
+
+@media (max-width: 760px) {
+    .osca-workspace.staff-shell :where(.page-intro, .welcome-row, .staff-page-heading) { flex-direction: column; align-items: stretch; gap: 16px; }
+    .osca-workspace.staff-shell .staff-page-actions { flex-shrink: 1; }
+    .osca-workspace.staff-shell .admin-content { padding: 22px 16px 32px; }
+    .osca-workspace.staff-shell :where(.panel, .staff-filter-panel) { padding: 16px; }
+    .osca-workspace.staff-shell .staff-summary-item { padding: 14px 16px; }
+}

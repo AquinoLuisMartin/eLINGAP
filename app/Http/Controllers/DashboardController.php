@@ -26,15 +26,19 @@ class DashboardController extends Controller
         $milestoneAges = Program::query()->where('status', 'ACTIVE')->get(['benefit_rules'])
             ->flatMap(fn ($program) => array_keys($program->benefit_rules['milestones'] ?? []))
             ->map(fn ($age) => (int) $age)->filter(fn ($age) => $age >= 60)->unique()->sort()->values();
+        $totals = (clone $active)->toBase()->selectRaw(
+            'count(*) as total, count(distinct barangay_id) as barangays, count(case when birth_date > ? then 1 end) as age_60_69, count(case when birth_date between ? and ? then 1 end) as age_70_79, count(case when birth_date between ? and ? then 1 end) as age_80_89, count(case when birth_date <= ? then 1 end) as age_90_plus',
+            [today()->subYears(70), today()->subYears(80)->addDay(), today()->subYears(70), today()->subYears(90)->addDay(), today()->subYears(80), today()->subYears(90)]
+        )->first();
         $ageGroups = [
-            '60–69' => (clone $active)->where('birth_date', '>', today()->subYears(70))->count(),
-            '70–79' => (clone $active)->whereBetween('birth_date', [today()->subYears(80)->addDay(), today()->subYears(70)])->count(),
-            '80–89' => (clone $active)->whereBetween('birth_date', [today()->subYears(90)->addDay(), today()->subYears(80)])->count(),
-            '90+' => (clone $active)->where('birth_date', '<=', today()->subYears(90))->count(),
+            '60–69' => (int) $totals->age_60_69,
+            '70–79' => (int) $totals->age_70_79,
+            '80–89' => (int) $totals->age_80_89,
+            '90+' => (int) $totals->age_90_plus,
         ];
 
         return view('dashboard.index', [
-            'activeCount' => (clone $active)->count(),
+            'activeCount' => (int) $totals->total,
             'readyCount' => Application::query()->where('status', ApplicationStatus::Approved->value)->count(),
             'benefitCounts' => BenefitEntitlement::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
             'milestoneAges' => $milestoneAges,
@@ -43,7 +47,7 @@ class DashboardController extends Controller
                     $query->orWhereBetween('birth_date', [today()->subYears($age), today()->subYears($age - 1)->subDay()]);
                 }
             })->count(),
-            'barangayCount' => (clone $active)->distinct()->count('barangay_id'),
+            'barangayCount' => (int) $totals->barangays,
             'barangays' => (clone $active)->join('barangays', 'barangays.id', '=', 'senior_citizens.barangay_id')
                 ->selectRaw('barangays.name, count(*) as total')->groupBy('barangays.id', 'barangays.name')
                 ->orderByDesc('total')->limit(8)->get(),

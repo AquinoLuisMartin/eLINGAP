@@ -59,12 +59,15 @@ class SmsBlastController extends Controller
             $blast = SmsBlast::create(['created_by' => $request->user()->id, 'barangay_id' => $barangayId, 'message' => $request->string('message')->toString()]);
             $sent = 0;
             $this->recipients($barangayId)->chunkById(200, function ($seniorCitizens) use ($request, $smsService, $blast, &$sent): void {
+                $messages = [];
                 foreach ($seniorCitizens as $seniorCitizen) {
                     if ($number = $seniorCitizen->smsContact()) {
-                        $smsService->queue($number, $request->string('message')->toString(), $request->user()->id, $seniorCitizen->id, $blast->id);
+                        $messages[] = ['recipient_number' => $number, 'message' => $blast->message, 'created_by' => $request->user()->id,
+                            'senior_citizen_id' => $seniorCitizen->id, 'sms_blast_id' => $blast->id];
                         $sent++;
                     }
                 }
+                $smsService->queueMany($messages);
             });
             if ($sent === 0) {
                 throw ValidationException::withMessages(['barangay_id' => 'No eligible recipients in this audience.']);

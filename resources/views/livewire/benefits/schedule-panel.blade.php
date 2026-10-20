@@ -31,7 +31,7 @@
         @endif
     @endcan
     <p wire:loading class="my-3 text-sm" role="status">Updating schedule...</p>
-    <div class="table-scroll mt-4"><table><thead><tr><th scope="col">Senior / ID</th><th scope="col">Barangay</th><th scope="col">Original period</th><th scope="col">Amount</th><th scope="col">Status / Review</th><th scope="col">Action</th></tr></thead><tbody>
+    <x-staff.table label="Schedule recipients" class="mt-4"><table><thead><tr><th scope="col">Senior / ID</th><th scope="col">Barangay</th><th scope="col">Original period</th><th scope="col">Amount</th><th scope="col">Status / Review</th><th scope="col">Action</th></tr></thead><tbody>
         @forelse ($entries as $entry)
             <tr wire:key="schedule-entry-{{ $entry->id }}"><td><a href="{{ route('senior-citizens.show', $entry->seniorCitizen) }}" class="text-button">{{ $entry->seniorCitizen->full_name }}</a><p class="text-xs text-slate-500">{{ $entry->seniorCitizen->osca_id_number }}</p></td><td>{{ $entry->seniorCitizen->barangay->name }}</td><td>{{ $entry->period_key }}</td><td>{{ $entry->amount === null ? 'Awaiting funds' : 'PHP '.number_format((float) $entry->amount, 2) }}</td><td>{{ $entry->status->label() }}<p class="text-xs text-slate-500">{{ $entry->reviewed_at ? 'Staff checked' : 'Needs staff review' }}</p><p class="text-xs text-slate-500">{{ $entry->seniorCitizen->status->value }}</p></td><td>
                 @can('manage', \App\Models\BenefitSchedule::class)
@@ -43,7 +43,7 @@
         @empty
             <tr><td colspan="6">No recipients currently assigned. Existing claims, missing eligibility, and previously assigned entitlements are excluded from automatic preparation.</td></tr>
         @endforelse
-    </tbody></table></div>{{ $entries->links() }}
+    </tbody></table></x-staff.table>{{ $entries->links() }}
     @can('manage', \App\Models\BenefitSchedule::class)
         @if ($schedule->status === 'APPROVED')
             <details class="mt-6"><summary class="cursor-pointer font-semibold">Preview and approve payout SMS</summary>
