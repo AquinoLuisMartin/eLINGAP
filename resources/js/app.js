@@ -249,11 +249,31 @@ function initViewSwitcher() {
         });
     });
 
-    document.querySelectorAll('[data-home-section]').forEach(link => {
-        link.addEventListener('click', () => setView('home', false));
+    const scrollToSection = (target, focus = true) => {
+        if (landingView.contains(target)) setView('home', false);
+        if (focus) {
+            target.setAttribute('tabindex', '-1');
+            target.focus({ preventScroll: true });
+        }
+        target.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    };
+
+    document.querySelectorAll('.landing-page a[href^="#"]:not([data-view])').forEach(link => {
+        link.addEventListener('click', event => {
+            if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+            const target = document.getElementById(link.hash.slice(1));
+            if (!target) return;
+            event.preventDefault();
+            scrollToSection(target);
+        });
     });
 
-    setView(window.location.hash === '#about-view' ? 'about' : 'home', false);
+    const initialTarget = document.getElementById(window.location.hash.slice(1));
+    setView(initialTarget === aboutView ? 'about' : 'home', false);
+    if (window.location.hash) {
+        window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+        if (initialTarget) requestAnimationFrame(() => scrollToSection(initialTarget, false));
+    }
 }
 
 // Close all modals on Escape key
