@@ -29,33 +29,37 @@ class PublicContentTest extends TestCase
 
     #[TestWith(['/'])]
     #[TestWith(['/login'])]
-    public function test_public_pages_have_empty_states_instead_of_demo_data(string $path): void
+    public function test_public_pages_show_supplied_office_details_without_demo_programs(string $path): void
     {
         $this->get($path)->assertOk()
-            ->assertSee('No active programs are currently published.')
-            ->assertSee('Contact OSCA Santa Maria, Bulacan for directions to the office.')
-            ->assertSee('Please confirm current office hours before your visit.');
+            ->assertSee('No programs are currently published.')
+            ->assertSee('Santa Maria Municipal Hall, J.C. De Jesus St.')
+            ->assertSee('+63 44 288 2604')->assertSee('8:00 AM – 5:00 PM')
+            ->assertSee('Saturday &amp; Sunday', false)->assertSee('Closed');
     }
 
     #[TestWith(['/'])]
     #[TestWith(['/login'])]
-    public function test_public_pages_use_only_active_programs_and_allowlisted_office_information(string $path): void
+    public function test_public_pages_use_existing_active_and_upcoming_programs_and_allowlisted_office_information(string $path): void
     {
         Program::create(['name' => 'Synthetic active program', 'agency' => 'Synthetic office', 'description' => 'Synthetic public description', 'default_amount' => 1250, 'budget' => 98765432.10, 'status' => 'ACTIVE']);
-        Program::create(['name' => 'Synthetic unpublished program', 'agency' => 'Synthetic office', 'status' => 'UPCOMING']);
+        Program::create(['name' => 'Synthetic upcoming program', 'agency' => 'Synthetic office', 'status' => 'UPCOMING']);
+        Program::create(['name' => 'Synthetic unpublished program', 'agency' => 'Synthetic office', 'status' => 'INACTIVE']);
+        Program::create(['name' => 'PRIVATE-SAMPLE-PROGRAM', 'agency' => 'Synthetic office', 'status' => 'ACTIVE', 'benefit_code' => 'synthetic-registry-2000-2026']);
         foreach (['office_name' => 'Synthetic office name', 'support_email' => 'office@example.test', 'support_phone' => 'Synthetic office contact', 'office_address' => 'Synthetic office address', 'office_hours' => 'Synthetic office hours', 'internal_setting' => 'PRIVATE-SETTING-MARKER'] as $key => $value) {
             SystemConfiguration::forceCreate(['key' => $key, 'value' => $value]);
         }
 
         $response = $this->get($path)->assertOk()->assertSee('Synthetic active program')
-            ->assertSee('Synthetic public description')->assertSee('1,250.00')
+            ->assertDontSee('Synthetic public description')->assertDontSee('1,250.00')
             ->assertSee('office@example.test')->assertSee('Synthetic office contact')
             ->assertSee('Synthetic office address')->assertSee('Synthetic office hours')
-            ->assertDontSee('Synthetic unpublished program')->assertDontSee('PRIVATE-SETTING-MARKER')
+            ->assertSee('Synthetic upcoming program')
+            ->assertDontSee('Synthetic unpublished program')->assertDontSee('PRIVATE-SETTING-MARKER')->assertDontSee('PRIVATE-SAMPLE-PROGRAM')
             ->assertDontSee('98,765,432.10')->assertDontSee('98765432.10');
 
         if ($path === '/') {
-            $this->assertSame(['id', 'name', 'agency', 'description', 'default_amount'], array_keys($response->viewData('publicPrograms')->sole()->getAttributes()));
+            $this->assertSame(['id', 'name'], array_keys($response->viewData('publicPrograms')->first()->getAttributes()));
         }
     }
 
@@ -68,13 +72,11 @@ class PublicContentTest extends TestCase
         $this->get('/')->assertOk()->assertSee($unsafe)->assertDontSee($unsafe, false);
     }
 
-    #[TestWith([null, 'Amount confirmed during assessment.'])]
-    #[TestWith(['0.00', '0.00'])]
-    public function test_program_amounts_do_not_invent_a_default(?string $amount, string $expected): void
+    public function test_program_directory_does_not_display_amounts(): void
     {
-        Program::create(['name' => 'Synthetic assistance', 'agency' => 'Synthetic office', 'default_amount' => $amount, 'status' => 'ACTIVE']);
+        Program::create(['name' => 'Synthetic assistance', 'agency' => 'Synthetic office', 'default_amount' => 1250, 'status' => 'ACTIVE']);
 
-        $this->get('/')->assertOk()->assertSee($expected);
+        $this->get('/')->assertOk()->assertSee('Synthetic assistance')->assertDontSee('1,250.00');
     }
 
     #[TestWith(['/'])]
@@ -84,6 +86,45 @@ class PublicContentTest extends TestCase
         DB::statement('ALTER TABLE programs RENAME TO temporarily_unavailable_programs');
         Log::shouldReceive('warning')->once()->with('Public content is unavailable.', ['failure_type' => QueryException::class]);
 
-        $this->get($path)->assertOk()->assertSee('No active programs are currently published.');
+        $this->get($path)->assertOk()->assertSee('No programs are currently published.');
+    }
+
+    public function test_landing_navigation_removes_services_and_contact_sections(): void
+    {
+        $this->get('/')->assertOk()->assertSee('Programs and welfare benefits')->assertSee('Visit the office')
+            ->assertDontSee('href="#services"', false)->assertDontSee('id="services"', false)
+            ->assertDontSee('>Contact</a>', false)->assertDontSee('OSCA services')
+            ->assertDontSee('For the seniors of Santa Maria')->assertDontSee('Explore programs')->assertDontSee('Plan your visit')
+            ->assertDontSee('&rarr;', false)->assertDontSee('&nearr;', false)->assertDontSee('&darr;', false)
+            ->assertSee('aria-label="Program directory"', false)
+            ->assertSee('rel="noopener noreferrer"', false);
+    }
+
+    public function test_program_directory_displays_names_without_program_details(): void
+    {
+        Program::create([
+            'name' => 'Synthetic milestone assistance', 'agency' => 'Synthetic office', 'status' => 'ACTIVE',
+            'government_level' => 'NATIONAL', 'starts_on' => '2026-01-01', 'ends_on' => '2026-12-31',
+            'provisional' => true, 'budget' => 98765432.10,
+            'benefit_rules' => ['cadence' => 'MILESTONE', 'milestones' => [80 => 10000, 100 => 100000],
+                'claim_window_months' => 12, 'groceries' => true, 'internal_notes' => 'PRIVATE-RULE-MARKER'],
+        ]);
+
+        $this->get('/')->assertOk()->assertSee('Synthetic milestone assistance')
+            ->assertDontSee('Age 80:')->assertDontSee('100,000.00')->assertDontSee('Milestone benefits')
+            ->assertDontSee('Frequency')->assertDontSee('Government level')->assertDontSee('Verification cutoff')
+            ->assertDontSee('Payout month')->assertDontSee('Program terms are provisional')
+            ->assertDontSee('PRIVATE-RULE-MARKER')->assertDontSee('98,765,432.10');
+    }
+
+    public function test_program_directory_prioritizes_active_programs(): void
+    {
+        Program::create(['name' => 'A upcoming program', 'agency' => 'Synthetic office', 'status' => 'UPCOMING']);
+        Program::create(['name' => 'Z active program', 'agency' => 'Synthetic office', 'status' => 'ACTIVE',
+            'benefit_rules' => ['cadence' => 'ANNUAL', 'cutoff' => '06-30', 'payout_month' => 12,
+                'october_conditions' => true, 'office_review' => true]]);
+
+        $this->get('/')->assertOk()->assertSeeInOrder(['Z active program', 'A upcoming program'])
+            ->assertDontSee('06-30')->assertDontSee('An office request and record verification are required.');
     }
 }

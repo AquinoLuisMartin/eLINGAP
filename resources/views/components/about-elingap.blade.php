@@ -9,20 +9,20 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
-            <article class="bg-white rounded-xl border border-slate-200 p-6">
+            <article class="bg-white rounded-lg border border-slate-200 p-6">
                 <h2 class="text-slate-900 font-semibold text-lg">Unified Masterlist</h2>
                 <p class="mt-2 text-sm text-slate-600 leading-relaxed">A centralized registry connecting senior citizen records across participating barangays.</p>
             </article>
-            <article class="bg-white rounded-xl border border-slate-200 p-6">
+            <article class="bg-white rounded-lg border border-slate-200 p-6">
                 <h2 class="text-slate-900 font-semibold text-lg">Automated SMS Broadcasts</h2>
                 <p class="mt-2 text-sm text-slate-600 leading-relaxed">Office announcements and confirmed payout details sent to registered mobile numbers.</p>
             </article>
-            <article class="bg-white rounded-xl border border-slate-200 p-6">
+            <article class="bg-white rounded-lg border border-slate-200 p-6">
                 <h2 class="text-slate-900 font-semibold text-lg">Paperless Verification</h2>
                 <p class="mt-2 text-sm text-slate-600 leading-relaxed">Staff review of registration documents, ID issuance, and benefit eligibility in a shared workspace.</p>
             </article>
         </div>
 
-        <button type="button" data-view="home" class="mt-8 inline-flex min-h-11 cursor-pointer items-center gap-3 rounded-lg bg-osca-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-osca-primary-dark"><span aria-hidden="true">&larr;</span>Back to home</button>
+        <button type="button" data-view="home" class="mt-8 inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-osca-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-osca-primary-dark">Back to home</button>
     </div>
 </section>

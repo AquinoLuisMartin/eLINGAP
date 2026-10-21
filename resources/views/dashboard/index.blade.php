@@ -6,41 +6,42 @@
     <a href="{{ route('benefits.workspace') }}" class="secondary-button">Open benefits</a>
 </x-staff.page-header>
 
-<section class="mb-4 grid gap-3 xl:grid-cols-2" aria-label="Dashboard totals">
-    <div class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-        <h3 class="mb-3 text-base font-semibold">Benefits</h3>
-        <dl class="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-            @foreach (\App\Enums\BenefitStatus::cases() as $state)
-                <div class="min-w-0">
-                    <dt class="text-sm text-slate-500">{{ $state->label() }}</dt>
-                    <dd class="mt-1 text-2xl font-medium tabular-nums">{{ number_format($benefitCounts[$state->value] ?? 0) }}</dd>
-                </div>
-            @endforeach
-        </dl>
+<div class="dashboard-overview">
+<dl class="metric-grid" aria-label="Registry overview">
+    @foreach ([
+        'Active seniors' => [$activeCount, 'Verified records'],
+        'Approved applications' => [$readyCount, 'Ready for processing'],
+        'Upcoming milestones' => [$milestoneCount, $milestoneAges->isEmpty() ? 'No milestone programs configured' : 'Ages '.$milestoneAges->join(', ')],
+        'Barangays covered' => [$barangayCount, 'Active registry areas'],
+    ] as $label => [$count, $description])
+        <div class="metric-card">
+            <dt class="metric-label">{{ $label }}</dt>
+            <dd class="metric-value">{{ number_format($count) }}</dd>
+            <dd class="metric-bottom">{{ $description }}</dd>
+        </div>
+    @endforeach
+</dl>
+
+<section class="panel dashboard-benefits" aria-labelledby="benefit-summary-title">
+    <div class="panel-heading">
+        <div><h3 id="benefit-summary-title">Benefits</h3><p>Current entitlement status across all programs</p></div>
+        <a href="{{ route('benefits.workspace') }}" class="text-button">View benefits</a>
     </div>
-    <div class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-        <h3 class="mb-3 text-base font-semibold">Registry overview</h3>
-        <dl class="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-            @foreach ([
-                'Active seniors' => [$activeCount, 'Verified records'],
-                'Approved applications' => [$readyCount, 'Ready for processing'],
-                'Upcoming milestones' => [$milestoneCount, $milestoneAges->isEmpty() ? 'No milestone programs configured' : 'Ages '.$milestoneAges->join(', ')],
-                'Barangays covered' => [$barangayCount, 'Active registry areas'],
-            ] as $label => [$count, $description])
-                <div class="min-w-0">
-                    <dt class="text-sm text-slate-500">{{ $label }}</dt>
-                    <dd class="mt-1 text-2xl font-medium tabular-nums">{{ number_format($count) }}<span class="mt-1 block text-xs font-normal text-slate-500">{{ $description }}</span></dd>
-                </div>
-            @endforeach
-        </dl>
-    </div>
+    <dl class="mt-5 grid grid-cols-2 gap-5 sm:grid-cols-4">
+        @foreach (\App\Enums\BenefitStatus::cases() as $state)
+            <div class="min-w-0">
+                <dt class="text-sm text-[var(--muted)]">{{ $state->label() }}</dt>
+                <dd class="mt-2 text-2xl font-semibold tabular-nums">{{ number_format($benefitCounts[$state->value] ?? 0) }}</dd>
+            </div>
+        @endforeach
+    </dl>
 </section>
 
 <section class="dashboard-grid">
     <div class="panel">
         <div class="panel-heading">
-            <div><h3>Population by Barangay</h3><p>Verified senior citizens by service area</p></div>
-            <span class="soft-badge blue">{{ number_format($activeCount) }} total</span>
+            <div><h3>Population by Barangay</h3><p>Top eight barangays by verified senior population</p></div>
+            <span class="soft-badge">{{ number_format($activeCount) }} total</span>
         </div>
         <div class="barangay-list">
             @forelse ($barangays as $barangay)
@@ -103,4 +104,5 @@
         </div>
     </div>
 </section>
+</div>
 @endsection

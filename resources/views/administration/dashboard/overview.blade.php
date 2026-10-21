@@ -2,9 +2,9 @@
     $accounts = $this->userCounts;
     $monitoring = $this->monitoring;
 @endphp
+<div class="dashboard-overview">
 <section class="page-intro">
     <div>
-        <p class="section-kicker">Administration</p>
         <h2>Account and system overview</h2>
         <p class="section-subtitle">Manage account access and review recorded system activity.</p>
     </div>
@@ -51,3 +51,5 @@
         @endforelse
     </div>
 </section>
+
+</div>
