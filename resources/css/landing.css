@@ -1,0 +1,51 @@
+@layer components {
+    .landing-page {
+        --color-osca-ink: #102d50;
+        --color-osca-body: #475569;
+        --color-osca-border: #dbe3ed;
+        color: var(--color-osca-body);
+        line-height: 1.65;
+    }
+
+    .landing-page .public-card {
+        min-width: 0;
+        border: 1px solid var(--color-osca-border);
+        border-radius: 0.75rem;
+        background: white;
+        box-shadow: 0 2px 6px rgb(16 45 80 / 0.04);
+    }
+
+    .landing-page .public-nav-link {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        border-bottom: 3px solid transparent;
+        padding-block: 0.75rem;
+        color: var(--color-osca-body);
+        transition: color 150ms ease, border-color 150ms ease;
+    }
+
+    .landing-page .public-nav-link:hover,
+    .landing-page .public-nav-link[aria-current='page'] {
+        border-bottom-color: var(--color-osca-primary);
+        color: var(--color-osca-primary);
+    }
+
+    .landing-page :where(p, dd, h1, h2, h3) {
+        overflow-wrap: anywhere;
+    }
+
+    .landing-page :where(button, a).bg-osca-primary:active {
+        background-color: var(--color-osca-primary-dark);
+    }
+
+    .landing-page #login-modal :where(button) {
+        min-height: 2.75rem;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .landing-page *, .landing-page *::before, .landing-page *::after {
+            animation: none !important;
+        }
+    }
+}

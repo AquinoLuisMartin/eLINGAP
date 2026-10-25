@@ -28,7 +28,7 @@ class SmsBlastController extends Controller
     {
         Gate::authorize('viewAny', SmsMessage::class);
 
-        return view('sms.blasts.index', ['blasts' => SmsBlast::query()->with(['creator', 'barangay'])
+        return view('sms.blasts.index', ['blasts' => SmsBlast::query()->with(['creator:id,first_name,last_name', 'barangay:id,name'])
             ->withCount(['messages as sent_count' => fn ($query) => $query->where('status', SmsStatus::Sent->value), 'messages as failed_count' => fn ($query) => $query->where('status', SmsStatus::Failed->value)])
             ->latest('id')->paginate(15)]);
     }
@@ -85,7 +85,11 @@ class SmsBlastController extends Controller
     {
         Gate::authorize('viewAny', SmsMessage::class);
 
-        return view('sms.blasts.show', ['blast' => $blast->load(['creator', 'barangay']), 'messages' => $blast->messages()->with('seniorCitizen')->latest('id')->paginate(20)]);
+        return view('sms.blasts.show', [
+            'blast' => $blast->load(['creator:id,first_name,last_name', 'barangay:id,name']),
+            'messages' => $blast->messages()->select(['id', 'senior_citizen_id', 'recipient_number', 'status', 'failure_reason'])
+                ->with('seniorCitizen:id,first_name,middle_name,last_name,name_suffix')->latest('id')->paginate(20),
+        ]);
     }
 
     public function retry(Request $request, SmsMessage $message): RedirectResponse

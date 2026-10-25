@@ -4,6 +4,7 @@
 @import './uploads.css';
 @import './textareas.css';
 @import './staff-workspace.css';
+@import './landing.css';
 
 [hidden] { display: none !important; }
 @custom-variant dark (&:where(.dark, .dark *, .theme-dark, .theme-dark *));
@@ -398,14 +399,14 @@
     }
 
     .landing-page :where(a, button, input, select, textarea):focus-visible {
-        outline: 2px solid var(--color-osca-primary);
+        outline: 3px solid var(--color-osca-primary);
         outline-offset: 4px;
     }
 
     .landing-page .login-input:focus {
         border-color: var(--color-osca-primary);
-        outline: none;
-        box-shadow: 0 0 0 1px var(--color-osca-primary);
+        outline: 3px solid var(--color-osca-primary);
+        outline-offset: 3px;
     }
 
     .landing-page :where(section[id]) {
@@ -418,14 +419,6 @@
 
     .landing-page :where(p) {
         text-wrap: pretty;
-    }
-
-    .landing-page :where(article) {
-        border-radius: 0.75rem;
-    }
-
-    .landing-page footer {
-        border-top: 1px solid var(--color-osca-border);
     }
 
     @media (prefers-reduced-motion: reduce) {

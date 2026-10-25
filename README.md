@@ -1,7 +1,14 @@
 <p align="center">
   <a href="https://laravel.com" target="_blank">
-    <img src="https://laravel.com/img/logomark.min.svg" width="120" alt="Laravel Logo">
+    <img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo">
   </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Laravel framework tests"></a>
+  <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Laravel framework downloads"></a>
+  <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Laravel framework version"></a>
+  <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="Laravel framework license"></a>
 </p>
 
 <h1 align="center">eLINGAP</h1>
@@ -23,6 +30,7 @@ auditable operational records.
 
 ## Contents
 
+- [Documentation](#documentation)
 - [Features](#features)
 - [Technology](#technology)
 - [Requirements](#requirements)
@@ -33,13 +41,23 @@ auditable operational records.
 - [Development checks](#development-checks)
 - [Contributing](#contributing)
 
+## Documentation
+
+Start with this README for setup and routine operations. Use the following guides
+for deployment planning and recovery:
+
+- [Hostinger deployment profile](deploy/hostinger/deployment-profile.md): server, worker, scheduler, and storage configuration.
+- [Deployment and recovery](docs/deployment-and-recovery.md): release checks, backups, and restoration.
+- [Supabase Free deployment](docs/supabase-free-tier-deployment.md): database limits, read optimizations, and capacity planning.
+- [Hostinger resource plan](docs/hostinger-resource-plan.md): resource budgets and staging acceptance checks.
+
 ## Features
 
 ### Records and administration
 
 - Public landing page, authentication, password reset, and role-based dashboards.
 - Administrator account management and access controls.
-- Senior citizen registration, updates, photos, and death declarations or corrections.
+- Senior citizen registration, private supporting documents, OSCA ID issuance, and death declarations or corrections.
 - Reference data for barangays, roles, programs, and office settings.
 
 ### Benefits and payouts
@@ -53,13 +71,13 @@ auditable operational records.
 
 - Reusable SMS templates and individual messages.
 - Broadcast messaging, delivery logs, retries, and failure tracking.
-- Queued delivery after database commits with eligibility checks before sending.
+- Atomic database commits for messages and queued jobs, with eligibility checks before sending.
 
 ## Technology
 
 | Area | Stack |
 | --- | --- |
-| Backend | PHP 8.3+, Laravel 13 |
+| Backend | PHP 8.4.27 security baseline, Laravel 13 |
 | Application UI | Blade, Livewire 4, Alpine.js |
 | Styling and assets | Tailwind CSS 4, Vite 8 |
 | Database | PostgreSQL |
@@ -70,10 +88,15 @@ auditable operational records.
 
 Install the following before setting up the application:
 
-- PHP `^8.3` with the PostgreSQL extensions required by Laravel.
+- PHP **8.4.27**, or a newer patched PHP 8.4 release, with the extensions
+  required by the locked dependencies, including `pdo_pgsql`.
 - Composer.
 - PostgreSQL.
 - Node.js `^20.19.0` or `>=22.12.0` with npm.
+
+PHP 8.4.27 is the project's security baseline. Use the same patched version for
+the CLI, web server, and queue workers. Verify the active CLI version with
+`php --version` before installation; this documentation does not upgrade PHP.
 
 ## Installation
 
@@ -105,9 +128,11 @@ php artisan key:generate
 ```
 
 Create a local PostgreSQL database and update the `DB_*` values in `.env`.
-The application uses PostgreSQL and database-backed sessions, cache, and
-queues. Configure the application URL and mail settings as needed; password
-reset emails require a working mail transport.
+The application uses PostgreSQL and database-backed queues. Local defaults use
+database-backed sessions and cache; the single-server Hostinger profile uses
+persistent file sessions and cache to reduce database traffic. Configure the
+application URL and mail settings as needed; password reset emails require a
+working mail transport.
 
 Run the migrations:
 
@@ -160,12 +185,26 @@ Run a queue worker in a separate terminal when processing SMS or other queued
 work:
 
 ```bash
-php artisan queue:work
+php artisan queue:work database-atomic --queue=default --timeout=60
 ```
 
-Messages are queued after successful database commits. The queue job records
-send results and failures, retries failed attempts, and checks linked senior
-citizen eligibility before sending.
+Messages and jobs commit together on the same PostgreSQL connection; workers
+process them after commit. The queue job records send results and failures,
+retries failed attempts, and checks linked senior citizen eligibility before
+sending. Production workers should run under a process supervisor using the
+[deployment profile](deploy/hostinger/deployment-profile.md).
+
+### Scheduler and capacity
+
+Configure the Laravel scheduler in production for operational maintenance and
+optional capacity monitoring. Use the deployment profile's cron template.
+
+```bash
+php artisan capacity:report --host --json
+```
+
+The report checks database size, private-disk headroom, and queue backlog without
+printing record contents. Monitor Supabase egress separately in its dashboard.
 
 ### Deployment checks
 

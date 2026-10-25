@@ -50,7 +50,13 @@ class EntitlementReport extends Component
 
     private function query(): Builder
     {
-        return BenefitEntitlement::query()->with(['program', 'seniorCitizen.barangay', 'schedule', 'payments'])
+        return BenefitEntitlement::query()->select(['id', 'program_id', 'senior_citizen_id', 'benefit_schedule_id', 'period_key', 'amount', 'status'])
+            ->with([
+                'program:id,name,government_level',
+                'seniorCitizen:id,barangay_id,registration_number,first_name,middle_name,last_name,name_suffix,status',
+                'seniorCitizen.barangay:id,name', 'schedule:id,status',
+                'payments:id,benefit_entitlement_id,reference_number,paid_at,reversed_at,reversal_reason',
+            ])
             ->when(in_array($this->status, ['PENDING', 'UNPAID', 'UNCLAIMED', 'CLAIMED']), fn ($query) => $query->where('status', $this->status))
             ->when($this->programId, fn ($query) => $query->where('program_id', (int) $this->programId))
             ->when(trim($this->period) !== '', fn ($query) => $query->where('period_key', trim($this->period)))
@@ -101,7 +107,7 @@ class EntitlementReport extends Component
             'entries' => $this->query()->paginate(15, pageName: 'entitlementsPage'),
             'counts' => BenefitEntitlement::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
             'programs' => Program::query()->whereNotNull('benefit_code')->orderBy('name')->get(['id', 'name']),
-            'drafts' => BenefitSchedule::query()->where('status', 'DRAFT')->with('program:id,name')->latest('id')->get(),
+            'drafts' => BenefitSchedule::query()->where('status', 'DRAFT')->with('program:id,name')->latest('id')->get(['id', 'program_id', 'reference_number', 'batch_name']),
         ]);
     }
 }

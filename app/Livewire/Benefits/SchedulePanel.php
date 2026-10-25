@@ -143,11 +143,16 @@ class SchedulePanel extends Component
     public function render(): View
     {
         $schedule = $this->schedule();
+        $entries = $schedule->entitlements()->select(['id', 'benefit_schedule_id', 'senior_citizen_id', 'period_key', 'amount', 'status', 'reviewed_at'])
+            ->with([
+                'seniorCitizen:id,barangay_id,osca_id_number,first_name,middle_name,last_name,name_suffix,status',
+                'seniorCitizen.barangay:id,name', 'payments:id,benefit_entitlement_id,reference_number,reversed_at',
+            ])->orderBy('id')->paginate(15, pageName: 'recipientsPage');
 
         return view('livewire.benefits.schedule-panel', [
             'schedule' => $schedule,
-            'entries' => $schedule->entitlements()->with(['seniorCitizen.barangay', 'payments'])->orderBy('id')->paginate(15, pageName: 'recipientsPage'),
-            'recipientTotal' => $schedule->entitlements()->count(),
+            'entries' => $entries,
+            'recipientTotal' => $entries->total(),
             'requiredFunds' => $schedule->entitlements()->sum('amount'),
             'barangays' => Barangay::query()->when($schedule->barangay_ids, fn ($query) => $query->whereIn('id', $schedule->barangay_ids))->orderBy('name')->get(['id', 'name']),
         ]);

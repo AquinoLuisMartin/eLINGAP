@@ -24,8 +24,10 @@ class PayoutScheduleController extends Controller
         Gate::authorize('viewAny', PayoutSchedule::class);
 
         return view('payouts.schedules.index', [
-            'schedules' => PayoutSchedule::query()->with('program')->latest('scheduled_on')->paginate(15)->withQueryString(),
-            'benefitSchedules' => BenefitSchedule::query()->with('program:id,name')->latest('id')->paginate(15, pageName: 'benefitSchedulesPage')->withQueryString(),
+            'schedules' => PayoutSchedule::query()->select(['id', 'program_id', 'reference_number', 'scheduled_on', 'amount', 'status'])
+                ->with('program:id,name')->latest('scheduled_on')->paginate(15)->withQueryString(),
+            'benefitSchedules' => BenefitSchedule::query()->select(['id', 'program_id', 'reference_number', 'scheduled_at', 'location', 'status'])
+                ->with('program:id,name')->latest('id')->paginate(15, pageName: 'benefitSchedulesPage')->withQueryString(),
         ]);
     }
 
@@ -93,8 +95,9 @@ class PayoutScheduleController extends Controller
         Gate::authorize('view', $payoutSchedule);
 
         return view('payouts.schedules.show', [
-            'schedule' => $payoutSchedule->load('program'),
-            'payouts' => $payoutSchedule->payouts()->with('seniorCitizen')->latest('id')->paginate(20),
+            'schedule' => $payoutSchedule->load('program:id,name'),
+            'payouts' => $payoutSchedule->payouts()->select(['id', 'payout_schedule_id', 'senior_citizen_id', 'status'])
+                ->with('seniorCitizen:id,first_name,middle_name,last_name,name_suffix')->latest('id')->paginate(20),
         ]);
     }
 }
