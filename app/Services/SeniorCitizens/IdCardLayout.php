@@ -13,7 +13,7 @@ class IdCardLayout
 {
     public const PAPERS = ['short' => [215.9, 279.4], 'long' => [215.9, 330.2], 'a4' => [210, 297]];
 
-    public function __construct(private IdAssets $assets, private IdCredential $credentials, private IdOfficials $officials) {}
+    public function __construct(private IdAssets $assets, private IdCredential $credentials, private IdOfficials $officials, private IdCardAddress $addresses) {}
 
     public function data(SeniorCitizen $senior, bool $draft = false): array
     {
@@ -25,9 +25,11 @@ class IdCardLayout
         $credential = SeniorCitizenIdCredential::query()->where('senior_citizen_id', $senior->id)->first();
         abort_unless($draft || $credential, 422, 'Enable the permanent QR credential before printing this existing ID.');
         $officials = $this->officials->values();
+        $senior->loadMissing('barangay');
 
         return [
-            'senior' => $senior->loadMissing('barangay'), 'draft' => $draft,
+            'senior' => $senior, 'draft' => $draft,
+            'address' => $this->addresses->format($senior->address, $senior->barangay->name),
             'photo' => null,
             'signature' => null,
             'qr' => $credential ? 'data:image/svg+xml;base64,'.base64_encode($this->credentials->svg($credential)) : null,
@@ -48,6 +50,9 @@ class IdCardLayout
     {
         abort_unless(count($cards) >= 1 && count($cards) <= 4, 422, 'Select one to four senior citizen IDs per sheet.');
         foreach ($cards as $data) {
+            if (! $data['address']['fits']) {
+                throw ValidationException::withMessages(['address' => 'The address is too long to fit legibly on the ID. Review the address in the senior record before printing.']);
+            }
             if (blank($data['officials']['osca_head_name'] ?? null) || blank($data['officials']['municipal_mayor_name'] ?? null) || ! $data['seal']) {
                 throw ValidationException::withMessages(['officials' => 'Configure the OSCA Head, Municipal Mayor and official municipal seal before printing.']);
             }

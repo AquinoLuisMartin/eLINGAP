@@ -1,7 +1,7 @@
 @props(['card'])
 @php
     $senior = $card['senior'];
-    $address = $senior->address.', '.$senior->barangay->name.', Santa Maria, Bulacan';
+    $address = $card['address'];
 @endphp
 <article class="id-card" aria-label="Front of senior citizen ID">
     @if ($card['seal'])<img src="{{ $card['seal'] }}" class="id-seal" alt="Municipal seal">@endif
@@ -16,7 +16,7 @@
         <p class="id-label">NAME:</p>
         <p @class(['name', 'medium-name' => mb_strlen($senior->full_name) > 30, 'compact-name' => mb_strlen($senior->full_name) > 60, 'long-name' => mb_strlen($senior->full_name) > 100])>{{ $senior->full_name }}</p>
     </section>
-    <div class="id-address"><p class="id-label">ADDRESS:</p><p @class(['address', 'compact-address' => mb_strlen($address) > 100])>{{ $address }}</p></div>
+    <div class="id-address"><p class="id-label">ADDRESS:</p><p class="address" style="font-size: {{ $address['fontSize'] }}pt">@if ($address['fits'])@foreach ($address['lines'] as $line){{ $line }}@if (!$loop->last)<br>@endif@endforeach @else Address needs review before printing. @endif</p></div>
     <div class="id-contact"><span class="id-contact-label">Contact No.:</span><strong class="id-contact-value">{{ $senior->contact_number ?: $senior->representative_contact }}</strong></div>
     <div class="id-dates">
         <div class="id-birth"><p class="id-date-value">{{ $senior->birth_date->format('M d, Y') }}</p><p class="id-label">Date of Birth</p></div>

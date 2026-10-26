@@ -80,16 +80,28 @@ class SeniorCitizen extends Model
     }
 
     #[Scope]
-    protected function searchable(Builder $query, string $term): Builder
+    protected function searchable(Builder $query, string $term, string $field = 'all'): Builder
     {
-        $term = '%'.mb_strtolower($term).'%';
+        $term = trim($term);
+        if ($field === 'osca_id' || $field === 'registration') {
+            return $query->where($field === 'osca_id' ? 'osca_id_number' : 'registration_number', $term);
+        }
+        $literal = fn (string $value) => '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], mb_strtolower($value)).'%';
 
-        return $query->where(function (Builder $query) use ($term) {
-            $query->whereRaw('lower(registration_number) like ?', [$term])
-                ->orWhereRaw('lower(first_name) like ?', [$term])
-                ->orWhereRaw('lower(middle_name) like ?', [$term])
-                ->orWhereRaw('lower(last_name) like ?', [$term])
-                ->orWhereRaw('lower(osca_id_number) like ?', [$term]);
+        return $query->where(function (Builder $query) use ($term, $field, $literal) {
+            if ($field !== 'name') {
+                $query->whereRaw('lower(registration_number) like ?', [$literal($term)])
+                    ->orWhereRaw('lower(osca_id_number) like ?', [$literal($term)]);
+            }
+            $query->orWhere(function (Builder $names) use ($term, $literal) {
+                foreach (preg_split('/[\s,]+/', $term, -1, PREG_SPLIT_NO_EMPTY) as $part) {
+                    $names->where(function (Builder $columns) use ($part, $literal) {
+                        foreach (['first_name', 'middle_name', 'last_name'] as $column) {
+                            $columns->orWhereRaw('lower('.$column.') like ?', [$literal($part)]);
+                        }
+                    });
+                }
+            });
         });
     }
 

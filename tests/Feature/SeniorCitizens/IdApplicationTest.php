@@ -4,6 +4,7 @@ namespace Tests\Feature\SeniorCitizens;
 
 use App\Livewire\Registrations\IdApplication;
 use App\Livewire\Registrations\Index;
+use App\Livewire\SeniorCitizens\ApplicationLauncher;
 use App\Models\Barangay;
 use App\Models\SeniorCitizen;
 use App\Models\User;
@@ -32,7 +33,8 @@ class IdApplicationTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->get(route('senior-citizens.create'))->assertOk()->assertSeeLivewire(IdApplication::class)->assertSee('New ID Application')->assertSee('Requirements');
         $this->get(route('registrations.index'))->assertOk()->assertSeeLivewire(Index::class)->assertDontSee('APP-26-1048');
-        Livewire::test(Index::class)->call('apply')->assertSet('applicationOpen', true)->assertSeeLivewire(IdApplication::class)
+        $this->get(route('senior-citizens.index'))->assertSeeLivewire(ApplicationLauncher::class)->assertSee('New ID Application');
+        Livewire::test(ApplicationLauncher::class)->call('apply')->assertSet('applicationOpen', true)->assertSeeLivewire(IdApplication::class)
             ->dispatch('registration-cancelled')->assertSet('applicationOpen', false);
     }
 
@@ -44,7 +46,7 @@ class IdApplicationTest extends TestCase
         $this->post(route('senior-citizens.store'), $this->input())->assertForbidden();
         $this->get(route('senior-citizens.index'))->assertOk()->assertDontSee('Register senior citizen');
         $this->get(route('registrations.index'))->assertOk()->assertDontSee('New ID Application');
-        Livewire::test(Index::class)->call('apply')->assertForbidden();
+        Livewire::test(ApplicationLauncher::class)->assertForbidden();
         Livewire::test(IdApplication::class)->assertForbidden();
 
         $this->assertDatabaseCount('senior_citizens', 0);
@@ -71,7 +73,7 @@ class IdApplicationTest extends TestCase
             ->call('submit')->assertHasErrors('informationReviewed')
             ->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
         $senior = SeniorCitizen::sole();
-        $component->assertRedirect(route('senior-id.show', [$senior, 'from' => 'registrations']));
+        $component->assertRedirect(route('senior-id.show', [$senior, 'from' => 'registry']));
         $this->assertTrue(session('clear-registration-names'));
         $this->assertSame('PENDING', $senior->status->value);
         $this->assertNull($senior->verified_at);
@@ -84,14 +86,14 @@ class IdApplicationTest extends TestCase
         $this->assertDatabaseCount('applications', 0);
         $this->assertDatabaseCount('beneficiaries', 0);
         $this->assertDatabaseHas('audit_logs', ['action' => 'senior_citizen.created', 'auditable_id' => $senior->id, 'user_id' => $staff->id]);
-        $component->call('submit')->assertRedirect(route('senior-id.show', [$senior, 'from' => 'registrations']));
+        $component->call('submit')->assertRedirect(route('senior-id.show', [$senior, 'from' => 'registry']));
         $this->assertDatabaseCount('senior_citizens', 1);
 
-        $this->get(route('senior-id.show', [$senior, 'from' => 'registrations']))
+        $this->get(route('senior-id.show', [$senior, 'from' => 'registry']))
             ->assertOk()
             ->assertSeeHtml('href="'.route('senior-citizens.create').'"')
-            ->assertSee('New registration')
-            ->assertSee('Exit to registrations');
+            ->assertSee('New ID Application')
+            ->assertSee('Exit to registry');
         $this->get(route('senior-citizens.create'))->assertOk()->assertSeeLivewire(IdApplication::class);
         $this->assertDatabaseCount('senior_citizens', 1);
     }
@@ -108,7 +110,7 @@ class IdApplicationTest extends TestCase
             ->set('authorizationFile', UploadedFile::fake()->createWithContent('proof.pdf', "%PDF-1.4\nSynthetic proof"))
             ->call('submit')->assertHasNoErrors();
         $senior = SeniorCitizen::sole();
-        $component->assertRedirect(route('senior-id.show', [$senior, 'from' => 'registrations']));
+        $component->assertRedirect(route('senior-id.show', [$senior, 'from' => 'registry']));
         $this->assertSame('+639171234567', $senior->representative_contact);
         $this->assertSame('SYNTHETIC REPRESENTATIVE', $senior->representative_name);
         $this->assertSame('CHILD', $senior->representative_relationship);
@@ -162,13 +164,13 @@ class IdApplicationTest extends TestCase
         $this->actingAs(User::factory()->create());
         $input = $this->input();
         $pending = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'first_name' => '<script>synthetic</script>', 'registration_number' => 'SYNTHETIC-PENDING']);
-        $verified = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'registration_number' => 'SYNTHETIC-VERIFIED', 'status' => 'VERIFIED']);
+        $verified = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'first_name' => '<script>synthetic</script>', 'registration_number' => 'SYNTHETIC-VERIFIED', 'status' => 'VERIFIED']);
         $issued = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'registration_number' => 'SYNTHETIC-ISSUED', 'status' => 'VERIFIED']);
         $issued->forceFill(['id_generated_at' => now()])->save();
-        Livewire::test(Index::class)->assertSee($pending->registration_number)->assertDontSee('<script>synthetic</script>', false)
+        Livewire::test(Index::class)->assertDontSee($pending->registration_number)->assertSee($verified->registration_number)->assertDontSee('<script>synthetic</script>', false)
             ->set('stage', 'VERIFIED')->assertSee($verified->registration_number)->assertDontSee($pending->registration_number)->assertDontSee($issued->registration_number)
             ->set('stage', 'ISSUED')->assertSee($issued->registration_number)->assertDontSee($verified->registration_number)
-            ->set('barangayId', '999999')->assertSee('No matching ID applications');
+            ->set('barangayId', '999999')->assertSee('No matching registration records');
     }
 
     public function test_inactive_user_cannot_mount_or_write_registration(): void
@@ -186,6 +188,52 @@ class IdApplicationTest extends TestCase
             ->set('representativeContact', false)->assertSet('form.representative_name', '')->assertSet('form.representative_contact', '')->assertSet('authorizationFile', null);
     }
 
+    #[TestWith(['ARCHIVED'])]
+    #[TestWith(['DECEASED'])]
+    #[TestWith(['TRANSFERRED'])]
+    public function test_registrations_retain_existing_inactive_records_but_exclude_applications(string $status): void
+    {
+        $this->actingAs(User::factory()->create());
+        $input = Arr::except($this->input(), ['requirements_status']);
+        $pending = SeniorCitizen::create([...$input, 'registration_number' => 'SYN-PENDING']);
+        $existing = SeniorCitizen::create([...$input, 'registration_number' => 'SYN-EXISTING', 'status' => $status]);
+
+        Livewire::test(Index::class)->assertSee($existing->registration_number)->assertDontSee($pending->registration_number)
+            ->assertDontSee('New ID Application')->assertDontSeeLivewire(IdApplication::class)
+            ->set('stage', 'INACTIVE')->assertSee($existing->registration_number)
+            ->set('search', 'SYN-PENDING')->assertDontSee($pending->registration_number);
+    }
+
+    public function test_registry_application_cancel_preserves_the_list_filters(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        Livewire::withQueryParams(['status' => 'PENDING', 'search' => 'Synthetic', 'page' => 2])
+            ->test(IdApplication::class)->call('cancel')
+            ->assertRedirect(route('senior-citizens.index', ['search' => 'Synthetic', 'status' => 'PENDING', 'page' => 2]));
+    }
+
+    #[TestWith(['registry', 'senior-citizens.index', 'Exit to registry'])]
+    #[TestWith(['registrations', 'registrations.index', 'Exit to registrations'])]
+    public function test_id_navigation_keeps_the_origin_and_filters(string $from, string $route, string $exit): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = SeniorCitizen::create([...Arr::except($this->input(), ['requirements_status']), 'registration_number' => 'SYN-NAVIGATION']);
+        $context = ['search' => 'Synthetic', 'page' => 2];
+
+        $response = $this->get(route('senior-id.show', [$senior, 'from' => $from, ...$context]));
+
+        $response->assertSee($exit)->assertSeeHtml('href="'.e(route($route, $context)).'"');
+        $document = new \DOMDocument;
+        $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new \DOMXPath($document);
+        foreach (['OSCA Staff navigation', 'Records navigation'] as $navigation) {
+            $links = $xpath->query('//nav[@aria-label="'.$navigation.'"]//a[@aria-current="page"]');
+            $this->assertCount(1, $links);
+            $this->assertSame(route($route), $links->item(0)->getAttribute('href'));
+        }
+    }
+
     public function test_birth_date_changes_detect_age_and_clear_the_underage_error(): void
     {
         $this->travelTo(now()->setDate(2026, 10, 12)->startOfDay());
@@ -194,6 +242,24 @@ class IdApplicationTest extends TestCase
         $this->application()
             ->set('form.birth_date', '1966-10-13')->assertSee('Age: 59 years.')->assertHasErrors('form.birth_date')
             ->set('form.birth_date', '1966-10-12')->assertSee('Age: 60 years.')->assertSee('Meets the 60-year age requirement.')->assertHasNoErrors();
+    }
+
+    public function test_record_links_and_profile_edits_preserve_registration_navigation(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $input = $this->input();
+        $senior = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'registration_number' => 'SYN-EDIT', 'status' => 'VERIFIED']);
+        $context = ['from' => 'registrations', 'search' => 'Synthetic', 'stage' => 'VERIFIED', 'page' => 2];
+
+        $this->get(route('senior-citizens.show', [$senior, ...$context]))
+            ->assertSeeHtml('href="'.e(route('senior-citizens.edit', [$senior, ...$context])).'"')
+            ->assertSeeHtml('href="'.e(route('senior-id.show', [$senior, ...$context])).'"');
+        $this->get(route('senior-citizens.edit', [$senior, ...$context]))
+            ->assertSeeHtml('href="'.e(route('senior-citizens.show', [$senior, ...$context])).'"');
+        $this->put(route('senior-citizens.update', [$senior, ...$context]), [...$input, 'address' => 'Updated synthetic address'])
+            ->assertSessionHasNoErrors()->assertRedirect(route('senior-citizens.show', [$senior, ...$context]));
+
+        $this->assertSame('UPDATED SYNTHETIC ADDRESS', $senior->fresh()->address);
     }
 
     #[TestWith(['1966-10-12'])]

@@ -119,6 +119,20 @@ class PayoutScheduleTest extends TestCase
             ->assertSee('Review payout schedule')->assertSee($schedule->reference_number);
     }
 
+    public function test_schedule_review_displays_recipient_preparation_in_progress(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->seed(BenefitProgramSeeder::class);
+        $program = Program::where('benefit_code', 'december-assistance')->sole();
+        $schedule = $this->schedule($program);
+        $schedule->forceFill(['preparation_token' => '00000000-0000-4000-8000-000000000001'])->save();
+
+        $this->get(route('payout-schedules.create', ['program_id' => $program->id, 'schedule_id' => $schedule->id]))
+            ->assertSeeLivewire(SchedulePanel::class)
+            ->assertSee($schedule->reference_number)
+            ->assertSee('Preparing eligible recipients. Review and approval will be available when preparation finishes.');
+    }
+
     public function test_admin_can_review_schedules_but_cannot_open_staff_program_creation(): void
     {
         $this->actingAs(User::factory()->admin()->create());

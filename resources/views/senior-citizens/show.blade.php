@@ -13,9 +13,7 @@
             <div class="flex items-center justify-between gap-3">
                 <x-record-return-link />
                 @can('update', $seniorCitizen)
-                    <form method="GET" action="{{ route('senior-citizens.edit', $seniorCitizen) }}" class="shrink-0">
-                        <button type="submit" class="primary-button"><x-admin.icon name="pencil" size="16" /> Edit profile</button>
-                    </form>
+                    <a href="{{ route('senior-citizens.edit', [$seniorCitizen, ...request()->only(['from', 'search', 'search_by', 'stage', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])]) }}" class="primary-button shrink-0"><x-admin.icon name="pencil" size="16" /> Edit profile</a>
                 @endcan
             </div>
             <div class="flex min-w-0 items-center gap-3">
@@ -132,7 +130,7 @@
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div class="space-y-2"><h3 class="text-lg font-semibold">Digital ID details</h3><p class="max-w-xl text-sm text-slate-500">Review issuance details before preparing the official card. Attach a physical photo and collect the thumbprint after printing.</p></div>
                     @can('manageId', $seniorCitizen)
-                        <form method="GET" action="{{ route('senior-id.show', [$seniorCitizen, ...request()->only(['from', 'search', 'stage', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])]) }}"><button type="submit" class="primary-button w-full lg:w-auto"><x-admin.icon name="clipboard-list" size="17" /> Prepare and print ID</button></form>
+                        <a href="{{ route('senior-id.show', [$seniorCitizen, ...request()->only(['from', 'search', 'search_by', 'stage', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])]) }}" class="primary-button w-full lg:w-auto"><x-admin.icon name="clipboard-list" size="17" /> Prepare and print ID</a>
                     @endcan
                 </div>
                 <div class="mt-4 flex flex-col gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800 sm:flex-row sm:items-center">

@@ -26,6 +26,7 @@
     @php($user = auth()->user()->loadMissing('role'))
     @php($isAdmin = $user->isAdmin())
     @php($portalLabel = $isAdmin ? 'System Administration' : 'OSCA Staff Portal')
+    @php($recordsSection = request()->routeIs('registrations.*') || request('from') === 'registrations' ? 'registrations' : 'registry')
     @php($lastLoginAt = array_key_exists('last_login_at', $user->getAttributes()) ? $user->last_login_at : null)
     <div class="admin-shell staff-shell {{ $isAdmin ? '' : 'osca-workspace' }}" x-data="{
         sidebarOpen: false,
@@ -73,12 +74,14 @@
                     ['Reports', 'reports.index', 'bar-chart-3', 'reports.*'],
                     ['Benefits Workspace', 'benefits.workspace', 'heart-pulse', 'benefits.*'],
                 ] as [$label, $route, $icon, $pattern])
-                    @php($isActive = request()->routeIs($pattern) || match ($route) {
+                    @php($isActive = in_array($route, ['senior-citizens.index', 'registrations.index'])
+                        ? (request()->routeIs('senior-citizens.*', 'senior-id.*', 'registrations.*') && ($route === 'registrations.index') === ($recordsSection === 'registrations'))
+                        : (request()->routeIs($pattern) || match ($route) {
                         'senior-citizens.index' => request()->routeIs('senior-id.*'),
                         'payouts.index' => request()->routeIs('payout-schedules.*'),
                         'benefits.workspace' => request()->routeIs('programs.*'),
                         default => false,
-                    })
+                    }))
                     <a class="nav-item {{ $isActive ? 'is-active' : '' }}" href="{{ route($route) }}" title="{{ $label }}" @if($isActive) aria-current="page" @endif>
                         <x-admin.icon :name="$icon" size="18" />
                         <span>{{ $label }}</span>
@@ -147,7 +150,7 @@
                         <h1>{{ match (true) {
                             request()->routeIs('administration.users.*') => 'User Accounts',
                             request()->routeIs('senior-id.*') => 'Senior Citizen IDs',
-                            request()->routeIs('senior-citizens.*') => 'Senior Records Registry',
+                            request()->routeIs('senior-citizens.*') => request('from') === 'registrations' ? 'Registrations' : 'Senior Registry',
                             request()->routeIs('registrations.*') => 'Registrations',
                             request()->routeIs('applications.*') => 'Historical Applications',
                             request()->routeIs('payouts.*', 'payout-schedules.*') => 'Payouts',
@@ -171,6 +174,9 @@
 
             <main id="main-content" class="admin-content" tabindex="-1">
                 @include('components.alert')
+                @if (request()->routeIs('senior-citizens.*', 'senior-id.*', 'registrations.*'))
+                    <x-workspace-navigation section="records" />
+                @endif
                 @yield('content')
             </main>
         </div>

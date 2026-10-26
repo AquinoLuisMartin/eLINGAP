@@ -21,11 +21,10 @@
     .id-personal .medium-name { font-size: 5.2pt; line-height: 1; }
     .id-personal .compact-name { font-size: 4.2pt; }
     .id-personal .long-name { font-size: 3.5pt; }
-    .id-address { position: absolute; top: 33.2mm; left: 2.5mm; width: 80.2mm; }
+    .id-address { position: absolute; top: 33.2mm; left: 2.5mm; width: 80.2mm; height: 7mm; }
     .id-address .id-label { position: absolute; top: 0.2mm; left: 0; }
     .id-address .address { margin-left: 12mm; padding-bottom: 0.3mm; border-bottom: 0.15mm solid #777; font-size: 5.5pt; line-height: 1.05; overflow-wrap: anywhere; word-wrap: break-word; }
-    .id-address .compact-address { font-size: 4.3pt; line-height: 1; }
-    .id-contact { position: absolute; top: 38mm; right: 2.5mm; width: 40mm; font-size: 4.8pt; line-height: 1; }
+    .id-contact { position: absolute; top: 25.7mm; left: 2.5mm; width: 50mm; font-size: 4.8pt; line-height: 1; }
     .id-contact-label { position: absolute; top: 0.1mm; left: 0; width: 13mm; }
     .id-contact-value { display: block; margin-left: 13mm; padding-bottom: 0.1mm; border-bottom: 0.15mm solid #777; font-weight: normal; text-align: center; }
     .id-dates { position: absolute; top: 40.8mm; left: 2.5mm; width: 80.2mm; height: 5.8mm; text-align: center; }

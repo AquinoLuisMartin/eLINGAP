@@ -393,6 +393,28 @@ class IdIssuanceTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'senior_citizen.id_print_generated', 'auditable_id' => $senior->id]);
     }
 
+    #[TestWith([false, false])]
+    #[TestWith([true, false])]
+    #[TestWith([false, true])]
+    public function test_overlong_addresses_are_flagged_and_cannot_generate_a_clipped_id(bool $batch, bool $unbroken): void
+    {
+        Storage::fake('local');
+        $this->actingAs(User::factory()->create());
+        $this->configureOfficials();
+        $address = $unbroken ? str_repeat('W', 100) : str_repeat('Synthetic building and street address ', 20);
+        $senior = $this->senior(['address' => $address, 'osca_id_number' => '26-0031', 'id_generated_at' => now()]);
+        app(IdCredential::class)->createForIssued($senior);
+
+        $this->get(route('senior-id.preview', $senior))->assertSee('Address needs review before printing.');
+        $this->get(route('senior-id.show', $senior))->assertSee('The address is too long to fit legibly on the ID.');
+        $this->post($batch ? route('senior-id.batch-print') : route('senior-id.print', $senior), [
+            'paper' => 'a4', 'purpose' => 'FIRST_PRINT', ...($batch ? ['senior_ids' => [$senior->id]] : []),
+        ])->assertSessionHasErrors(['address' => 'The address is too long to fit legibly on the ID. Review the address in the senior record before printing.']);
+
+        $this->assertSame($address, $senior->fresh()->address);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'senior_citizen.id_print_generated']);
+    }
+
     public function test_pdf_card_and_photo_dimensions_include_the_border(): void
     {
         Storage::fake('local');

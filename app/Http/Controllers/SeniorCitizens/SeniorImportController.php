@@ -65,7 +65,7 @@ class SeniorImportController extends Controller
         });
         abort_if($result === false, 409, 'This import is already being processed.');
 
-        return redirect()->route('registrations.index')->with('status', "Import complete: {$result['created']} records added for review; {$result['skipped']} duplicates skipped.");
+        return redirect()->route('senior-citizens.index', ['status' => 'PENDING'])->with('status', "Import complete: {$result['created']} records added for review; {$result['skipped']} duplicates skipped.");
     }
 
     public function destroy(Request $request, string $token): RedirectResponse

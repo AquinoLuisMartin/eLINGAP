@@ -7,8 +7,10 @@
         </div>
         <div class="flex flex-wrap items-center gap-3">
             @can('create', \App\Models\SeniorCitizen::class)
-                <a href="{{ route('senior-citizens.create') }}" class="primary-button"><x-admin.icon name="plus" size="17" /> New registration</a>
-                <a href="{{ route('registrations.index') }}" class="secondary-button">Exit to registrations</a>
+                @if (request('from') !== 'registrations')
+                    <a href="{{ route('senior-citizens.create') }}" class="primary-button"><x-admin.icon name="plus" size="17" /> New ID Application</a>
+                @endif
+                <a href="{{ route(request('from') === 'registrations' ? 'registrations.index' : 'senior-citizens.index', request()->only(request('from') === 'registrations' ? ['search', 'search_by', 'stage', 'barangay_id', 'page'] : ['search', 'search_by', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])) }}" class="secondary-button">{{ request('from') === 'registrations' ? 'Exit to registrations' : 'Exit to registry' }}</a>
             @endcan
             @can('configureId', \App\Models\SeniorCitizen::class)
                 <button type="button" wire:click="$toggle('officialsOpen')" class="secondary-button" aria-controls="id-official-settings" aria-expanded="{{ $officialsOpen ? 'true' : 'false' }}">Official card settings</button>
@@ -32,6 +34,9 @@
     @endif
     @if ($notice)<p role="status" class="rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">{{ $notice }}</p>@endif
     <x-benefit-errors />
+    @if ($card && ! $card['address']['fits'])
+        <p role="alert" class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">The address is too long to fit legibly on the ID. Review the address in the senior record before printing.</p>
+    @endif
     <nav aria-label="ID preparation progress" class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
         <ol class="grid gap-4 sm:grid-cols-3">
             @foreach ([1 => 'Physical ID preparation', 2 => 'Review and issuance', 3 => 'Print ID'] as $number => $label)

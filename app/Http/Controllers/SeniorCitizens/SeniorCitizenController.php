@@ -30,6 +30,7 @@ class SeniorCitizenController extends Controller
 
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
+            'search_by' => ['nullable', 'in:all,name,osca_id,registration'],
             'barangay_id' => ['nullable', 'integer', 'exists:barangays,id'],
             'status' => ['nullable', 'in:PENDING,VERIFIED,ARCHIVED,DECEASED,TRANSFERRED'],
             'age' => ['nullable', 'in:60-69,70-79,80+'],
@@ -39,7 +40,7 @@ class SeniorCitizenController extends Controller
             'direction' => ['nullable', 'in:asc,desc'],
         ]);
         $query = SeniorCitizen::query()->with(['barangay:id,name', 'activeAssignments:id,senior_citizen_id,program_id', 'activeAssignments.program:id,name'])
-            ->when($filters['search'] ?? null, fn ($query, $search) => $query->searchable($search))
+            ->when(filled(trim($filters['search'] ?? '')), fn ($query) => $query->searchable($filters['search'], $filters['search_by'] ?? 'all'))
             ->when($filters['barangay_id'] ?? null, fn ($query, $id) => $query->where('barangay_id', $id))
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->when($filters['age'] ?? null, function ($query, $age) {
@@ -73,7 +74,7 @@ class SeniorCitizenController extends Controller
         )->first();
 
         return view('senior-citizens.index', [
-            'seniorCitizens' => (clone $query)->select(['id', 'barangay_id', 'osca_id_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'status', 'verified_at', 'id_generated_at', 'has_national_pension', 'has_local_pension'])->orderBy('id')->paginate(15)->withQueryString(),
+            'seniorCitizens' => (clone $query)->select(['id', 'barangay_id', 'registration_number', 'osca_id_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'status', 'verified_at', 'id_generated_at', 'has_national_pension', 'has_local_pension'])->orderBy('id')->paginate(15)->withQueryString(),
             'counts' => [
                 'Total registry' => (int) $counts->total,
                 'Age 60–69' => (int) $counts->age_60_69,
@@ -198,7 +199,7 @@ class SeniorCitizenController extends Controller
             throw $exception;
         }
 
-        return redirect()->route('senior-citizens.show', $seniorCitizen)->with('status', 'Senior citizen record updated.');
+        return redirect()->route('senior-citizens.show', [$seniorCitizen, ...collect($request->query())->only(['from', 'search', 'search_by', 'stage', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])->all()])->with('status', 'Senior citizen record updated.');
     }
 
     public function destroy(Request $request, SeniorCitizen $seniorCitizen): RedirectResponse

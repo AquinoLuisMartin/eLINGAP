@@ -31,7 +31,7 @@ class IdApplication extends Component
     public ?int $registeredSeniorId = null;
 
     #[Locked]
-    public array $returnContext = ['from' => 'registrations'];
+    public array $returnContext = ['from' => 'registry'];
 
     public array $form = ['requirements_status' => '', 'requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'review_reason' => '', 'first_name' => '', 'middle_name' => '', 'last_name' => '', 'name_suffix' => '', 'birth_date' => '', 'sex' => '', 'civil_status' => '', 'barangay_id' => '', 'address' => '', 'contact_number' => '', 'applicant_type' => 'SELF', 'representative_name' => '', 'representative_relationship' => '', 'representative_contact' => ''];
 
@@ -76,7 +76,7 @@ class IdApplication extends Component
     public function mount(bool $modal = false): void
     {
         $this->modal = $modal;
-        $this->returnContext = ['from' => 'registrations', ...request()->only(['search', 'stage', 'barangay_id', 'page'])];
+        $this->returnContext = ['from' => 'registry', ...request()->only(['search', 'search_by', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])];
     }
 
     public function boot(): void
@@ -143,7 +143,7 @@ class IdApplication extends Component
         session()->flash('clear-registration-names', true);
         $this->dispatch('registration-cancelled');
         if (! $this->modal) {
-            $this->redirectRoute('registrations.index');
+            $this->redirectRoute('senior-citizens.index', collect($this->returnContext)->except('from')->all());
         }
     }
 
