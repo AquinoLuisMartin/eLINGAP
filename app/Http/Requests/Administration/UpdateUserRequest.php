@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Administration;
 
+use App\Enums\UserRole;
+use App\Rules\UsernameInput;
+use App\Services\Auth\Username;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class UpdateUserRequest extends FormRequest
@@ -21,9 +23,8 @@ class UpdateUserRequest extends FormRequest
         $user = $this->route('user');
 
         return [
-            'role_id' => ['required', 'integer', Rule::exists('roles', 'id')],
-            'username' => ['required', 'string', 'min:3', 'max:100', 'regex:/^[a-z0-9._-]+$/', Rule::unique('users', 'username')->ignore($user)],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user)],
+            'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->where('name', UserRole::OscaStaff->value)],
+            'username' => ['required', 'string', 'max:100', Rule::when($this->input('username') !== $user->username, [new UsernameInput($user->id)])],
             'first_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
@@ -34,17 +35,10 @@ class UpdateUserRequest extends FormRequest
     // Normalize login identifiers before validating uniqueness.
     protected function prepareForValidation(): void
     {
-        foreach (['username', 'email'] as $field) {
-            if (is_string($this->input($field))) {
-                $this->merge([$field => Str::lower(trim($this->input($field)))]);
-            }
+        if (is_string($this->input('username'))) {
+            $username = Username::normalize($this->input('username'));
+            $stored = $this->route('user')->username;
+            $this->merge(['username' => $username === Username::normalize($stored) ? $stored : $username]);
         }
-    }
-
-    public function messages(): array
-    {
-        return [
-            'username.regex' => 'The username may only contain lowercase letters, numbers, dots, underscores, and dashes.',
-        ];
     }
 }

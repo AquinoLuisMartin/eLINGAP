@@ -1,25 +1,14 @@
 @extends('layouts.auth')
-@section('title', 'Reset password')
+@section('title', 'Complete password recovery')
 @section('content')
-@php($emailValue = old('email', $email))
+<p class="mb-5 text-sm text-slate-600">Use the single-use code provided privately by your administrator. It expires 15 minutes after approval.</p>
 <form method="POST" action="{{ route('password.update') }}" class="space-y-4">
     @csrf
-    <input type="hidden" name="token" value="{{ $token }}">
-    <div>
-        <label for="email" class="block text-sm font-medium">Email address</label>
-        <input id="email" name="email" type="email" value="{{ is_string($emailValue) ? $emailValue : '' }}" autocomplete="email" maxlength="255" required class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-2 focus:outline-blue-600" @error('email') aria-invalid="true" aria-describedby="email-error" @enderror>
-        @error('email')<p id="email-error" class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
-    </div>
-    <p id="password-help" class="text-sm text-slate-600">Use at least 12 characters and no more than 72 bytes. Some characters use more than one byte.</p>
-    <div>
-        <label for="password" class="block text-sm font-medium">New password</label>
-        <input id="password" name="password" type="password" autocomplete="new-password" minlength="12" required aria-describedby="password-help @error('password') password-error @enderror" @error('password') aria-invalid="true" @enderror class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-2 focus:outline-blue-600">
-        @error('password')<p id="password-error" class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
-    </div>
-    <div>
-        <label for="password_confirmation" class="block text-sm font-medium">Confirm new password</label>
-        <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" minlength="12" required class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-2 focus:outline-blue-600">
-    </div>
-    <button type="submit" class="min-h-11 w-full rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white focus:outline-2 focus:outline-offset-2 focus:outline-blue-600">Reset password</button>
+    <label class="field-label">Username<input name="username" type="text" value="{{ is_string(old('username')) ? old('username') : '' }}" autocomplete="username" autocapitalize="none" maxlength="100" required></label>
+    <label class="field-label">Recovery code<input name="recovery_code" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="43" required></label>
+    <label class="field-label">New password<input name="password" type="password" autocomplete="new-password" minlength="15" required></label>
+    <label class="field-label">Confirm new password<input name="password_confirmation" type="password" autocomplete="new-password" minlength="15" required></label>
+    <p class="text-sm text-slate-600">Use 15 to 128 characters. Spaces and special characters are allowed. Choose a password unrelated to your name or username.</p>
+    <x-button type="submit">Set new password</x-button>
 </form>
 @endsection

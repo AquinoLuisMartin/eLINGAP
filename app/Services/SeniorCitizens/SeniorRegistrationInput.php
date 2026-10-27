@@ -124,8 +124,8 @@ class SeniorRegistrationInput
         return [
             'photo.max' => 'The photo field must not be greater than 2MB.',
             'birth_date.before_or_equal' => 'The applicant must be at least 60 years old on the application date.',
-            'contact_number.regex' => 'Enter a valid Philippine mobile number: 10 digits starting with 9 after +63 (for example, 967-234-8976).',
-            'representative_contact.regex' => 'Enter a valid representative mobile number: 10 digits starting with 9 after +63 (for example, 967-234-8976).',
+            'contact_number.regex' => 'Enter a valid Philippine mobile number: 10 digits starting with 9 after +63.',
+            'representative_contact.regex' => 'Enter a valid representative mobile number: 10 digits starting with 9 after +63.',
         ];
     }
 }

@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trimStrings(except: ['admin_password', 'passwordForm.current', 'passwordForm.next', 'passwordForm.confirm']);
         $middleware->web(append: [SecurityHeaders::class]);
         $middleware->alias([
             'active' => EnsureUserIsActive::class,
@@ -22,7 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->dontFlash(['current_password', 'password', 'password_confirmation', 'token']);
+        $exceptions->dontFlash(['current_password', 'password', 'password_confirmation', 'token', 'admin_password', 'recovery_code']);
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

@@ -47,7 +47,10 @@ class CheckDeployment extends Command
             'Built frontend assets' => $this->assetsExist(),
             'Development asset server disabled' => ! is_file(public_path('hot')),
             'Environment file outside web root' => ! file_exists(public_path('.env')),
-            'Password recovery mail transport' => is_string($mailer) && ! in_array($mailer, ['log', 'array', 'failover', 'roundrobin'], true),
+            'Argon2id password hashing' => in_array('argon2id', password_algos(), true) && config('hashing.driver') === 'argon2id'
+                && config('hashing.argon.memory') >= 19456 && config('hashing.argon.time') >= 2 && config('hashing.argon.threads') >= 1,
+            'Shared authentication rate limits' => in_array(config('cache.stores.'.config('cache.default').'.driver'), ['database', 'redis', 'memcached', 'dynamodb'], true),
+            'Local password denylist' => is_readable(resource_path('security/common-passwords.txt')) && filesize(resource_path('security/common-passwords.txt')) > 0,
             'Persistent background queue' => ($queue['driver'] ?? null) === 'database'
                 && ($queue['connection'] ?? config('database.default')) === config('database.default')
                 && ($queue['table'] ?? null) === 'jobs' && ($queue['queue'] ?? null) === 'default',

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\SeniorCitizens;
 
+use App\Services\OfficeSettings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -33,13 +34,14 @@ class StoreTransferRequest extends FormRequest
     public function after(): array
     {
         return [function (Validator $validator): void {
-            if ($validator->errors()->hasAny(['destination_municipality', 'destination_province'])) {
+            if ($validator->errors()->any()) {
                 return;
             }
+            $office = app(OfficeSettings::class)->requireLocality();
             if ($this->input('type') === 'EXTERNAL'
-                && mb_strtolower(trim((string) $this->input('destination_municipality'))) === 'santa maria'
-                && mb_strtolower(trim((string) $this->input('destination_province'))) === 'bulacan') {
-                $validator->errors()->add('destination_municipality', 'Use an internal transfer for a destination within Santa Maria, Bulacan.');
+                && mb_strtolower(trim((string) $this->input('destination_municipality'))) === mb_strtolower($office['municipality'])
+                && mb_strtolower(trim((string) $this->input('destination_province'))) === mb_strtolower($office['province'])) {
+                $validator->errors()->add('destination_municipality', 'Use an internal transfer for a destination within the configured municipality and province.');
             }
         }];
     }

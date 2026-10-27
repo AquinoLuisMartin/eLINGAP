@@ -23,7 +23,7 @@ class UserPolicy
 
     public function update(User $user, User $model): bool
     {
-        return $this->viewAny($user);
+        return $this->viewAny($user) && $model->isOscaStaff();
     }
 
     /**
@@ -31,6 +31,6 @@ class UserPolicy
      */
     public function manageAccess(User $user, User $model): bool
     {
-        return $this->viewAny($user) && ! $user->is($model);
+        return $this->update($user, $model) && ! $user->is($model);
     }
 }

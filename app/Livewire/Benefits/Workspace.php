@@ -7,6 +7,7 @@ use App\Models\BenefitSchedule;
 use App\Models\Program;
 use App\Services\Benefits\BenefitAudit;
 use App\Services\Benefits\BenefitScheduling;
+use App\Services\OfficeSettings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -30,7 +31,7 @@ class Workspace extends Component
 
     public array $form = ['program_id' => '', 'period_key' => '', 'eligibility_on' => '', 'scheduled_at' => '', 'location' => '', 'batch_name' => '', 'barangay_ids' => [], 'requirements' => '', 'allow_representative' => false, 'amount' => '', 'available_funds' => '0'];
 
-    public array $newProgram = ['name' => '', 'agency' => 'OSCA Santa Maria', 'government_level' => 'LGU', 'cadence' => 'ANNUAL'];
+    public array $newProgram = ['name' => '', 'agency' => '', 'government_level' => 'LGU', 'cadence' => 'ANNUAL'];
 
     public bool $historicalClaimsChecked = false;
 
@@ -39,8 +40,9 @@ class Workspace extends Component
         Gate::authorize('viewAny', BenefitSchedule::class);
     }
 
-    public function mount(?string $initialProgramId = null, bool $payoutMode = false, ?int $initialScheduleId = null): void
+    public function mount(OfficeSettings $settings, ?string $initialProgramId = null, bool $payoutMode = false, ?int $initialScheduleId = null): void
     {
+        $this->newProgram['agency'] = $settings->values()['office_name'] ?? '';
         $this->form['eligibility_on'] = today()->toDateString();
         $this->form['scheduled_at'] = now()->format('Y-m-d\TH:i');
         $this->form['period_key'] = (string) now()->year;
@@ -151,6 +153,7 @@ class Workspace extends Component
         });
         $this->form['program_id'] = (string) $schedule->program_id;
         $this->reset('newProgram', 'historicalClaimsChecked');
+        $this->newProgram['agency'] = app(OfficeSettings::class)->values()['office_name'] ?? '';
         $this->selectedSchedule = $schedule->id;
         $this->resetPage('schedulesPage');
     }

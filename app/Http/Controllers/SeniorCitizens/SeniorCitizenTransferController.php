@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\SeniorCitizens\StoreTransferRequest;
 use App\Models\SeniorCitizen;
 use App\Services\Benefits\BenefitAudit;
+use App\Services\OfficeSettings;
 use App\Services\SeniorCitizens\IdAssets;
 use App\Services\SeniorCitizens\IdOfficials;
 use App\Services\SeniorCitizens\SeniorTransfer;
@@ -25,11 +26,12 @@ class SeniorCitizenTransferController extends Controller
         return redirect()->route('senior-citizens.show', [$seniorCitizen, 'section' => 'transfers'])->with('status', 'Transfer recorded.');
     }
 
-    public function certificate(SeniorCitizen $seniorCitizen, int $transfer, IdOfficials $officials, IdAssets $assets): Response
+    public function certificate(SeniorCitizen $seniorCitizen, int $transfer, IdOfficials $officials, IdAssets $assets, OfficeSettings $office): Response
     {
         Gate::authorize('manageId', $seniorCitizen);
         $transfer = $seniorCitizen->transfers()->findOrFail($transfer);
-        abort_unless($transfer->type === 'EXTERNAL', 422, 'Cancellation certificates apply only to transfers outside Santa Maria.');
+        abort_unless($transfer->type === 'EXTERNAL', 422, 'Cancellation certificates apply only to external transfers.');
+        $office->requireIdentity();
         $settings = $officials->values();
         if (blank($settings['osca_head_name'] ?? null)) {
             throw ValidationException::withMessages(['officials' => 'Configure the OSCA Head before generating the certificate.']);

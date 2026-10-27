@@ -17,26 +17,23 @@
     <section class="staff-filter-panel mb-5 rounded-lg border border-[var(--line)] bg-[var(--white)] p-5" aria-labelledby="registration-filters-title">
         <h3 id="registration-filters-title" class="mb-4 text-base font-semibold">Find registered seniors</h3>
         <div class="staff-filter-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-12">
-            <label class="field-label xl:col-span-3">Search by
-                <select wire:model.live="searchBy">
+            <div class="field-label xl:col-span-3"><label data-select-label>Search by</label><x-select label="Search by" wire:model.live="searchBy">
                     <option value="all">ID No. or names</option><option value="osca_id">OSCA ID No.</option><option value="name">Names</option><option value="registration">Registration No.</option>
-                </select>
+                </x-select>
                 @error('searchBy')<span role="alert" class="text-sm text-red-700 dark:text-red-300">{{ $message }}</span>@enderror
-            </label>
+            </div>
             <label class="field-label xl:col-span-3">Search term
                 <input wire:model.live.debounce.300ms="search" type="search" maxlength="100" placeholder="Number or name" aria-describedby="registration-search-help">
             </label>
-            <label class="field-label xl:col-span-3">Record stage
-                <select wire:model.live="stage"><option value="">All records</option><option value="VERIFIED">Approved / ID pending</option><option value="ISSUED">ID issued</option><option value="INACTIVE">Inactive records</option></select>
-            </label>
-            <label class="field-label xl:col-span-3">Barangay
-                <select wire:model.live="barangayId">
+            <div class="field-label xl:col-span-3"><label data-select-label>Record stage</label><x-select label="Record stage" wire:model.live="stage"><option value="">All records</option><option value="VERIFIED">Approved / ID pending</option><option value="ISSUED">ID issued</option><option value="INACTIVE">Inactive records</option></x-select>
+            </div>
+            <div class="field-label xl:col-span-3"><label data-select-label>Barangay</label><x-select label="Barangay" wire:model.live="barangayId">
                     <option value="">All barangays</option>
                     @foreach ($barangays as $barangay)
                         <option wire:key="registration-filter-barangay-{{ $barangay->id }}" value="{{ $barangay->id }}">{{ $barangay->name }}</option>
                     @endforeach
-                </select>
-            </label>
+                </x-select>
+            </div>
         </div>
         <p id="registration-search-help" class="mt-3 text-sm text-[var(--muted)]">OSCA ID No. and Registration No. require the complete number. Names accepts first, middle, or last names together, in any order.</p>
         <div class="mt-4 flex flex-wrap items-center justify-between gap-3">

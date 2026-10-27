@@ -4,15 +4,15 @@
         @foreach (\App\Enums\BenefitStatus::cases() as $state)<div wire:key="benefit-status-count-{{ $state->value }}" class="staff-summary-item rounded-lg border border-[var(--line)] p-3"><dt>{{ $state->label() }}</dt><dd class="mt-1 text-2xl font-semibold">{{ number_format($counts[$state->value] ?? 0) }}</dd></div>@endforeach
     </dl>
     <div class="grid gap-3 md:grid-cols-4">
-        <label class="field-label">Status<select wire:model.live="status"><option value="">All statuses</option>@foreach (\App\Enums\BenefitStatus::cases() as $state)<option wire:key="report-status-{{ $state->value }}" value="{{ $state->value }}">{{ $state->label() }}</option>@endforeach</select></label>
-        <label class="field-label">Program<select wire:model.live="programId"><option value="">All programs</option>@foreach($programs as $program)<option wire:key="report-program-{{ $program->id }}" value="{{ $program->id }}">{{ $program->name }}</option>@endforeach</select></label>
+        <div class="field-label"><label data-select-label>Status</label><x-select label="Status" wire:model.live="status"><option value="">All statuses</option>@foreach (\App\Enums\BenefitStatus::cases() as $state)<option wire:key="report-status-{{ $state->value }}" value="{{ $state->value }}">{{ $state->label() }}</option>@endforeach</x-select></div>
+        <div class="field-label"><label data-select-label>Program</label><x-select label="Program" wire:model.live="programId"><option value="">All programs</option>@foreach($programs as $program)<option wire:key="report-program-{{ $program->id }}" value="{{ $program->id }}">{{ $program->name }}</option>@endforeach</x-select></div>
         <label class="field-label">Original period<input wire:model.live.debounce.300ms="period" placeholder="Year or milestone period"></label>
         <label class="field-label">Search senior / ID<input wire:model.live.debounce.300ms="search"></label>
     </div>
     <p class="my-3 text-xs text-slate-500">Pending: awaiting funds or a schedule. Unpaid: scheduled, not released. Unclaimed: available but not collected. Claimed: confirmed received.</p>
-    @if ($notice)<p class="my-3 text-sm text-emerald-700 dark:text-emerald-300" role="status">{{ $notice }}</p>@endif
+    @if ($notice)<x-feedback>{{ $notice }}</x-feedback>@endif
     <x-benefit-errors />
-    @can('manage', \App\Models\BenefitSchedule::class)<label class="field-label">Target draft schedule for rescheduling<select wire:model="targetSchedule"><option value="">Select a draft for the same program</option>@foreach ($drafts as $draft)<option wire:key="reschedule-draft-{{ $draft->id }}" value="{{ $draft->id }}">{{ $draft->reference_number }} / {{ $draft->program->name }} / {{ $draft->batch_name }}</option>@endforeach</select></label>@endcan
+    @can('manage', \App\Models\BenefitSchedule::class)<div class="field-label"><label data-select-label>Target draft schedule for rescheduling</label><x-select label="Target draft schedule for rescheduling" wire:model="targetSchedule"><option value="">Select a draft for the same program</option>@foreach ($drafts as $draft)<option wire:key="reschedule-draft-{{ $draft->id }}" value="{{ $draft->id }}">{{ $draft->reference_number }} / {{ $draft->program->name }} / {{ $draft->batch_name }}</option>@endforeach</x-select></div>@endcan
     @can('reverse', \App\Models\BenefitPayment::class)<label class="field-label">Payment reversal reason<textarea wire:model="reason" minlength="10" maxlength="1000" rows="2"></textarea></label>@endcan
     <p wire:loading class="my-3 text-sm" role="status">Updating report...</p>
     <x-staff.table label="Benefit entitlements and payment references" class="mt-4"><table><thead><tr><th scope="col">Senior / Barangay</th><th scope="col">Program / Period</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Payment references</th><th scope="col">Action</th></tr></thead><tbody>

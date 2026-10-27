@@ -23,8 +23,7 @@ select:not([multiple]):not([size]),
 }
 
 select:not([multiple]):not([size]):focus,
-.admin-shell .admin-content select:not([multiple]):not([size]):focus,
-.staff-shell .admin-content .barangay-filter-trigger:focus-visible {
+.admin-shell .admin-content select:not([multiple]):not([size]):focus {
     border-color: var(--blue, var(--color-osca-primary));
     outline: none;
     box-shadow: 0 0 0 1px var(--blue, var(--color-osca-primary));
@@ -42,6 +41,96 @@ select option {
     font-weight: 400;
 }
 
+.ui-select { position: relative; display: block; width: 100%; min-width: 0; }
+.ui-select-custom { display: block; }
+.ui-select-native {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    clip-path: inset(50%);
+    overflow: hidden;
+    white-space: nowrap;
+    pointer-events: none;
+}
+.ui-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--line, var(--color-osca-border, #e3e3e3));
+    border-radius: 8px;
+    color: var(--ink, var(--color-osca-ink, #252525));
+    background: var(--paper, var(--color-osca-muted, #f6f6f6));
+    font: inherit;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.5;
+    text-align: left;
+    cursor: pointer;
+}
+.ui-select-trigger > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-select-trigger svg { flex: 0 0 16px; }
+.ui-select-trigger:focus-visible,
+.ui-select-menu :where(input, button):focus-visible {
+    outline: 2px solid var(--blue, var(--color-osca-primary, #00327d));
+    outline-offset: -2px;
+}
+.ui-select-trigger[aria-invalid=true] { border-color: var(--color-osca-danger, #c0293c); }
+.ui-select-trigger:disabled { opacity: .55; cursor: not-allowed; }
+.ui-select-menu {
+    position: fixed;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--line, var(--color-osca-border, #e3e3e3));
+    border-radius: 8px;
+    color: var(--ink, var(--color-osca-ink, #252525));
+    background: var(--white, white);
+    box-shadow: 0 8px 25px #102a431a;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.5;
+    text-transform: none;
+}
+.ui-select-search { display: block; flex-shrink: 0; padding: 8px; border-bottom: 1px solid var(--line, #e3e3e3); }
+.ui-select-search input { display: block; width: 100%; min-width: 0; margin: 0 !important; font: inherit; }
+.admin-shell .admin-content .ui-select-search input:focus-visible { box-shadow: none; }
+.ui-select-options { display: block; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px; }
+.ui-select-options button {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 4px;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+.ui-select-options button:where(:hover, :focus-visible, [aria-selected=true]):not(:disabled) {
+    color: var(--blue, var(--color-osca-primary, #00327d));
+    background: var(--paper, #f6f6f6);
+}
+.ui-select-options button:disabled { opacity: .55; cursor: not-allowed; }
+.ui-select-empty { display: block; padding: 12px; color: var(--muted, #64748b); }
+.theme-dark .ui-select-options button:where(:hover, :focus-visible, [aria-selected=true]):not(:disabled) { color: #93c5fd; }
+.theme-dark .ui-select-trigger:focus-visible,
+.theme-dark .ui-select-menu :where(input, button):focus-visible { outline-color: #93c5fd; }
+
+@media print {
+    .ui-select-custom { display: none !important; }
+}
+
 @media (forced-colors: active) {
     select:not([multiple]):not([size]),
     .admin-shell .admin-content select:not([multiple]):not([size]) {
@@ -50,8 +139,7 @@ select option {
     }
 
     select:focus,
-    .admin-shell .admin-content select:focus,
-    .staff-shell .admin-content .barangay-filter-trigger:focus-visible {
+    .admin-shell .admin-content select:focus {
         outline: 2px solid Highlight;
         outline-offset: 2px;
     }

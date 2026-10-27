@@ -51,7 +51,7 @@
                         @endforeach
                     </fieldset>
                     <x-registration-field name="form.requirements_status" label="Document assessment" required>
-                        <select id="form-requirements_status" wire:model.live="form.requirements_status" class="w-full sm:max-w-md"><option value="">Select assessment</option><option value="CHECKED">Requirements checked - ready to register</option><option value="REVIEW">Needs review - document concern</option></select>
+                        <x-select id="form-requirements_status" wire:model.live="form.requirements_status" class="w-full sm:max-w-md"><option value="">Select assessment</option><option value="CHECKED">Requirements checked - ready to register</option><option value="REVIEW">Needs review - document concern</option></x-select>
                     </x-registration-field>
                     @if (($form['requirements_status'] ?? '') === 'REVIEW')
                         <x-registration-field name="form.review_reason" label="Reason for review" required hint="Explain which document needs checking or correction."><textarea id="form-review_reason" wire:model="form.review_reason" rows="3" minlength="5" maxlength="500" class="w-full max-w-2xl"></textarea></x-registration-field>
@@ -74,15 +74,15 @@
                                 @endif
                             </span>
                         </x-registration-field>
-                        <x-registration-field name="form.sex" label="Sex" required><select id="form-sex" wire:model="form.sex"><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option><option value="OTHER">Other</option></select></x-registration-field>
-                        <x-registration-field name="form.civil_status" label="Civil status"><select id="form-civil_status" wire:model="form.civil_status"><option value="">Select civil status</option><option value="SINGLE">Single</option><option value="MARRIED">Married</option><option value="WIDOWED">Widowed</option></select></x-registration-field>
+                        <x-registration-field name="form.sex" label="Sex" required><x-select id="form-sex" wire:model="form.sex"><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option><option value="OTHER">Other</option></x-select></x-registration-field>
+                        <x-registration-field name="form.civil_status" label="Civil status"><x-select id="form-civil_status" wire:model="form.civil_status"><option value="">Select civil status</option><option value="SINGLE">Single</option><option value="MARRIED">Married</option><option value="WIDOWED">Widowed</option></x-select></x-registration-field>
                     </div>
                 @elseif ($step === 2)
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <x-registration-field name="form.barangay_id" label="Barangay" required><select id="form-barangay_id" wire:model="form.barangay_id"><option value="">Select barangay</option>@foreach ($barangays as $barangay)<option wire:key="registration-barangay-{{ $barangay->id }}" value="{{ $barangay->id }}">{{ $barangay->name }}</option>@endforeach</select></x-registration-field>
+                        <x-registration-field name="form.barangay_id" label="Barangay" required><x-select id="form-barangay_id" wire:model="form.barangay_id"><option value="">Select barangay</option>@foreach ($barangays as $barangay)<option wire:key="registration-barangay-{{ $barangay->id }}" value="{{ $barangay->id }}">{{ $barangay->name }}</option>@endforeach</x-select></x-registration-field>
                         <x-registration-field name="form.contact_number" label="Senior mobile number" required hint="Enter 10 digits starting with 9. The +63 country code is included."><x-senior-mobile-input id="form-contact_number" wire:model="form.contact_number" required /></x-registration-field>
                         <x-registration-field name="form.address" label="House and street address" required class="sm:col-span-2"><textarea id="form-address" class="resize-none uppercase" wire:model="form.address" maxlength="1000" rows="2" autocomplete="street-address"></textarea></x-registration-field>
-                        <x-registration-field name="form.applicant_type" label="Who is applying?" required class="sm:col-span-2"><select id="form-applicant_type" wire:model.live="form.applicant_type"><option value="SELF">Senior applying personally</option><option value="REPRESENTATIVE">Authorized representative</option></select></x-registration-field>
+                        <x-registration-field name="form.applicant_type" label="Who is applying?" required class="sm:col-span-2"><x-select id="form-applicant_type" wire:model.live="form.applicant_type"><option value="SELF">Senior applying personally</option><option value="REPRESENTATIVE">Authorized representative</option></x-select></x-registration-field>
                     </div>
                     @if ($form['applicant_type'] === 'SELF')<label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="representativeContact"> Add an authorized representative for SMS or future claiming</label>@endif
                     @if ($representativeContact || $this->needsRepresentative())

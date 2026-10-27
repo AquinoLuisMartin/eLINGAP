@@ -16,9 +16,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 #[Fillable(['role_id', 'username', 'email', 'password_hash', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'is_active'])]
-#[Hidden(['password_hash', 'remember_token'])]
+#[Hidden(['password_hash', 'remember_token', 'credential_version'])]
 class User extends Authenticatable
 {
+    protected $attributes = ['must_change_password' => false, 'credential_version' => 1];
+
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
@@ -31,6 +33,8 @@ class User extends Authenticatable
     {
         return [
             'is_active' => 'boolean',
+            'must_change_password' => 'boolean',
+            'credential_version' => 'integer',
             'last_login_at' => 'datetime',
             'password_hash' => 'hashed',
         ];

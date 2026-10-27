@@ -29,7 +29,7 @@
     </div>
     <div class="panel table-panel">
         <div class="panel-heading"><div><h3>System monitoring</h3><p>Recorded activity as of {{ now()->format('M j, Y g:i A') }}.</p></div><button type="button" class="text-button" wire:click="navigate('system-logs')">View logs</button></div>
-        <div class="table-scroll"><table>
+        <div class="table-scroll" role="region" aria-label="Recent activity" tabindex="0"><table>
             <caption class="sr-only">Authentication, audit, and SMS monitoring counts</caption>
             <thead><tr><th scope="col">Activity</th><th scope="col">Count</th><th scope="col">Period</th></tr></thead>
             <tbody>

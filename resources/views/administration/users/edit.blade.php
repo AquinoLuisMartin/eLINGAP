@@ -7,12 +7,11 @@
             @method('PUT')
             @include('administration.users._form')
         </form>
-        <form class="panel space-y-6" method="POST" action="{{ route('administration.users.password.update', $user) }}">
+        <form class="panel space-y-6" method="POST" action="{{ route('administration.password-reset-requests.store', $user) }}">
             @csrf
-            @method('PATCH')
-            <h3 class="text-base font-medium">Reset password</h3>
-            <div class="grid gap-6 sm:grid-cols-2">@include('administration.users._password-fields')</div>
-            <div class="flex justify-end"><button class="inline-flex min-h-11 items-center rounded-lg bg-osca-primary px-5 text-sm text-white hover:bg-osca-primary-dark" type="submit">Reset password</button></div>
+            <h3 class="text-base font-medium">Administrator-assisted password recovery</h3>
+            <p class="text-sm text-slate-500">Start a request, personally verify the employee and reauthenticate before issuing a recovery code. You cannot set or retrieve the employee's permanent password.</p>
+            <x-button type="submit">Start recovery request</x-button>
         </form>
     </div>
 @endsection

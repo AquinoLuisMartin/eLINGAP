@@ -50,7 +50,7 @@
                 </div>
                 <div class="brand-copy">
                     <strong>eLINGAP</strong>
-                    <small>OSCA Santa Maria</small>
+                    <small>{{ $officeDetails['office_name'] ?? 'Office not configured' }}</small>
                 </div>
             </div>
 
@@ -118,8 +118,9 @@
             </div>
             <div class="profile-details">
                 <div>
+                    <a href="{{ route('password.change') }}" class="text-button">Change password</a>
                     <small>Assigned Office</small>
-                    <strong>OSCA Santa Maria Municipal Hall</strong>
+                    <strong>{{ $officeDetails['office_name'] ?? 'Office not configured' }}</strong>
                 </div>
                 <div>
                     <small>Last Active / Login</small>
@@ -127,7 +128,7 @@
                 </div>
                 <div class="account-status">
                     <small>Account Status</small>
-                    <span><i></i> Active</span>
+                    <span><i></i> {{ $user->is_active ? 'Active' : 'Suspended' }}</span>
                 </div>
             </div>
             <form method="POST" action="{{ route('logout') }}">

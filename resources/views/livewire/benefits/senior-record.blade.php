@@ -2,7 +2,7 @@
     <x-benefit-panel>
         <h2 class="text-xl font-semibold">Central Eligibility</h2>
         <p class="mt-2 text-sm text-slate-500">One verified registration and generated OSCA ID covers applicable programs. Staff review program conditions before payment.</p>
-        @if ($notice)<p class="my-3 text-sm text-emerald-700 dark:text-emerald-300" role="status">{{ $notice }}</p>@endif
+        @if ($notice)<x-feedback>{{ $notice }}</x-feedback>@endif
         <x-benefit-errors />
         <dl class="my-4 grid gap-3 sm:grid-cols-3">
             <div><dt class="text-sm text-slate-500">Verified</dt><dd>{{ $senior->verified_at?->format('M j, Y') ?? 'Not verified' }}</dd></div>
@@ -20,7 +20,7 @@
         @can('manage', \App\Models\BenefitSchedule::class)
             @if ($senior->status->value === 'VERIFIED' && $senior->id_generated_at && $senior->osca_id_number)
                 <form wire:submit="assignBenefit" class="mt-4 flex flex-wrap items-end gap-3">
-                    <label class="field-label">Program or benefit<select wire:model="programId" required><option value="">Select program</option>@foreach ($programs as $program)<option wire:key="assignment-program-{{ $program->id }}" value="{{ $program->id }}">{{ $program->name }}</option>@endforeach</select></label>
+                    <div class="field-label"><label data-select-label>Program or benefit</label><x-select label="Program or benefit" wire:model="programId" required><option value="">Select program</option>@foreach ($programs as $program)<option wire:key="assignment-program-{{ $program->id }}" value="{{ $program->id }}">{{ $program->name }}</option>@endforeach</x-select></div>
                     <button type="submit" class="primary-button" wire:loading.attr="disabled">Assign benefit</button>
                 </form>
                 <form wire:submit="saveClassifications" class="mt-6 space-y-3">

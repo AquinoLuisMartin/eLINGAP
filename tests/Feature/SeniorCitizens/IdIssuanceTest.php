@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\SeniorCitizen;
 use App\Models\SeniorCitizenIdCredential;
+use App\Models\SystemConfiguration;
 use App\Models\User;
 use App\Services\SeniorCitizens\IdAssets;
 use App\Services\SeniorCitizens\IdCardLayout;
@@ -343,7 +344,7 @@ class IdIssuanceTest extends TestCase
         $card = app(IdCardLayout::class)->data($senior, draft: true);
 
         $this->assertSame(file_get_contents(public_path('images/lgu-seal.png')), base64_decode(explode(',', $card['seal'], 2)[1]));
-        Livewire::test(IdOfficialSettings::class)->assertSee('Using the included Santa Maria LGU seal.');
+        Livewire::test(IdOfficialSettings::class)->assertSee('Using the included LGU seal.');
     }
 
     public function test_removing_an_uploaded_seal_restores_the_included_seal(): void
@@ -356,7 +357,7 @@ class IdIssuanceTest extends TestCase
         $this->assertSame(file_get_contents(base_path('tests/Fixtures/id-photo.jpg')), base64_decode(explode(',', $card['seal'], 2)[1]));
 
         Livewire::test(IdOfficialSettings::class)->set('remove', ['municipal_seal'])->call('save')->assertHasNoErrors()
-            ->assertSee('Using the included Santa Maria LGU seal.');
+            ->assertSee('Using the included LGU seal.');
 
         $card = app(IdCardLayout::class)->data($senior, draft: true);
         $this->assertSame(file_get_contents(public_path('images/lgu-seal.png')), base64_decode(explode(',', $card['seal'], 2)[1]));
@@ -476,6 +477,12 @@ class IdIssuanceTest extends TestCase
 
     private function senior(array $overrides = []): SeniorCitizen
     {
+        foreach (['municipality' => 'Santa Maria', 'province' => 'Bulacan', 'office_name' => 'Synthetic office', 'organization_name' => 'Municipality of Santa Maria'] as $key => $value) {
+            if (! SystemConfiguration::query()->where('key', $key)->exists()) {
+                SystemConfiguration::forceCreate(['key' => $key, 'value' => $value]);
+            }
+        }
+
         $barangay = Barangay::create(['name' => 'Synthetic Barangay '.Barangay::count(), 'code' => 'SYN-'.Barangay::count()]);
 
         return SeniorCitizen::unguarded(fn () => SeniorCitizen::create([

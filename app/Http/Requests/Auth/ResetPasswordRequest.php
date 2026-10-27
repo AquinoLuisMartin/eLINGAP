@@ -3,22 +3,17 @@
 namespace App\Http\Requests\Auth;
 
 use App\Rules\PasswordInput;
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Password;
 
-class ResetPasswordRequest extends FormRequest
+class ResetPasswordRequest extends ForgotPasswordRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
-
     public function rules(): array
     {
-        return [
-            'token' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255'],
-            'password' => ['required', 'string', 'confirmed', new PasswordInput, Password::defaults()],
-        ];
+        return [...parent::rules(), 'recovery_code' => ['required', 'string', 'regex:/\A[A-Za-z0-9_-]{43}\z/'],
+            'password' => ['required', 'string', 'confirmed', new PasswordInput]];
+    }
+
+    public function messages(): array
+    {
+        return ['recovery_code.regex' => 'Enter the recovery code exactly as provided by your administrator.'];
     }
 }

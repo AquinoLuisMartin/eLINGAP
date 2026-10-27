@@ -27,20 +27,21 @@ class AuthenticatedSessionController extends Controller
             $logger->failure(LoginEvent::LoginFailed, $request->identity(), 'Invalid credentials or inactive account.');
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'username' => trans('auth.failed'),
             ]);
         }
 
         $request->session()->regenerate();
 
         $user = $request->user();
+        $request->session()->put('credential_version', $user->credential_version);
         $user->forceFill(['last_login_at' => now()])->save();
 
         $logger->success(LoginEvent::Login, $user);
 
         $user->loadMissing('role');
 
-        return redirect()->route($user->homeRouteName());
+        return redirect()->route($user->must_change_password ? 'password.change' : $user->homeRouteName());
     }
 
     public function destroy(Request $request, LoginLogger $logger): RedirectResponse

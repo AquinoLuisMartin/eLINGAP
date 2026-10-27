@@ -8,6 +8,7 @@ use App\Models\Barangay;
 use App\Models\Beneficiary;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
+use App\Models\SystemConfiguration;
 use App\Models\User;
 use App\Services\Benefits\BenefitAssignment;
 use App\Services\SeniorCitizens\IdCardLayout;
@@ -412,6 +413,12 @@ class OscaConsultationTest extends TestCase
 
     private function senior(array $overrides = []): SeniorCitizen
     {
+        foreach (['municipality' => 'Santa Maria', 'province' => 'Bulacan', 'office_name' => 'Synthetic office', 'organization_name' => 'Municipality of Santa Maria'] as $key => $value) {
+            if (! SystemConfiguration::query()->where('key', $key)->exists()) {
+                SystemConfiguration::forceCreate(['key' => $key, 'value' => $value]);
+            }
+        }
+
         $barangay = Barangay::firstOrCreate(['code' => 'SYN-ORIGIN'], ['name' => 'Synthetic origin']);
         $number = SeniorCitizen::count();
 

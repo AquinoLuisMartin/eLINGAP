@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <a href="https://laravel.com" target="_blank">
     <img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo">
   </a>
@@ -131,8 +131,8 @@ Create a local PostgreSQL database and update the `DB_*` values in `.env`.
 The application uses PostgreSQL and database-backed queues. Local defaults use
 database-backed sessions and cache; the single-server Hostinger profile uses
 persistent file sessions and cache to reduce database traffic. Configure the
-application URL and mail settings as needed; password reset emails require a
-working mail transport.
+application URL and any notification mail settings as needed. Password recovery
+uses administrator identity verification and private code handover.
 
 Run the migrations:
 
@@ -227,9 +227,14 @@ to fail in a local development environment.
 
 Production should use the canonical HTTPS application URL, secure session
 cookies, encrypted session storage, private uploads, persistent sessions and
-cache, built assets, and a real password-recovery mail transport. Verify
+cache, built assets, Argon2id support, and administrator-assisted password recovery. Verify
 encryption, backups, restoration, browser accessibility, and performance
 separately before rollout.
+
+Authentication uses usernames only. Administrators provision staff with one-time
+temporary-password displays and personally verify recovery requests before
+issuing single-use codes. See [authentication and recovery](docs/authentication-and-recovery.md)
+for the migration, password policy, handover procedure and console recovery.
 
 ## SMS configuration
 

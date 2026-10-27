@@ -32,7 +32,7 @@
             @endforelse
         </div></details>
     @endif
-    @if ($notice)<p role="status" class="rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">{{ $notice }}</p>@endif
+    @if ($notice)<x-feedback>{{ $notice }}</x-feedback>@endif
     <x-benefit-errors />
     @if ($card && ! $card['address']['fits'])
         <p role="alert" class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">The address is too long to fit legibly on the ID. Review the address in the senior record before printing.</p>
@@ -59,7 +59,7 @@
                 <div><dt class="text-sm text-slate-500">Full name</dt><dd class="mt-1">{{ $senior->full_name }}</dd></div>
                 <div><dt class="text-sm text-slate-500">Birthdate / age today</dt><dd class="mt-1">{{ $senior->birth_date->format('M j, Y') }} / {{ $card['age'] }}</dd></div>
                 <div><dt class="text-sm text-slate-500">Original issuance date</dt><dd class="mt-1">{{ $senior->id_generated_at?->format('M j, Y') ?? 'Assigned on issuance' }}</dd></div>
-                <div class="sm:col-span-2"><dt class="text-sm text-slate-500">Address</dt><dd class="mt-1">{{ $senior->address }}, {{ $senior->barangay->name }}, Santa Maria, Bulacan</dd></div>
+                <div class="sm:col-span-2"><dt class="text-sm text-slate-500">Address</dt><dd class="mt-1">{{ implode(', ', array_filter([$senior->address, $senior->barangay->name, $officeDetails['municipality'], $officeDetails['province']])) }}</dd></div>
                 <div><dt class="text-sm text-slate-500">Registration</dt><dd class="mt-1">{{ ucfirst(strtolower($senior->status->value)) }}</dd></div>
             </dl>
             @include('senior-citizens.ids.styles')
@@ -83,8 +83,8 @@
             <form method="POST" action="{{ route('senior-id.print', $senior) }}" target="_blank" class="space-y-6">
                 @csrf
                 <div class="grid gap-6 sm:grid-cols-2">
-                    <label for="id-paper" class="block text-sm">Paper size<select id="id-paper" name="paper" class="mt-2 block w-full"><option value="short">Short (8.5 x 11 inches)</option><option value="long">Long (8.5 x 13 inches)</option><option value="a4">A4 (210 x 297 mm)</option></select></label>
-                    <label for="id-purpose" class="block text-sm">Print purpose<select id="id-purpose" name="purpose" class="mt-2 block w-full"><option value="FIRST_PRINT" @selected(!$existingId)>First print</option><option value="REPRINT" @selected($existingId)>Reprint</option><option value="REPLACEMENT">Replacement</option></select></label>
+                    <div class="field-label block text-sm"><label data-select-label>Paper size</label><x-select label="Paper size" id="id-paper" name="paper" class="mt-2 block w-full"><option value="short">Short (8.5 x 11 inches)</option><option value="long">Long (8.5 x 13 inches)</option><option value="a4">A4 (210 x 297 mm)</option></x-select></div>
+                    <div class="field-label block text-sm"><label data-select-label>Print purpose</label><x-select label="Print purpose" id="id-purpose" name="purpose" class="mt-2 block w-full"><option value="FIRST_PRINT" @selected(!$existingId)>First print</option><option value="REPRINT" @selected($existingId)>Reprint</option><option value="REPLACEMENT">Replacement</option></x-select></div>
                 </div>
                 <p class="text-sm text-slate-500">Card: 85.60 x 53.98 mm per side. Reprints and replacements keep the same number, QR and original issuance date. Age is calculated when the PDF is generated.</p>
                 <button class="primary-button" @disabled(!$credentialExists)>Open print-ready PDF</button>

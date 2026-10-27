@@ -5,16 +5,17 @@
     @include('components.alert')
     <a href="{{ route('administration.dashboard') }}">Dashboard</a>
     <a href="{{ route('administration.users.create') }}">Create user</a>
+    <a href="{{ route('administration.password-reset-requests.index') }}">Password Reset Requests ({{ $pendingRecoveryRequests }} pending)</a>
     <form method="GET" action="{{ route('administration.users.index') }}">
         <label for="search">Search users</label>
         <input id="search" name="search" value="{{ request('search') }}">
         <label for="role">Role</label>
-        <select id="role" name="role">
+        <x-select id="role" name="role">
             <option value="">All roles</option>
             @foreach ($roles as $role)
                 <option value="{{ $role->value }}" @selected(request('role') === $role->value)>{{ $role->label() }}</option>
             @endforeach
-        </select>
+        </x-select>
         <button type="submit">Search</button>
     </form>
     <table>
@@ -27,7 +28,7 @@
                     <td>{{ $user->role->name->label() }}</td>
                     <td>{{ $user->is_active ? 'Active' : 'Suspended' }}</td>
                     <td>
-                        <a href="{{ route('administration.users.edit', $user) }}">Edit</a>
+                        @can('update', $user)<a href="{{ route('administration.users.edit', $user) }}">Edit</a>@endcan
                         @can('manageAccess', $user)
                             <form method="POST" action="{{ route('administration.users.status.update', $user) }}">
                                 @csrf

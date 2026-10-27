@@ -5,7 +5,7 @@ namespace App\Livewire\Benefits;
 use App\Models\BenefitSchedule;
 use App\Models\Program;
 use App\Services\Benefits\BenefitAudit;
-use Database\Seeders\BenefitProgramSeeder;
+use App\Services\OfficeSettings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -17,25 +17,20 @@ class Programs extends Component
     #[Locked]
     public ?int $editing = null;
 
-    public array $form = ['name' => '', 'agency' => 'OSCA Santa Maria', 'government_level' => 'LGU', 'status' => 'UPCOMING', 'default_amount' => '', 'cadence' => 'ANNUAL', 'cutoff' => '', 'payout_month' => '', 'milestones' => '', 'claim_window_months' => '', 'october_conditions' => false, 'office_review' => false, 'groceries' => false, 'provisional' => false];
+    public array $form = ['name' => '', 'agency' => '', 'government_level' => 'LGU', 'status' => 'UPCOMING', 'default_amount' => '', 'cadence' => 'ANNUAL', 'cutoff' => '', 'payout_month' => '', 'milestones' => '', 'claim_window_months' => '', 'october_conditions' => false, 'office_review' => false, 'groceries' => false, 'provisional' => false];
 
     public bool $historicalClaimsChecked = false;
 
     public string $notice = '';
 
+    public function mount(OfficeSettings $settings): void
+    {
+        $this->form['agency'] = $settings->values()['office_name'] ?? '';
+    }
+
     public function boot(): void
     {
         Gate::authorize('viewAny', BenefitSchedule::class);
-    }
-
-    public function installCatalog(): void
-    {
-        Gate::authorize('manage', BenefitSchedule::class);
-        DB::transaction(function (): void {
-            (new BenefitProgramSeeder)->run();
-            BenefitAudit::record('benefit.catalog_initialized', Program::query()->whereNotNull('benefit_code')->firstOrFail());
-        });
-        $this->notice = 'Approved program definitions added. Review provisional rules and historical claims before activation.';
     }
 
     public function edit(int $id): void
@@ -79,7 +74,7 @@ class Programs extends Component
             $rules['milestones'] = [];
             foreach (preg_split('/\R/', trim($this->form['milestones'])) as $line) {
                 if (! preg_match('/^(\d{2,3}):(\d+(?:\.\d{1,2})?)$/', trim($line), $match) || (int) $match[1] < 60 || (int) $match[1] > 120 || (float) $match[2] <= 0 || (float) $match[2] > 9999999999.99) {
-                    $this->addError('form.milestones', 'Use one age:amount per line, such as 90:5000.');
+                    $this->addError('form.milestones', 'Use one numeric age:amount pair per line.');
 
                     return;
                 }
@@ -97,6 +92,7 @@ class Programs extends Component
             BenefitAudit::record('benefit.program_configured', $program, ['rules' => $rules, 'default_amount' => $program->default_amount, 'historical_claims_checked' => true]);
         });
         $this->reset('form', 'editing', 'historicalClaimsChecked');
+        $this->form['agency'] = app(OfficeSettings::class)->values()['office_name'] ?? '';
         $this->notice = 'Program saved. Existing entitlement and payout amounts remain unchanged.';
     }
 

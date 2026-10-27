@@ -1,7 +1,9 @@
 <?php
 
 return [
-    'driver' => 'bcrypt',
+    'driver' => 'argon2id',
+
+    'argon' => ['memory' => 19456, 'time' => 2, 'threads' => 1, 'verify' => true],
 
     'bcrypt' => [
         'rounds' => (int) env('BCRYPT_ROUNDS', 12),

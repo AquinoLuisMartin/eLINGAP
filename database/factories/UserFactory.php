@@ -15,7 +15,7 @@ class UserFactory extends Factory
     {
         return [
             'role_id' => fn () => Role::firstOrCreate(['name' => UserRole::OscaStaff->value])->id,
-            'username' => fake()->unique()->userName(),
+            'username' => fake()->unique()->numerify('staff.########'),
             'email' => fake()->unique()->safeEmail(),
             'password_hash' => Str::password(),
             'first_name' => fake()->firstName(),

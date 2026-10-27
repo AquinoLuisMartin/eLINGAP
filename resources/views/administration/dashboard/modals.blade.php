@@ -1,6 +1,6 @@
 {{-- Profile Details Modal --}}
 @if ($profileModal === 'profile')
-    <div class="modal-backdrop" role="dialog" aria-modal="true" x-data="{}" x-trap.inert.noscroll="true" aria-labelledby="profile-modal-title" wire:keydown.escape="closeModal">
+    <div class="modal-backdrop" role="dialog" aria-modal="true" x-data="{}" x-trap.inert.noscroll="true" aria-labelledby="profile-modal-title" wire:keydown.escape="closeModal" wire:click.self="closeModal">
         <div class="modal-card profile-details-modal">
             <div class="modal-heading">
                 <div>
@@ -38,7 +38,7 @@
 
 {{-- Change Password Modal --}}
 @if ($profileModal === 'password')
-    <div class="modal-backdrop" role="dialog" aria-modal="true" x-data="{}" x-trap.inert.noscroll="true" aria-labelledby="password-modal-title" wire:keydown.escape="closeModal">
+    <div class="modal-backdrop" role="dialog" aria-modal="true" x-data="{}" x-trap.inert.noscroll="true" aria-labelledby="password-modal-title" wire:keydown.escape="closeModal" wire:click.self="closeModal">
         <div class="modal-card password-modal">
             <div class="modal-heading">
                 <div>
@@ -81,7 +81,7 @@
 
 {{-- Logout Confirmation Modal --}}
 @if ($logoutConfirmOpen)
-    <div class="modal-backdrop logout-modal-backdrop" role="dialog" aria-modal="true" x-data="{}" x-trap.inert.noscroll="true" aria-labelledby="logout-modal-title" wire:keydown.escape="$set('logoutConfirmOpen', false)">
+    <div class="modal-backdrop logout-modal-backdrop" role="dialog" aria-modal="true" x-data="{}" x-trap.inert.noscroll="true" aria-labelledby="logout-modal-title" wire:keydown.escape="$set('logoutConfirmOpen', false)" wire:click.self="closeModal">
         <div class="modal-card logout-modal">
             <div class="logout-icon">
                 <x-admin.icon name="log-out" size="20" />

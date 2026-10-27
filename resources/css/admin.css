@@ -3,6 +3,7 @@
 @import './uploads.css';
 @import './textareas.css';
 @import './dashboard-overview.css';
+@import './ui.css';
 
 .chart-summary { display: flex; flex-wrap: wrap; gap: 24px; margin-top: 22px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
 .chart-summary small, .chart-summary strong { display: block; }

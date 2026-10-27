@@ -3,7 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Services\Auth\PasswordRecovery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -20,52 +20,44 @@ class PasswordRecoverySecurityTest extends TestCase
         $user = User::factory()->create();
         DB::table('users')->where('id', $user->id)->update(['password_hash' => hash('sha256', $password)]);
 
-        $this->post(route('login'), ['email' => $user->email, 'password' => $password])
-            ->assertRedirect(route('dashboard'));
+        $this->post(route('login'), ['username' => $user->username, 'password' => $password])->assertRedirectToRoute('dashboard');
 
         $this->assertAuthenticatedAs($user);
-        $stored = $user->fresh()->password_hash;
-        $this->assertSame('bcrypt', password_get_info($stored)['algoName']);
-        $this->assertTrue(Hash::check($password, $stored));
+        $this->assertSame('argon2id', password_get_info($user->fresh()->password_hash)['algoName']);
+        $this->assertTrue(Hash::check($password, $user->fresh()->password_hash));
     }
 
     public function test_recovery_returns_the_same_message_for_known_and_unknown_accounts(): void
     {
         Notification::fake();
         $user = User::factory()->create();
-        $message = 'If an account matches that email address, a password reset link will be sent.';
-
-        foreach ([$user->email, 'missing@example.test', $user->email] as $email) {
-            $this->post(route('password.email'), ['email' => $email])
-                ->assertRedirect()->assertSessionHas('status', $message);
+        foreach ([$user->username, 'missing.user', $user->username] as $username) {
+            $this->post(route('password.request.store'), ['username' => $username])
+                ->assertRedirect()->assertSessionHas('status', PasswordRecovery::CONFIRMATION);
         }
 
-        Notification::assertSentToTimes($user, ResetPassword::class, 1);
+        Notification::assertNothingSent();
+        $this->assertDatabaseCount('password_reset_requests', 1);
     }
 
     public function test_recovery_requests_are_rate_limited_even_for_unknown_accounts(): void
     {
         Notification::fake();
         foreach (range(1, 5) as $attempt) {
-            $this->post(route('password.email'), ['email' => 'missing'.$attempt.'@example.test'])->assertRedirect();
+            $this->post(route('password.request.store'), ['username' => 'missing.user'.$attempt])->assertRedirect();
         }
-
-        $this->post(route('password.email'), ['email' => 'missing6@example.test'])->assertStatus(429);
-        $this->post(route('login'), ['email' => 'missing@example.test', 'password' => 'Synthetic-test-password'])
-            ->assertInvalid(['email' => trans('auth.failed')]);
+        $this->post(route('password.request.store'), ['username' => 'missing.user6'])->assertStatus(429);
+        $this->post(route('login'), ['username' => 'missing.user', 'password' => 'Synthetic-test-password'])
+            ->assertInvalid(['username' => trans('auth.failed')]);
         Notification::assertNothingSent();
     }
 
-    public function test_reset_validation_does_not_flash_tokens_or_passwords(): void
+    public function test_reset_validation_does_not_flash_codes_or_passwords(): void
     {
-        $this->post(route('password.update'), [
-            'email' => 'missing@example.test',
-            'token' => 'synthetic-token',
-            'password' => 'short',
-            'password_confirmation' => 'short',
-        ])->assertInvalid(['password']);
+        $this->post(route('password.update'), ['username' => 'missing.user', 'recovery_code' => 'synthetic-code',
+            'password' => ['malformed'], 'password_confirmation' => 'short'])->assertInvalid('password');
 
-        $this->assertNull(session()->getOldInput('token'));
+        $this->assertNull(session()->getOldInput('recovery_code'));
         $this->assertNull(session()->getOldInput('password'));
         $this->assertNull(session()->getOldInput('password_confirmation'));
     }

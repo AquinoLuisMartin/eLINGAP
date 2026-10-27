@@ -1,12 +1,12 @@
 @csrf
 <div>
     <label for="barangay_id" class="block font-medium">Barangay <span aria-hidden="true">*</span></label>
-    <select id="barangay_id" name="barangay_id" required class="mt-1 w-full rounded border p-2">
+    <x-select id="barangay_id" name="barangay_id" required class="mt-1 w-full">
         <option value="">Select barangay</option>
         @foreach ($barangays as $barangay)
             <option value="{{ $barangay->id }}" @selected(old('barangay_id', $seniorCitizen->barangay_id ?? '') == $barangay->id)>{{ $barangay->name }}</option>
         @endforeach
-    </select>
+    </x-select>
 </div>
 <div>
     <label for="first_name" class="block font-medium">First name *</label>
@@ -30,20 +30,20 @@
 </div>
 <div>
     <label for="sex" class="block font-medium">Sex *</label>
-    <select id="sex" name="sex" required class="mt-1 w-full rounded border p-2">
+    <x-select id="sex" name="sex" required class="mt-1 w-full">
         @foreach (['MALE', 'FEMALE', 'OTHER'] as $option)
             <option value="{{ $option }}" @selected(old('sex', $seniorCitizen->sex ?? '') === $option)>{{ $option }}</option>
         @endforeach
-    </select>
+    </x-select>
 </div>
 <div>
     <label for="civil_status" class="block font-medium">Civil status</label>
-    <select id="civil_status" name="civil_status" class="mt-1 w-full rounded border p-2">
+    <x-select id="civil_status" name="civil_status" class="mt-1 w-full">
         <option value="">Select civil status</option>
         @foreach (['SINGLE' => 'Single', 'MARRIED' => 'Married', 'WIDOWED' => 'Widowed'] as $value => $label)
             <option value="{{ $value }}" @selected(strtoupper(old('civil_status', $seniorCitizen->civil_status ?? '')) === $value)>{{ $label }}</option>
         @endforeach
-    </select>
+    </x-select>
 </div>
 <div>
     <label for="address" class="block font-medium">House and street address *</label>
@@ -61,12 +61,11 @@
 <fieldset class="space-y-4 rounded-lg border p-4">
     <legend class="px-2 font-semibold">Applicant and authorized representative</legend>
     <p class="text-sm text-slate-500">A contact number for the senior is required for every registration. Representative details and authorization proof are required when a representative applies or receives SMS.</p>
-    <label class="block text-sm">Applicant type
-        <select name="applicant_type" class="mt-1 w-full rounded border p-2">
+    <div class="field-label block text-sm"><label data-select-label>Applicant type</label><x-select label="Applicant type" name="applicant_type" class="mt-1 w-full">
             <option value="SELF" @selected(old('applicant_type', $seniorCitizen->applicant_type ?? 'SELF') === 'SELF')>Senior personally</option>
             <option value="REPRESENTATIVE" @selected(old('applicant_type', $seniorCitizen->applicant_type ?? 'SELF') === 'REPRESENTATIVE')>Authorized representative</option>
-        </select>
-    </label>
+        </x-select>
+    </div>
     @foreach (['representative_name' => 'Representative name', 'representative_relationship' => 'Relationship to senior', 'representative_contact' => 'Representative mobile number'] as $field => $label)
         <label class="block text-sm">{{ $label }}
             @if ($field === 'representative_contact')

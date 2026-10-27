@@ -11,12 +11,11 @@
             <h3 id="broadcast-audience-title" class="text-lg font-semibold">Audience</h3>
             <p class="mt-2 text-sm text-[var(--muted)]">Only verified seniors with valid mobile numbers are included.</p>
             <form method="GET" class="mt-5 grid gap-4">
-                <label class="field-label">Target barangay
-                    <select name="barangay_id">
+                <div class="field-label"><label data-select-label>Target barangay</label><x-select label="Target barangay" name="barangay_id">
                         <option value="">All barangays</option>
                         @foreach ($barangays as $barangay)<option value="{{ $barangay->id }}" @selected(request('barangay_id') == $barangay->id)>{{ $barangay->name }}</option>@endforeach
-                    </select>
-                </label>
+                    </x-select>
+                </div>
                 <button class="secondary-button">Update audience</button>
             </form>
             <dl class="mt-5 grid grid-cols-2 gap-4 border-t border-[var(--line)] pt-5">
@@ -30,9 +29,8 @@
             @csrf
             <input type="hidden" name="barangay_id" value="{{ request('barangay_id') }}">
             <h3 class="text-lg font-semibold">Compose message</h3>
-            <label class="field-label">Quick template
-                <select id="broadcast-template"><option value="">Write a message</option>@foreach ($templates as $template)<option value="{{ $template->id }}" data-body="{{ $template->body }}">{{ $template->name }}</option>@endforeach</select>
-            </label>
+            <div class="field-label"><label data-select-label>Quick template</label><x-select label="Quick template" id="broadcast-template"><option value="">Write a message</option>@foreach ($templates as $template)<option value="{{ $template->id }}" data-body="{{ $template->body }}">{{ $template->name }}</option>@endforeach</x-select>
+            </div>
             <label class="field-label">Message
                 <textarea id="broadcast-message" name="message" rows="8" maxlength="1600" required aria-describedby="sms-count">{{ old('message') }}</textarea>
             </label>

@@ -3,9 +3,13 @@ import collapse from '@alpinejs/collapse';
 import idImageEditor from './id-image-editor';
 import initApplicationWizard from './application-wizard';
 import { formatSeniorMobile } from './senior-registration-input';
+import uiSelect from './select-control';
+import initFormFeedback from './form-feedback';
+import initAccountSecurity from './account-security';
 
 window.idImageEditor = idImageEditor;
 window.formatSeniorMobile = formatSeniorMobile;
+window.uiSelect = uiSelect;
 const modalTriggers = new WeakMap();
 
 // Landing page interactions
@@ -27,6 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initBackToTop();
     initViewSwitcher();
     initEscapeClose();
+    initFormFeedback();
+    initAccountSecurity(document, window);
 });
 
 function initStaffControls() {
@@ -141,8 +147,8 @@ function initModal(prefix) {
     });
     modal.addEventListener('keydown', event => {
         if (event.key !== 'Tab') return;
-        const controls = [...modal.querySelectorAll('button:not(:disabled), input:not(:disabled):not([type="hidden"]), a[href], [tabindex="0"]')]
-            .filter(control => control.getClientRects().length);
+        const controls = [...modal.querySelectorAll('button, input:not([type="hidden"]), select, textarea, a[href], [tabindex]')]
+            .filter(control => !control.disabled && control.tabIndex >= 0 && control.getClientRects().length);
         const first = controls[0];
         const last = controls[controls.length - 1];
         if (!first) { event.preventDefault(); modal.focus(); return; }
@@ -281,7 +287,7 @@ function initEscapeClose() {
     window.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
         document.querySelectorAll('[role="dialog"]:not(.hidden)').forEach(modal => {
-            closeModal(modal);
+            if (modalTriggers.has(modal)) closeModal(modal);
         });
     });
 }

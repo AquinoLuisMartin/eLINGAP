@@ -5,6 +5,7 @@
 @import './textareas.css';
 @import './staff-workspace.css';
 @import './landing.css';
+@import './ui.css';
 
 [hidden] { display: none !important; }
 @custom-variant dark (&:where(.dark, .dark *, .theme-dark, .theme-dark *));
@@ -285,59 +286,6 @@
 }
 
 .registration-filters .field-label { margin-top: 0; }
-
-.barangay-filter-trigger {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    width: 100%;
-    min-height: 44px;
-    padding: 10px 12px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: var(--paper);
-    color: var(--ink);
-    font: inherit;
-    font-size: 15px;
-    line-height: 1.5;
-    cursor: pointer;
-}
-
-.barangay-filter-trigger svg { flex-shrink: 0; }
-
-.barangay-filter-options {
-    position: absolute;
-    display: flex;
-    flex-direction: column;
-    top: calc(100% + 6px);
-    inset-inline: 0;
-    z-index: 30;
-    max-height: min(16rem, 40vh);
-    overflow: hidden;
-    overscroll-behavior: contain;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: var(--white);
-    box-shadow: 0 8px 25px #102a431a;
-}
-
-.barangay-filter-options button {
-    display: block;
-    width: 100%;
-    padding: 8px 10px;
-    border-radius: 4px;
-    color: var(--ink);
-    text-align: left;
-    cursor: pointer;
-}
-
-.barangay-filter-options button:hover,
-.barangay-filter-options button:focus-visible,
-.barangay-filter-options button[aria-selected='true'] {
-    background: var(--paper);
-    color: var(--blue);
-}
 
 @media (max-width: 1100px) {
     .registry-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }

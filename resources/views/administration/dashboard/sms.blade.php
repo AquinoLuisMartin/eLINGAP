@@ -6,7 +6,7 @@
     <div class="mini-stat"><div><small>Currently failed</small><strong>{{ number_format($this->summary['sms_failed']) }}</strong></div></div>
 </section>
 <div class="panel history-panel"><div class="panel-heading"><div><h3>Broadcast History</h3><p>Sending success records provider acceptance, not confirmed delivery.</p></div><a class="text-button" href="{{ route('sms.templates.index') }}">Manage templates</a></div>
-<div class="table-scroll"><table><thead><tr><th>Broadcast</th><th>Audience</th><th>Created</th><th>Sent / Recipients</th><th>Queued</th><th>Failed</th><th>Details</th></tr></thead><tbody>
+<div class="table-scroll" role="region" aria-label="SMS broadcasts" tabindex="0"><table><thead><tr><th>Broadcast</th><th>Audience</th><th>Created</th><th>Sent / Recipients</th><th>Queued</th><th>Failed</th><th>Details</th></tr></thead><tbody>
     @forelse ($this->broadcasts as $blast)
         <tr wire:key="broadcast-{{ $blast->id }}"><td>#{{ $blast->id }}</td><td>{{ $blast->barangay?->name ?? 'All barangays' }}</td><td>{{ $blast->created_at->format('M j, Y g:i A') }}</td><td>{{ number_format($blast->sent_count) }} / {{ number_format($blast->recipient_count) }}</td><td>{{ number_format($blast->queued_count) }}</td><td>{{ number_format($blast->failed_count) }}</td><td><a class="text-button" href="{{ route('sms.blasts.show', $blast) }}">View</a></td></tr>
     @empty

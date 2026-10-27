@@ -2,26 +2,27 @@
 
 namespace App\Livewire\Administration;
 
-use App\Enums\LoginEvent;
 use App\Enums\UserRole;
-use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\BenefitPayment;
+use App\Models\PasswordResetRequest;
 use App\Models\Payout;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
 use App\Models\SmsBlast;
 use App\Models\SystemConfiguration;
 use App\Models\User;
+use App\Rules\NewPassword;
 use App\Rules\PasswordInput;
-use App\Services\Auth\LoginLogger;
+use App\Services\Auth\AccountAccess;
+use App\Services\Auth\Credentials;
 use App\Services\Reports\AdminDashboardReport;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -128,19 +129,11 @@ class Dashboard extends Component
         $this->resetValidation();
     }
 
-    public function toggleUserStatus(int $userId): void
+    public function toggleUserStatus(int $userId, AccountAccess $access): void
     {
         Gate::authorize('viewAny', User::class);
 
-        $user = DB::transaction(function () use ($userId): User {
-            $user = User::query()->lockForUpdate()->findOrFail($userId);
-            Gate::authorize('manageAccess', $user);
-            $wasActive = $user->is_active;
-            $user->update(['is_active' => ! $wasActive]);
-            AuditLog::create(['user_id' => auth()->id(), 'action' => 'user.access_changed', 'auditable_type' => User::class, 'auditable_id' => $user->id, 'old_values' => ['is_active' => $wasActive], 'new_values' => ['is_active' => $user->is_active], 'ip_address' => request()->ip()]);
-
-            return $user;
-        });
+        $user = $access->setStatus(auth()->user(), User::query()->findOrFail($userId), null);
         unset($this->filteredUsers, $this->userCounts);
 
         $this->triggerToast($user->full_name.' is now '.($user->is_active ? 'active' : 'suspended').'.');
@@ -183,24 +176,25 @@ class Dashboard extends Component
         ];
     }
 
-    public function updatePassword(LoginLogger $logger): void
+    public function updatePassword(Credentials $credentials): void
     {
         try {
             $validated = $this->validate([
-                'passwordForm.current' => ['required', 'string', new PasswordInput, 'current_password'],
-                'passwordForm.next' => ['required', 'string', new PasswordInput, Password::defaults()],
+                'passwordForm.current' => ['required', 'string', new PasswordInput],
+                'passwordForm.next' => ['required', 'string', new NewPassword($this->currentUser)],
                 'passwordForm.confirm' => ['required', 'same:passwordForm.next'],
             ]);
 
-            DB::transaction(function () use ($validated, $logger): void {
-                $user = $this->currentUser;
-                $user->forceFill([
-                    'password_hash' => $validated['passwordForm']['next'],
-                    'remember_token' => null,
-                ])->save();
-
-                $logger->success(LoginEvent::PasswordChanged, $user);
-            });
+            $credentials->change($this->currentUser, $validated['passwordForm']['current'], $validated['passwordForm']['next']);
+            unset($this->currentUser);
+        } catch (ValidationException $exception) {
+            $errors = [];
+            foreach ($exception->errors() as $key => $messages) {
+                $errors[match ($key) {
+                    'current_password' => 'passwordForm.current', 'password' => 'passwordForm.next', default => $key
+                }] = $messages;
+            }
+            throw ValidationException::withMessages($errors);
         } finally {
             $this->reset('passwordForm');
         }
@@ -213,6 +207,12 @@ class Dashboard extends Component
     public function summary(): array
     {
         return app(AdminDashboardReport::class)->summary();
+    }
+
+    #[Computed]
+    public function pendingRecoveryRequests(): int
+    {
+        return PasswordResetRequest::query()->where('status', 'PENDING')->count();
     }
 
     #[Computed]

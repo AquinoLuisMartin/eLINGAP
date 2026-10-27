@@ -30,7 +30,7 @@ class RoleRoutingTest extends TestCase
     public function test_admin_login_redirects_to_administration_dashboard(): void
     {
         $response = $this->post('/login', [
-            'email' => $this->admin->email,
+            'username' => $this->admin->username,
             'password' => $this->password,
         ]);
 
@@ -41,7 +41,7 @@ class RoleRoutingTest extends TestCase
     public function test_staff_login_redirects_to_staff_dashboard(): void
     {
         $response = $this->post('/login', [
-            'email' => $this->staff->email,
+            'username' => $this->staff->username,
             'password' => $this->password,
         ]);
 
@@ -87,7 +87,7 @@ class RoleRoutingTest extends TestCase
     public function test_admin_can_login_with_username(): void
     {
         $response = $this->post('/login', [
-            'email' => $this->admin->username,
+            'username' => $this->admin->username,
             'password' => $this->password,
         ]);
 
@@ -103,7 +103,7 @@ class RoleRoutingTest extends TestCase
         $user->update(['username' => $admin ? 'Synthetic Admin' : 'Synthetic Staff', 'email' => null]);
 
         $this->post(route('login'), [
-            'email' => Str::upper($user->username),
+            'username' => Str::upper($user->username),
             'password' => $this->password,
         ])->assertRedirect(route($dashboard));
 

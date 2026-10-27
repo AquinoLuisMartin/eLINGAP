@@ -52,7 +52,6 @@ class AccountProvisioningTest extends TestCase
 
         $this->artisan('app:create-admin')
             ->expectsQuestion('Username', $user->username)
-            ->expectsQuestion('Email address', $user->email)
             ->expectsQuestion('First name', $user->first_name)
             ->expectsQuestion('Last name', $user->last_name)
             ->expectsQuestion('Password', $password)
@@ -77,7 +76,6 @@ class AccountProvisioningTest extends TestCase
 
         $this->artisan('app:create-admin')
             ->expectsQuestion('Username', $invalid === 'duplicate' ? $existing->username : $candidate->username)
-            ->expectsQuestion('Email address', $candidate->email)
             ->expectsQuestion('First name', $candidate->first_name)
             ->expectsQuestion('Last name', $candidate->last_name)
             ->expectsQuestion('Password', $password)
@@ -95,5 +93,39 @@ class AccountProvisioningTest extends TestCase
             ->assertFailed();
 
         $this->assertDatabaseEmpty('users');
+    }
+
+    public function test_console_recovery_is_interactive_audited_and_requires_a_personal_password_change(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $this->artisan('app:create-admin', ['--recover' => true])
+            ->expectsConfirmation('Has the administrator identity been verified under the approved office procedure?', 'yes')
+            ->expectsQuestion('Username', $admin->username)
+            ->expectsQuestion('New temporary password', 'Synthetic new console passphrase')
+            ->expectsQuestion('Confirm password', 'Synthetic new console passphrase')
+            ->expectsOutput('Administrator recovery completed. A password change is required at the next sign-in.')
+            ->assertSuccessful();
+
+        $this->assertTrue($admin->fresh()->must_change_password);
+        $this->assertSame(2, $admin->fresh()->credential_version);
+        $this->assertTrue(Hash::check('Synthetic new console passphrase', $admin->fresh()->password_hash));
+        $this->assertDatabaseHas('audit_logs', ['action' => 'user.console_recovery', 'auditable_id' => $admin->id]);
+    }
+
+    public function test_console_recovery_cannot_target_staff_or_skip_identity_verification(): void
+    {
+        $staff = User::factory()->create();
+        $before = $staff->password_hash;
+        $this->artisan('app:create-admin', ['--recover' => true])
+            ->expectsConfirmation('Has the administrator identity been verified under the approved office procedure?', 'yes')
+            ->expectsQuestion('Username', $staff->username)
+            ->expectsQuestion('New temporary password', 'Synthetic new console passphrase')
+            ->expectsQuestion('Confirm password', 'Synthetic new console passphrase')
+            ->expectsOutput('An eligible administrator account was not found.')->assertFailed();
+        $this->artisan('app:create-admin', ['--recover' => true])
+            ->expectsConfirmation('Has the administrator identity been verified under the approved office procedure?', 'no')->assertFailed();
+
+        $this->assertSame($before, $staff->fresh()->password_hash);
+        $this->assertDatabaseCount('audit_logs', 0);
     }
 }

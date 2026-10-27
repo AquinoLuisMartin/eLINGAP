@@ -64,6 +64,7 @@ class PayoutScheduleTest extends TestCase
 
         Livewire::test(Workspace::class, ['initialProgramId' => 'other', 'payoutMode' => true])
             ->set('newProgram.name', 'Synthetic payout assistance')
+            ->set('newProgram.agency', 'Synthetic agency')
             ->set('form.location', 'Synthetic payout venue')
             ->set('form.amount', '750')
             ->set('historicalClaimsChecked', true)

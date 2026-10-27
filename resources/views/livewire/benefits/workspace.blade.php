@@ -11,15 +11,15 @@
                 <form wire:submit="createSchedule" class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <h4 class="text-base font-semibold md:col-span-2 xl:col-span-3">Program and eligibility</h4>
                     @unless ($payoutMode)
-                        <label class="field-label">Program<select wire:model.live="form.program_id" required><option value="">Select program</option>@foreach ($programs as $program)<option wire:key="schedule-program-{{ $program->id }}" value="{{ $program->id }}">{{ $program->name }}{{ $program->status === 'UPCOMING' ? ' (Upcoming)' : '' }}</option>@endforeach<option value="other">Other - enter a new program</option></select></label>
+                        <div class="field-label"><label data-select-label>Program</label><x-select label="Program" wire:model.live="form.program_id" required><option value="">Select program</option>@foreach ($programs as $program)<option wire:key="schedule-program-{{ $program->id }}" value="{{ $program->id }}">{{ $program->name }}{{ $program->status === 'UPCOMING' ? ' (Upcoming)' : '' }}</option>@endforeach<option value="other">Other - enter a new program</option></x-select></div>
                     @endunless
                     @if ($form['program_id'] === 'other')
                         <fieldset class="grid gap-4 rounded-lg border border-slate-200 p-4 md:col-span-2 xl:col-span-3 dark:border-slate-700" wire:key="new-schedule-program">
                             <legend class="px-2 font-semibold">New program</legend>
                             <label class="field-label">Program name<input wire:model="newProgram.name" maxlength="180" required></label>
                             <label class="field-label">Agency<input wire:model="newProgram.agency" maxlength="180" required></label>
-                            <label class="field-label">Government level<select wire:model="newProgram.government_level"><option value="LGU">Local government</option><option value="PROVINCIAL">Provincial government</option><option value="NATIONAL">National government</option></select></label>
-                            <label class="field-label">Benefit frequency<select wire:model.live="newProgram.cadence"><option value="ANNUAL">Annual</option><option value="QUARTERLY">Quarterly</option><option value="SEMIANNUAL">Every six months</option><option value="ON_DEMAND">Upon request</option></select></label>
+                            <div class="field-label"><label data-select-label>Government level</label><x-select label="Government level" wire:model="newProgram.government_level"><option value="LGU">Local government</option><option value="PROVINCIAL">Provincial government</option><option value="NATIONAL">National government</option></x-select></div>
+                            <div class="field-label"><label data-select-label>Benefit frequency</label><x-select label="Benefit frequency" wire:model.live="newProgram.cadence"><option value="ANNUAL">Annual</option><option value="QUARTERLY">Quarterly</option><option value="SEMIANNUAL">Every six months</option><option value="ON_DEMAND">Upon request</option></x-select></div>
                             <p class="text-sm text-slate-500">The program will be saved for future schedules. Verified seniors with issued OSCA IDs are eligible, subject to staff review. For milestone ages, cutoffs or additional eligibility rules, create the program in <a class="text-button" href="{{ route('benefits.programs') }}">Program rules</a> first.</p>
                         </fieldset>
                     @elseif ($selectedProgram)
@@ -45,7 +45,7 @@
                         @foreach ($barangays as $barangay)<label wire:key="batch-barangay-{{ $barangay->id }}" class="text-sm"><input type="checkbox" wire:model="form.barangay_ids" value="{{ $barangay->id }}"> {{ $barangay->name }}</label>@endforeach
                     </div></fieldset>
                     <label class="text-sm md:col-span-2"><input type="checkbox" wire:model="form.allow_representative"> Authorized representatives may claim under this schedule's announced instructions.</label>
-                    <div class="staff-form-actions md:col-span-2 xl:col-span-3"><button class="primary-button" wire:loading.attr="disabled">Prepare eligible recipient list</button><span wire:loading wire:target="createSchedule" class="text-sm" role="status">Preparing recipients...</span></div>
+                    <div class="staff-form-actions md:col-span-2 xl:col-span-3"><x-button type="submit" wire:loading.attr="disabled">Prepare eligible recipient list</x-button><span wire:loading wire:target="createSchedule" class="text-sm" role="status">Preparing recipients...</span></div>
                 </form>
             </details>
         </x-benefit-panel>

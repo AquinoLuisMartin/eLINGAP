@@ -24,7 +24,7 @@
                         <h2 class="break-words text-xl font-semibold sm:text-2xl">{{ $seniorCitizen->full_name }}</h2>
                         <div class="flex flex-wrap items-center gap-2">
                             <x-badge :status="$seniorCitizen->status" />
-                            <span class="text-sm text-slate-500">{{ $seniorCitizen->barangay->name }}, Santa Maria</span>
+                            <span class="text-sm text-slate-500">{{ implode(', ', array_filter([$seniorCitizen->barangay->name, $officeDetails['municipality']])) }}</span>
                         </div>
                     </div>
             </div>
@@ -136,7 +136,7 @@
                 <div class="mt-4 flex flex-col gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800 sm:flex-row sm:items-center">
                     <div class="flex size-24 shrink-0 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-2 text-center text-xs text-slate-500 dark:border-slate-600 dark:bg-slate-900">Physical 1 x 1 inch photo</div>
                     <div class="min-w-0 flex-1 space-y-4">
-                        <div><p class="text-xs text-slate-500">Office of Senior Citizens Affairs</p><p class="mt-1 break-words text-xl font-semibold text-slate-800 dark:text-slate-100">{{ $seniorCitizen->full_name }}</p><p class="mt-1 text-sm text-slate-500">{{ $seniorCitizen->barangay->name }}, Santa Maria, Bulacan</p></div>
+                        <div><p class="text-xs text-slate-500">{{ $officeDetails['office_name'] ?? 'Office not configured' }}</p><p class="mt-1 break-words text-xl font-semibold text-slate-800 dark:text-slate-100">{{ $seniorCitizen->full_name }}</p><p class="mt-1 text-sm text-slate-500">{{ implode(', ', array_filter([$seniorCitizen->barangay->name, $officeDetails['municipality'], $officeDetails['province']])) }}</p></div>
                         <dl class="grid gap-4 sm:grid-cols-2"><div><dt class="text-xs text-slate-500">OSCA ID</dt><dd class="mt-1 text-sm font-medium text-slate-800 dark:text-slate-100">{{ $seniorCitizen->osca_id_number ?: 'Not issued' }}</dd></div><div><dt class="text-xs text-slate-500">Original issuance</dt><dd class="mt-1 text-sm text-slate-800 dark:text-slate-100">{{ $seniorCitizen->id_generated_at?->format('F j, Y') ?? 'Not recorded' }}</dd></div></dl>
                     </div>
                 </div>

@@ -11,6 +11,7 @@
 </section>
 
 <section class="metric-grid user-metrics">
+    <a href="{{ route('administration.password-reset-requests.index') }}" class="metric-card"><strong>Password Reset Requests</strong><span>{{ $this->pendingRecoveryRequests }} pending</span></a>
     <div class="metric-card">
         <div class="metric-icon blue">
             <x-admin.icon name="users" size="19" />
@@ -64,14 +65,14 @@
         </label>
         <div class="filter-pills">
             @foreach (['All', 'Active', 'Suspended'] as $filter)
-                <button type="button" class="{{ $userStatusFilter === $filter ? 'selected' : '' }}" wire:click="$set('userStatusFilter', '{{ $filter }}')">
+                <button type="button" class="{{ $userStatusFilter === $filter ? 'selected' : '' }}" aria-pressed="{{ $userStatusFilter === $filter ? 'true' : 'false' }}" wire:click="$set('userStatusFilter', '{{ $filter }}')">
                     {{ $filter }}
                 </button>
             @endforeach
         </div>
     </div>
 
-    <div class="table-scroll">
+    <div class="table-scroll" role="region" aria-label="User accounts" tabindex="0">
         <table>
             <thead>
                 <tr>
@@ -115,9 +116,11 @@
                         <td>{{ $user->created_at->format('M j, Y') }}</td>
                         <td>
                             <div class="row-actions">
+                                @can('update', $user)
                                 <a class="icon-button" title="Edit user" aria-label="Edit {{ $user->full_name }}" href="{{ route('administration.users.edit', $user) }}">
                                     <x-admin.icon name="pencil" size="15" />
                                 </a>
+                                @endcan
                                 @can('manageAccess', $user)
                                     <button type="button" class="small-action-button" wire:click="toggleUserStatus({{ $user->id }})">
                                         {{ $user->is_active ? 'Suspend' : 'Activate' }}

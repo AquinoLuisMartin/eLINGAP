@@ -5,7 +5,7 @@
                 <img src="{{ asset('images/eLINGAP.png') }}" alt="eLINGAP" class="size-12 rounded-lg bg-white object-contain" width="48" height="48">
                 <div>
                     <p class="text-sm font-medium text-osca-ink">eLINGAP</p>
-                    <p class="mt-0.5 text-xs text-osca-body">OSCA Santa Maria</p>
+                    <p class="mt-0.5 text-xs text-osca-body">{{ $officeDetails['office_name'] ?? 'Office not configured' }}</p>
                 </div>
             </div>
             <button type="button" data-close-modal="login" class="absolute top-4 right-4 inline-flex size-10 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-osca-muted hover:text-osca-ink sm:top-6 sm:right-6" aria-label="Close login dialog">
@@ -24,13 +24,13 @@
 
             <div class="space-y-2">
                 <label for="login-identity" class="block text-sm font-medium text-osca-ink">Username</label>
-                <input id="login-identity" name="email" type="text" value="{{ old('email') }}" autocomplete="username" autocapitalize="none" spellcheck="false" data-focus required class="login-input min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-osca-ink placeholder:text-sm placeholder:text-slate-400 transition-colors hover:border-slate-400" placeholder="Enter your username" @error('email') aria-invalid="true" aria-describedby="login-error" @enderror>
+                <input id="login-identity" name="username" type="text" value="{{ is_string(old('username')) ? old('username') : '' }}" autocomplete="username" autocapitalize="none" spellcheck="false" data-focus required class="login-input min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-osca-ink placeholder:text-sm placeholder:text-slate-400 transition-colors hover:border-slate-400" placeholder="Enter your username" @error('username') aria-invalid="true" aria-describedby="login-error" @enderror>
             </div>
 
             <div class="space-y-2">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <label for="login-password" class="text-sm font-medium text-osca-ink">Password</label>
-                    <button type="button" @click="recoveryHelp = !recoveryHelp" :aria-expanded="recoveryHelp" aria-controls="login-recovery-help" class="rounded py-1 text-sm text-osca-primary hover:text-osca-primary-dark">Forgot password?</button>
+                    <a href="{{ route('password.request') }}" class="rounded py-1 text-sm text-osca-primary hover:text-osca-primary-dark">Forgot password?</a>
                 </div>
                 <div class="relative">
                     <input id="login-password" name="password" type="password" autocomplete="current-password" required class="login-input min-h-11 w-full rounded-lg border border-slate-300 bg-white py-2.5 pr-12 pl-3 text-base text-osca-ink placeholder:text-sm placeholder:text-slate-400 transition-colors hover:border-slate-400" placeholder="Enter your password" @error('password') aria-invalid="true" aria-describedby="login-error" @enderror>
@@ -46,7 +46,6 @@
                     <span>Remember me</span>
                 </label>
             </div>
-            <p id="login-recovery-help" x-show="recoveryHelp" x-cloak class="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2.5 text-sm text-osca-primary">Ask your OSCA administrator to reset your account password.</p>
 
             <button id="login-submit" type="submit" class="flex min-h-11 w-full items-center justify-center rounded-lg bg-osca-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-osca-primary-dark disabled:cursor-wait disabled:opacity-70">
                 <span data-login-label>Sign in</span>

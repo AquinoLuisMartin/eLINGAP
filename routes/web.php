@@ -1,11 +1,13 @@
 <?php
 
 use App\Enums\UserRole;
+use App\Http\Controllers\Administration\SystemConfigurationController;
 use App\Http\Controllers\Administration\UserController;
 use App\Http\Controllers\Administration\UserPasswordController;
 use App\Http\Controllers\Administration\UserStatusController;
 use App\Http\Controllers\Applications\ApplicationController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Payouts\PayoutController;
@@ -27,6 +29,7 @@ use App\Http\Controllers\Sms\SmsBlastController;
 use App\Http\Controllers\Sms\SmsMessageController;
 use App\Http\Controllers\Sms\SmsTemplateController;
 use App\Http\Middleware\AuditActivity;
+use App\Http\Middleware\EnsureCurrentCredentials;
 use App\Http\Middleware\EnsurePreviewIsLocal;
 use Illuminate\Support\Facades\Route;
 
@@ -54,12 +57,14 @@ Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('login', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:20,1,login');
     Route::get('forgot-password', [PasswordResetController::class, 'createRequest'])->name('password.request');
-    Route::post('forgot-password', [PasswordResetController::class, 'sendRequest'])->middleware('throttle:5,1,password-recovery')->name('password.email');
-    Route::get('reset-password/{token}', [PasswordResetController::class, 'createReset'])->name('password.reset');
-    Route::post('reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:10,1,password-reset')->name('password.update');
+    Route::post('forgot-password', [PasswordResetController::class, 'sendRequest'])->middleware('throttle:recovery-request')->name('password.request.store');
+    Route::get('reset-password', [PasswordResetController::class, 'createReset'])->name('password.reset');
+    Route::post('reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:recovery-complete')->name('password.update');
 });
 
-Route::middleware(['auth', 'auth.session', 'active', AuditActivity::class])->group(function () {
+Route::middleware(['auth', 'auth.session', 'active', EnsureCurrentCredentials::class, AuditActivity::class])->group(function () {
+    Route::get('change-password', [ChangePasswordController::class, 'edit'])->name('password.change');
+    Route::post('change-password', [ChangePasswordController::class, 'update'])->middleware('throttle:5,1,password-change')->name('password.change.update');
     Route::view('registrations', 'registrations.index')->name('registrations.index');
     Route::get('registrations/import', [SeniorImportController::class, 'create'])->name('registrations.import.create');
     Route::get('registrations/import/template/{format}', [SeniorImportController::class, 'template'])->name('registrations.import.template');
@@ -124,11 +129,16 @@ Route::middleware(['auth', 'auth.session', 'active', AuditActivity::class])->gro
     // Admin side.
     Route::middleware('role:'.UserRole::Admin->value)->prefix('administration')->name('administration.')->group(function () {
         Route::view('dashboard', 'administration.dashboard')->name('dashboard');
+        Route::patch('configuration', [SystemConfigurationController::class, 'update'])->name('configuration.update');
 
         Route::resource('users', UserController::class)->except(['show', 'destroy']);
         Route::resource('programs', ProgramController::class)->only(['create', 'store']);
         Route::delete('senior-citizens/{senior_citizen}', [SeniorCitizenController::class, 'destroy'])->name('senior-citizens.destroy');
         Route::patch('users/{user}/status', [UserStatusController::class, 'update'])->name('users.status.update');
-        Route::patch('users/{user}/password', [UserPasswordController::class, 'update'])->name('users.password.update');
+        Route::post('users/username-suggestion', [UserController::class, 'suggestUsername'])->middleware('throttle:30,1,username-suggestion')->name('users.username-suggestion');
+        Route::get('password-reset-requests', [UserPasswordController::class, 'index'])->name('password-reset-requests.index');
+        Route::get('password-reset-requests/{resetRequest}', [UserPasswordController::class, 'show'])->name('password-reset-requests.show');
+        Route::post('users/{user}/password-reset-requests', [UserPasswordController::class, 'store'])->name('password-reset-requests.store');
+        Route::patch('password-reset-requests/{resetRequest}', [UserPasswordController::class, 'update'])->middleware('throttle:5,15,recovery-review')->name('password-reset-requests.update');
     });
 });

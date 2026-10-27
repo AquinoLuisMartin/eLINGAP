@@ -17,6 +17,7 @@ use App\Models\BenefitPayment;
 use App\Models\BenefitSchedule;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
+use App\Models\SystemConfiguration;
 use App\Models\User;
 use App\Services\Benefits\BenefitEligibility;
 use App\Services\Benefits\BenefitPayments;
@@ -374,7 +375,7 @@ class BenefitWorkflowTest extends TestCase
         $schedule = $this->schedule();
         $this->actingAs(User::factory()->admin()->create());
         $this->get(route('benefits.workspace'))->assertOk();
-        Livewire::test(Programs::class)->call('installCatalog')->assertForbidden();
+        Livewire::test(Programs::class)->call('save')->assertForbidden();
         Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])->call('issueId')->assertForbidden();
         Livewire::test(SchedulePanel::class, ['scheduleId' => $schedule->id])->call('approve')->assertForbidden();
         Livewire::test(Workspace::class)->call('createSchedule')->assertForbidden();
@@ -525,6 +526,9 @@ class BenefitWorkflowTest extends TestCase
 
     public function test_id_printing_requires_verified_record_and_recorded_issuance(): void
     {
+        foreach (['municipality' => 'Synthetic town', 'province' => 'Synthetic province', 'office_name' => 'Synthetic office', 'organization_name' => 'Synthetic organization'] as $key => $value) {
+            SystemConfiguration::forceCreate(['key' => $key, 'value' => $value]);
+        }
         Storage::fake('local');
         $senior = $this->senior(['id_generated_at' => null]);
         $this->get(route('senior-citizens.id-card', $senior))->assertStatus(422);
@@ -638,6 +642,7 @@ class BenefitWorkflowTest extends TestCase
             ->call('createSchedule')->assertHasErrors(['newProgram.name', 'newProgram.government_level']);
 
         $component->set('newProgram.name', 'Synthetic custom aid')
+            ->set('newProgram.agency', 'Synthetic agency')
             ->set('newProgram.government_level', 'LGU')
             ->call('createSchedule')->assertHasErrors('historicalClaimsChecked');
 
@@ -651,6 +656,7 @@ class BenefitWorkflowTest extends TestCase
             ->set('form.program_id', 'other')
             ->set('form.location', 'Synthetic payout venue')
             ->set('newProgram.name', ' annual december senior assistance ')
+            ->set('newProgram.agency', 'Synthetic agency')
             ->set('historicalClaimsChecked', true)
             ->call('createSchedule')->assertHasErrors('newProgram.name');
 
@@ -677,6 +683,7 @@ class BenefitWorkflowTest extends TestCase
             ->set('form.program_id', 'other')
             ->set('form.location', 'Synthetic payout venue')
             ->set('newProgram.name', 'Synthetic custom aid')
+            ->set('newProgram.agency', 'Synthetic agency')
             ->set('form.period_key', 'invalid')
             ->set('historicalClaimsChecked', true)
             ->call('createSchedule')->assertHasErrors('period');

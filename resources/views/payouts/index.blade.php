@@ -11,8 +11,8 @@
 </dl>
 <form method="GET" class="mb-5 grid gap-4 rounded-lg border border-[var(--line)] bg-[var(--white)] p-4 sm:grid-cols-2 xl:grid-cols-5">
     <label class="text-sm">Search <input name="search" value="{{ request('search') }}" class="mt-1 w-full rounded border p-2" placeholder="Name or OSCA ID"></label>
-    <label class="text-sm">Status <select name="status" class="mt-1 w-full rounded border p-2"><option value="">All statuses</option>@foreach (\App\Enums\PayoutStatus::cases() as $status)<option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ ucfirst(strtolower($status->value)) }}</option>@endforeach</select></label>
-    <label class="text-sm">Program <select name="program_id" class="mt-1 w-full rounded border p-2"><option value="">All programs</option>@foreach ($programs as $program)<option value="{{ $program->id }}" @selected(request('program_id') == $program->id)>{{ $program->name }}</option>@endforeach</select></label>
+    <div class="field-label text-sm"><label data-select-label>Status</label><x-select label="Status" name="status" class="mt-1 w-full"><option value="">All statuses</option>@foreach (\App\Enums\PayoutStatus::cases() as $status)<option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ ucfirst(strtolower($status->value)) }}</option>@endforeach</x-select></div>
+    <div class="field-label text-sm"><label data-select-label>Program</label><x-select label="Program" name="program_id" class="mt-1 w-full"><option value="">All programs</option>@foreach ($programs as $program)<option value="{{ $program->id }}" @selected(request('program_id') == $program->id)>{{ $program->name }}</option>@endforeach</x-select></div>
     @include('senior-citizens._barangay-filter', ['barangays' => $barangays, 'filterId' => 'payout-barangay'])
     <div class="flex flex-wrap items-end gap-2 sm:col-span-2 xl:col-span-1"><button type="submit" class="primary-button">Filter</button><a href="{{ route('payouts.index') }}" class="secondary-button">Reset</a></div>
 </form>

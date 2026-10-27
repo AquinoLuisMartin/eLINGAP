@@ -2,13 +2,17 @@
 
 namespace App\Services\SeniorCitizens;
 
+use App\Services\OfficeSettings;
 use Dompdf\Dompdf;
 
 class IdCardAddress
 {
-    public function format(string $address, string $barangay): array
+    public function __construct(private OfficeSettings $settings) {}
+
+    public function format(string $address, string $barangay, ?array $office = null): array
     {
-        $locality = [$barangay, 'Santa Maria', 'Bulacan'];
+        $office ??= $this->settings->values();
+        $locality = array_filter([$barangay, $office['municipality'], $office['province']]);
         $normalizedLocality = array_map(fn ($part) => mb_strtolower($part), $locality);
         $parts = preg_split('/\s*,\s*/', trim($address), -1, PREG_SPLIT_NO_EMPTY);
         $parts = array_filter($parts, fn ($part) => ! in_array(mb_strtolower($part), $normalizedLocality, true));

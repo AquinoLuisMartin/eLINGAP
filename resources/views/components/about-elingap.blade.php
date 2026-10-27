@@ -4,7 +4,7 @@
             <img src="{{ asset('images/eLINGAP.png') }}" alt="eLINGAP logo" class="mb-5 size-24 object-contain" width="96" height="96" loading="lazy">
             <h1 id="about-elingap-title" class="text-osca-ink text-3xl sm:text-4xl font-semibold tracking-tight">About eLINGAP</h1>
             <p class="mt-5 text-slate-600 text-sm sm:text-base leading-relaxed max-w-3xl">
-                eLINGAP supports the Office of the Senior Citizens Affairs (OSCA) in Santa Maria, Bulacan with organized senior citizen records, benefit coordination, and SMS notifications. It helps authorized staff review information and keep seniors and their recorded representatives informed.
+                eLINGAP supports {{ $officeDetails['office_name'] ?? 'participating offices' }} with organized senior citizen records, benefit coordination, and SMS notifications. It helps authorized staff review information and keep seniors and their recorded representatives informed.
             </p>
         </div>
 

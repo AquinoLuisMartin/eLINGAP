@@ -1,0 +1,30 @@
+.ui-field { display: flex; min-width: 0; flex-direction: column; gap: 7px; }
+.ui-field > .field-label { margin: 0; }
+.field-label:has(> .ui-select),
+.admin-content form > div:has(> .ui-select) { display: flex; min-width: 0; flex-direction: column; gap: 7px; }
+.field-label > .ui-select { margin-top: 0; }
+.field-helper { color: var(--muted, #64748b); font-size: 13px; line-height: 1.5; }
+.field-error, .field-required { color: #b91c1c; }
+.field-error { display: block; margin-top: 4px; font-size: 14px; line-height: 1.5; }
+.ui-feedback { margin-bottom: 16px; padding: 12px 16px; border: 1px solid; border-radius: 8px; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.ui-feedback-success { border-color: #a7f3d0; color: #065f46; background: #ecfdf5; }
+.ui-feedback-error { border-color: #fecaca; color: #991b1b; background: #fef2f2; }
+.ui-feedback ul { margin: 0; padding-left: 20px; list-style: disc; }
+.theme-dark .ui-feedback-success { border-color: #065f46; color: #a7f3d0; background: #022c22; }
+.theme-dark .ui-feedback-error { border-color: #991b1b; color: #fecaca; background: #450a0a; }
+.theme-dark :where(.field-error, .field-required) { color: #fca5a5; }
+.admin-content :where(.primary-button, .secondary-button, .danger-button) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border-radius: 8px; font: inherit; font-size: 14px; line-height: 1.5; }
+.admin-content :where(.primary-button, .secondary-button, .danger-button, .text-button):disabled,
+[data-ui-busy] { opacity: .6; cursor: wait; }
+[data-ui-busy] { pointer-events: none; }
+.ui-submit-status { margin-top: 8px; color: var(--muted, #64748b); font-size: 14px; }
+.admin-content :where(.staff-table, .table-scroll) { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+.admin-content :where(.staff-table, .table-scroll):focus-visible { outline: 2px solid var(--blue, #00327d); outline-offset: -2px; }
+.admin-content :where(.workspace-navigation, .filter-pills) { flex-wrap: wrap; max-width: 100%; }
+@media (max-width: 760px) {
+    .admin-content :where(.staff-form-actions, .modal-actions, .staff-page-actions) { flex-wrap: wrap; }
+    .admin-content .modal-card { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow-y: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ui-select *, .ui-feedback { animation: none !important; transition: none !important; }
+}

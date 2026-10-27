@@ -31,11 +31,14 @@ class PublicContentTest extends TestCase
     #[TestWith(['/login'])]
     public function test_public_pages_show_supplied_office_details_without_demo_programs(string $path): void
     {
+        foreach (['office_address' => 'Synthetic office address', 'support_phone' => 'Synthetic office contact', 'office_hours' => 'Synthetic working days and hours'] as $key => $value) {
+            SystemConfiguration::forceCreate(['key' => $key, 'value' => $value]);
+        }
+
         $this->get($path)->assertOk()
             ->assertSee('No programs are currently published.')
-            ->assertSee('Santa Maria Municipal Hall, J.C. De Jesus St.')
-            ->assertSee('+63 44 288 2604')->assertSee('8:00 AM – 5:00 PM')
-            ->assertSee('Saturday &amp; Sunday', false)->assertSee('Closed');
+            ->assertSee('Synthetic office address')->assertSee('Synthetic office contact')
+            ->assertSee('Synthetic working days and hours')->assertDontSee('Saturday &amp; Sunday', false);
     }
 
     #[TestWith(['/'])]
@@ -91,6 +94,8 @@ class PublicContentTest extends TestCase
 
     public function test_landing_navigation_removes_services_and_contact_sections(): void
     {
+        SystemConfiguration::forceCreate(['key' => 'office_address', 'value' => 'Synthetic office address']);
+
         $this->get('/')->assertOk()->assertSee('Programs and welfare benefits')->assertSee('Visit the office')
             ->assertDontSee('href="#services"', false)->assertDontSee('id="services"', false)
             ->assertDontSee('>Contact</a>', false)->assertDontSee('OSCA services')

@@ -9,7 +9,7 @@
 @if ($application->status->value === 'PENDING')
 <form method="POST" action="{{ route('applications.status.update', $application) }}">
     @csrf @method('PATCH')
-    <label>Status <select name="status"><option value="APPROVED">Approve</option><option value="REJECTED">Reject</option></select></label>
+    <div class="field-label"><label data-select-label>Status</label><x-select label="Status" name="status"><option value="APPROVED">Approve</option><option value="REJECTED">Reject</option></x-select></div>
     <label>Remarks <textarea name="remarks"></textarea></label>
     <button type="submit">Save decision</button>
 </form>

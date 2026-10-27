@@ -1,10 +1,6 @@
 <div class="space-y-6">
-    <x-staff.page-header title="Program rules" description="Configure eligibility, amounts, and program status. Provincial and national receipts are tracked separately.">
-        @can('manage', \App\Models\BenefitSchedule::class)
-            <button type="button" class="primary-button" wire:click="installCatalog" wire:loading.attr="disabled">Initialize approved programs</button>
-        @endcan
-    </x-staff.page-header>
-    @if ($notice)<p class="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200" role="status">{{ $notice }}</p>@endif
+    <x-staff.page-header title="Program rules" description="Configure eligibility, amounts, and program status. Provincial and national receipts are tracked separately." />
+    @if ($notice)<x-feedback>{{ $notice }}</x-feedback>@endif
     <x-benefit-errors />
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         @forelse ($programs as $program)
@@ -16,7 +12,7 @@
                 @can('manage', \App\Models\BenefitSchedule::class)<button type="button" class="text-button mt-4" wire:click="edit({{ $program->id }})">Configure program</button>@endcan
             </x-benefit-panel>
         @empty
-            <x-benefit-panel><p>No program definitions recorded. Staff can initialize the approved catalog.</p></x-benefit-panel>
+            <x-benefit-panel><p>No program definitions recorded. Create a program to record its approved rules.</p></x-benefit-panel>
         @endforelse
     </div>
     @can('manage', \App\Models\BenefitSchedule::class)
@@ -26,10 +22,10 @@
                 @foreach (['name' => 'Program name', 'agency' => 'Agency', 'default_amount' => 'Default cash amount (optional)', 'cutoff' => 'Verification cutoff (MM-DD)', 'payout_month' => 'Payout month (1-12, optional)', 'claim_window_months' => 'Milestone claim window in months (optional)'] as $field => $label)
                     <label wire:key="program-field-{{ $field }}" class="field-label">{{ $label }}<input wire:model="form.{{ $field }}" type="{{ in_array($field, ['default_amount', 'payout_month', 'claim_window_months']) ? 'number' : 'text' }}" @if($field === 'default_amount') step="0.01" @endif></label>
                 @endforeach
-                <label class="field-label">Government level<select wire:model="form.government_level"><option>LGU</option><option>PROVINCIAL</option><option>NATIONAL</option></select></label>
-                <label class="field-label">Status<select wire:model="form.status"><option>UPCOMING</option><option>ACTIVE</option><option>INACTIVE</option></select></label>
-                <label class="field-label">Cadence<select wire:model.live="form.cadence">@foreach (['ANNUAL', 'QUARTERLY', 'SEMIANNUAL', 'MILESTONE', 'ON_DEMAND'] as $cadence)<option wire:key="cadence-{{ $cadence }}">{{ $cadence }}</option>@endforeach</select></label>
-                @if ($form['cadence'] === 'MILESTONE')<label class="field-label">Milestone ages and amounts, one age:amount per line<textarea wire:model="form.milestones" rows="5" placeholder="90:5000"></textarea></label>@endif
+                <div class="field-label"><label data-select-label>Government level</label><x-select label="Government level" wire:model="form.government_level"><option>LGU</option><option>PROVINCIAL</option><option>NATIONAL</option></x-select></div>
+                <div class="field-label"><label data-select-label>Status</label><x-select label="Status" wire:model="form.status"><option>UPCOMING</option><option>ACTIVE</option><option>INACTIVE</option></x-select></div>
+                <div class="field-label"><label data-select-label>Cadence</label><x-select label="Cadence" wire:model.live="form.cadence">@foreach (['ANNUAL', 'QUARTERLY', 'SEMIANNUAL', 'MILESTONE', 'ON_DEMAND'] as $cadence)<option wire:key="cadence-{{ $cadence }}">{{ $cadence }}</option>@endforeach</x-select></div>
+                @if ($form['cadence'] === 'MILESTONE')<label class="field-label">Milestone ages and amounts, one age:amount per line<textarea wire:model="form.milestones" rows="5" placeholder="age:amount"></textarea></label>@endif
                 <div class="flex flex-col gap-3 text-sm">
                     @foreach (['october_conditions' => 'Requires bedridden, indigent, and neither pension', 'office_review' => 'Requires office request and verification', 'groceries' => 'Includes groceries', 'provisional' => 'Rules remain provisional'] as $field => $label)
                         <label wire:key="rule-{{ $field }}"><input type="checkbox" wire:model="form.{{ $field }}"> {{ $label }}</label>

@@ -9,7 +9,7 @@
     @csrf @method('PATCH') <input type="hidden" name="status" value="RELEASED">
     <h3 class="text-xl font-semibold">Confirm claimant and release</h3>
     <p>{{ $payout->seniorCitizen->full_name }} · {{ $payout->schedule->program->name }} · {{ \App\Support\PhilippineCurrency::format($payout->amount) }}</p>
-    <label>Claimant type <select name="claimant_type" id="claimant-type" class="mt-1 w-full rounded border p-2"><option value="SELF">Senior in person</option><option value="PROXY">Authorized representative</option></select></label>
+    <div class="field-label"><label data-select-label>Claimant type</label><x-select label="Claimant type" name="claimant_type" id="claimant-type" class="mt-1 w-full"><option value="SELF">Senior in person</option><option value="PROXY">Authorized representative</option></x-select></div>
     <div id="proxy-fields" hidden class="grid gap-3"><label>Representative name <input name="claimant_name" class="mt-1 w-full rounded border p-2"></label><label>Relationship <input name="claimant_relationship" class="mt-1 w-full rounded border p-2"></label><label>Contact number <input name="claimant_contact" class="mt-1 w-full rounded border p-2"></label><label><input type="checkbox" name="authorization_checked" value="1"> Authorization letter checked</label><label><input type="checkbox" name="representative_id_checked" value="1"> Representative government ID checked</label></div>
     <label><input type="checkbox" name="osca_id_checked" value="1" required> {{ $payout->seniorCitizen->osca_id_number ? 'Original OSCA ID checked' : 'Senior identity and registration number checked' }}</label>
     @if ($errors->any())<p class="text-osca-danger">{{ $errors->first() }}</p>@endif

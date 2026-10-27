@@ -28,6 +28,7 @@ class DeploymentDatabaseCheckTest extends TestCase
 
     #[TestWith(['2026_10_19_000000_add_targeted_capacity_indexes'])]
     #[TestWith(['2026_10_20_001228_add_benefit_preparation_and_integrity_constraints'])]
+    #[TestWith(['2026_10_26_000000_add_verified_password_recovery'])]
     public function test_database_check_rejects_pending_workflow_migrations(string $migration): void
     {
         DB::table('migrations')->where('migration', $migration)->delete();

@@ -124,7 +124,7 @@ class DashboardAccountsTest extends TestCase
             ->set('profileModal', 'password')
             ->set('passwordForm', $form)
             ->call('updatePassword')
-            ->assertHasErrors(['passwordForm.'.$field => $rule])
+            ->assertHasErrors('passwordForm.'.$field)
             ->assertSet('passwordForm', ['current' => '', 'next' => '', 'confirm' => ''])
             ->assertSet('profileModal', 'password');
 

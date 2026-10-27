@@ -27,35 +27,32 @@
             <form method="GET" action="{{ route('senior-citizens.index') }}" class="p-5">
                 <h3 id="registry-filters-title" class="mb-4 text-base font-semibold">Find applications and records</h3>
                 <div class="grid items-end gap-4 sm:grid-cols-2 xl:grid-cols-12">
-                    <label class="field-label xl:col-span-2">Search by
-                        <select name="search_by">
+                    <div class="field-label xl:col-span-2"><label data-select-label>Search by</label><x-select label="Search by" name="search_by">
                             @foreach (['all' => 'ID No. or names', 'osca_id' => 'OSCA ID No.', 'name' => 'Names', 'registration' => 'Registration No.'] as $value => $label)
                                 <option value="{{ $value }}" @selected(request('search_by', 'all') === $value)>{{ $label }}</option>
                             @endforeach
-                        </select>
-                    </label>
+                        </x-select>
+                    </div>
                     <label class="field-label xl:col-span-4">Search term
                         <input type="search" name="search" maxlength="100" value="{{ request('search') }}" placeholder="OSCA ID No., registration number, or name" aria-describedby="registry-search-help">
                     </label>
                     <div class="min-w-0 xl:col-span-2">
                         @include('senior-citizens._barangay-filter', ['barangays' => $barangays])
                     </div>
-                    <label class="field-label xl:col-span-2">Age group
-                        <select name="age">
+                    <div class="field-label xl:col-span-2"><label data-select-label>Age group</label><x-select label="Age group" name="age">
                             <option value="">All ages</option>
                             @foreach (['60-69', '70-79', '80+'] as $age)
                                 <option value="{{ $age }}" @selected(request('age') === $age)>{{ $age }}</option>
                             @endforeach
-                        </select>
-                    </label>
-                    <label class="field-label xl:col-span-2">Registration status
-                        <select name="status">
+                        </x-select>
+                    </div>
+                    <div class="field-label xl:col-span-2"><label data-select-label>Registration status</label><x-select label="Registration status" name="status">
                             <option value="">All statuses</option>
                             @foreach (\App\Enums\SeniorCitizenStatus::cases() as $status)
                                 <option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ ucfirst(strtolower($status->value)) }}</option>
                             @endforeach
-                        </select>
-                    </label>
+                        </x-select>
+                    </div>
                 </div>
 
                 <p id="registry-search-help" class="mt-3 text-sm text-[var(--muted)]">OSCA ID No. and Registration No. require the complete number. Names accepts first, middle, or last names together, in any order.</p>
@@ -63,35 +60,31 @@
                 <details class="mt-4 border-t border-[var(--line)] pt-1" @if ($additionalFilters) open @endif>
                     <summary class="w-fit cursor-pointer rounded py-3 text-sm text-[var(--blue)] dark:text-blue-300">More filters and sorting</summary>
                     <div class="grid gap-4 pt-1 pb-4 sm:grid-cols-2 xl:grid-cols-4">
-                        <label class="field-label">Program or benefit
-                            <select name="program_id">
+                        <div class="field-label"><label data-select-label>Program or benefit</label><x-select label="Program or benefit" name="program_id">
                                 <option value="">All programs</option>
                                 @foreach ($programs as $program)
                                     <option value="{{ $program->id }}" @selected(request('program_id') == $program->id)>{{ $program->name }}</option>
                                 @endforeach
-                            </select>
-                        </label>
-                        <label class="field-label">Pension / assignment
-                            <select name="benefit">
+                            </x-select>
+                        </div>
+                        <div class="field-label"><label data-select-label>Pension / assignment</label><x-select label="Pension / assignment" name="benefit">
                                 <option value="">All benefits</option>
                                 @foreach (['PENSIONER' => 'Pensioner', 'NATIONAL_PENSION' => 'National pension', 'LOCAL_PENSION' => 'Local pension', 'NONE' => 'No assigned benefits'] as $value => $label)
                                     <option value="{{ $value }}" @selected(request('benefit') === $value)>{{ $label }}</option>
                                 @endforeach
-                            </select>
-                        </label>
-                        <label class="field-label">Sort by
-                            <select name="sort">
+                            </x-select>
+                        </div>
+                        <div class="field-label"><label data-select-label>Sort by</label><x-select label="Sort by" name="sort">
                                 @foreach (['id' => 'Registration', 'last_name' => 'Last name', 'first_name' => 'First name', 'middle_name' => 'Middle name', 'benefits' => 'Programs and benefits'] as $value => $label)
                                     <option value="{{ $value }}" @selected(request('sort', 'id') === $value)>{{ $label }}</option>
                                 @endforeach
-                            </select>
-                        </label>
-                        <label class="field-label">Order
-                            <select name="direction">
+                            </x-select>
+                        </div>
+                        <div class="field-label"><label data-select-label>Order</label><x-select label="Order" name="direction">
                                 <option value="asc" @selected(request('direction') === 'asc')>Ascending</option>
                                 <option value="desc" @selected(request('direction', 'desc') === 'desc')>Descending</option>
-                            </select>
-                        </label>
+                            </x-select>
+                        </div>
                     </div>
                 </details>
 
@@ -119,12 +112,10 @@
                     <summary class="w-fit cursor-pointer rounded py-3 text-sm text-[var(--blue)] dark:text-blue-300">ID printing <span class="ml-2 text-[var(--muted)]" x-cloak x-show="selected.length" x-text="selected.length + ' of 4 selected'"></span></summary>
                     <form id="batch-id-print" method="POST" action="{{ route('senior-id.batch-print') }}" target="_blank" class="grid items-end gap-4 pt-1 pb-5 sm:grid-cols-2 lg:grid-cols-[10rem_12rem_auto]">
                         @csrf
-                        <label class="field-label">Paper size
-                            <select name="paper"><option value="short">Short</option><option value="long">Long</option><option value="a4">A4</option></select>
-                        </label>
-                        <label class="field-label">Print purpose
-                            <select name="purpose"><option value="FIRST_PRINT">First print</option><option value="REPRINT">Reprint</option><option value="REPLACEMENT">Replacement</option></select>
-                        </label>
+                        <div class="field-label"><label data-select-label>Paper size</label><x-select label="Paper size" name="paper"><option value="short">Short</option><option value="long">Long</option><option value="a4">A4</option></x-select>
+                        </div>
+                        <div class="field-label"><label data-select-label>Print purpose</label><x-select label="Print purpose" name="purpose"><option value="FIRST_PRINT">First print</option><option value="REPRINT">Reprint</option><option value="REPLACEMENT">Replacement</option></x-select>
+                        </div>
                         <button type="submit" class="secondary-button justify-self-start disabled:cursor-not-allowed disabled:opacity-50" :disabled="selected.length === 0">Print selected IDs</button>
                         <p id="registry-print-help" class="text-sm text-[var(--muted)] sm:col-span-2 lg:col-span-3">Select up to 4 issued IDs in the table. Four complete IDs fit on one sheet at actual size.</p>
                     </form>

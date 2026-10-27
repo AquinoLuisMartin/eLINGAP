@@ -5,6 +5,7 @@ namespace App\Services\SeniorCitizens;
 use App\Enums\SeniorCitizenStatus;
 use App\Models\SeniorCitizen;
 use App\Models\SeniorCitizenIdCredential;
+use App\Services\OfficeSettings;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Validation\ValidationException;
@@ -13,7 +14,7 @@ class IdCardLayout
 {
     public const PAPERS = ['short' => [215.9, 279.4], 'long' => [215.9, 330.2], 'a4' => [210, 297]];
 
-    public function __construct(private IdAssets $assets, private IdCredential $credentials, private IdOfficials $officials, private IdCardAddress $addresses) {}
+    public function __construct(private IdAssets $assets, private IdCredential $credentials, private IdOfficials $officials, private IdCardAddress $addresses, private OfficeSettings $settings) {}
 
     public function data(SeniorCitizen $senior, bool $draft = false): array
     {
@@ -26,10 +27,12 @@ class IdCardLayout
         abort_unless($draft || $credential, 422, 'Enable the permanent QR credential before printing this existing ID.');
         $officials = $this->officials->values();
         $senior->loadMissing('barangay');
+        $office = $draft ? $this->settings->values() : $this->settings->requireIdentity();
 
         return [
             'senior' => $senior, 'draft' => $draft,
-            'address' => $this->addresses->format($senior->address, $senior->barangay->name),
+            'address' => $this->addresses->format($senior->address, $senior->barangay->name, $office),
+            'office' => $office,
             'photo' => null,
             'signature' => null,
             'qr' => $credential ? 'data:image/svg+xml;base64,'.base64_encode($this->credentials->svg($credential)) : null,

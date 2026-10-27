@@ -1,7 +1,7 @@
 <x-benefit-panel>
     <div class="flex flex-wrap justify-between gap-4"><div><p class="section-kicker">{{ $schedule->reference_number }} / {{ $schedule->status }}</p><h3 class="mt-2 text-xl font-semibold">{{ $schedule->program->name }}</h3><p class="mt-1 text-sm text-slate-500">{{ $schedule->scheduled_at->format('M j, Y g:i A') }} / {{ $schedule->location }}</p></div><div class="text-right text-sm"><p>{{ number_format($recipientTotal) }} recipients</p><p>Required: PHP {{ number_format((float) $requiredFunds, 2) }}</p><p>Available: PHP {{ number_format((float) $schedule->available_funds, 2) }}</p></div></div>
     @if (($schedule->rule_snapshot['government_level'] ?? $schedule->program->government_level) !== 'LGU')<p class="my-3 rounded bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950 dark:text-blue-200">External benefit tracking: confirm the provincial or national receipt rather than recording an LGU disbursement.</p>@endif
-    @if ($notice)<p class="my-3 text-sm text-emerald-700 dark:text-emerald-300" role="status">{{ $notice }}</p>@endif
+    @if ($notice)<x-feedback>{{ $notice }}</x-feedback>@endif
     <x-benefit-errors />
     @if ($schedule->preparation_token)
         <p wire:poll.10s class="my-3 text-sm" role="status">Preparing eligible recipients. Review and approval will be available when preparation finishes. If preparation stops, use Refresh eligibility list to retry.</p>
@@ -21,7 +21,7 @@
             </div>
         @elseif ($schedule->status === 'APPROVED')
             <div class="my-4 grid gap-3 md:grid-cols-2">
-                <label class="field-label">Claimant<select wire:model="claimant"><option value="SELF">Senior personally</option>@if($schedule->allow_representative)<option value="REPRESENTATIVE">Authorized representative</option>@endif</select></label>
+                <div class="field-label"><label data-select-label>Claimant</label><x-select label="Claimant" wire:model="claimant"><option value="SELF">Senior personally</option>@if($schedule->allow_representative)<option value="REPRESENTATIVE">Authorized representative</option>@endif</x-select></div>
                 @if (($schedule->rule_snapshot['government_level'] ?? $schedule->program->government_level) !== 'LGU')<label class="field-label">External receipt reference<input wire:model="externalReference" maxlength="180"></label>@endif
                 @if ($schedule->requirements)<label class="text-sm"><input type="checkbox" wire:model="requirementsChecked"> Checked announced requirements: {{ $schedule->requirements }}</label>@endif
                 @if ($schedule->rule_snapshot['groceries'] ?? false)<label class="text-sm"><input type="checkbox" wire:model="groceriesReceived"> Groceries received</label>@endif
@@ -48,7 +48,7 @@
         @if ($schedule->status === 'APPROVED')
             <details class="mt-6"><summary class="cursor-pointer font-semibold">Preview and approve payout SMS</summary>
                 <div class="mt-4 grid gap-4 md:grid-cols-2">
-                    <label class="field-label">Audience<select wire:model="smsBarangay"><option value="">Entire scheduled batch</option>@foreach ($barangays as $barangay)<option wire:key="sms-barangay-{{ $barangay->id }}" value="{{ $barangay->id }}">{{ $barangay->name }}</option>@endforeach</select><span class="field-helper">Only eligible unpaid recipients in this schedule will be notified.</span></label>
+                    <div class="field-label"><label data-select-label>Audience</label><x-select label="Audience" wire:model="smsBarangay"><option value="">Entire scheduled batch</option>@foreach ($barangays as $barangay)<option wire:key="sms-barangay-{{ $barangay->id }}" value="{{ $barangay->id }}">{{ $barangay->name }}</option>@endforeach</x-select><span class="field-helper">Only eligible unpaid recipients in this schedule will be notified.</span></div>
                     <label class="field-label">SMS announcement<textarea wire:model="message" rows="10" maxlength="1600"></textarea><span class="field-helper">[PERIOD] and [AMOUNT] use each recipient's original entitlement.</span></label>
                     <button type="button" class="secondary-button" wire:click="previewSms" wire:loading.attr="disabled">Preview actual message and audience</button>
                     @if ($preview)

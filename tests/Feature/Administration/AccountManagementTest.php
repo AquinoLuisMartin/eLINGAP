@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\Auth\PasswordRecovery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -23,21 +24,22 @@ class AccountManagementTest extends TestCase
         $admin = User::factory()->admin()->create();
         $user = User::factory()->make();
         $password = Str::password();
-        $payload = $user->only(['role_id', 'username', 'email', 'first_name', 'last_name']);
+        $payload = $user->only(['role_id', 'username', 'first_name', 'last_name']);
 
         $this->actingAs($admin)->get(route('administration.users.create'))->assertSee('Create user account');
-        $this->post(route('administration.users.store'), [
+        $response = $this->post(route('administration.users.store'), [
             ...$payload,
             'username' => Str::upper($user->username),
             'email' => Str::upper($user->email),
             'password' => $password,
             'password_confirmation' => $password,
             'last_login_at' => now()->toDateTimeString(),
-        ])->assertRedirect(route('administration.users.index'));
+        ])->assertOk();
 
         $created = User::where('username', $user->username)->firstOrFail();
         $this->assertDatabaseHas('users', $payload);
-        $this->assertTrue(Hash::check($password, $created->password_hash));
+        $this->assertTrue(Hash::check($response->viewData('credential'), $created->password_hash));
+        $this->assertFalse(Hash::check($password, $created->password_hash));
         $this->assertNull($created->last_login_at);
         $this->assertDatabaseCount('audit_logs', 1);
         $this->assertDatabaseHas('audit_logs', ['user_id' => $admin->id, 'action' => 'user.created', 'auditable_id' => $created->id]);
@@ -65,7 +67,7 @@ class AccountManagementTest extends TestCase
         $admin = User::factory()->admin()->create();
 
         $this->actingAs($admin)->post(route('administration.users.store'), [])
-            ->assertInvalid(['role_id', 'username', 'email', 'first_name', 'last_name', 'password']);
+            ->assertInvalid(['role_id', 'username', 'first_name', 'last_name']);
 
         $this->assertDatabaseCount('users', 1);
         $this->assertDatabaseCount('audit_logs', 0);
@@ -98,7 +100,7 @@ class AccountManagementTest extends TestCase
 
     #[TestWith(['POST', 'administration.users.store'])]
     #[TestWith(['PUT', 'administration.users.update'])]
-    #[TestWith(['PATCH', 'administration.users.password.update'])]
+    #[TestWith(['POST', 'administration.password-reset-requests.store'])]
     public function test_account_requests_authorize_staff_independently_of_route_roles(string $method, string $route): void
     {
         $staff = User::factory()->create();
@@ -137,25 +139,25 @@ class AccountManagementTest extends TestCase
 
     public function test_password_reset_revokes_a_previously_authenticated_session(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->create(['password_hash' => 'Synthetic administrator password']);
         $staff = User::factory()->create(['remember_token' => Str::random(60)]);
         $previousHash = $staff->password_hash;
         $password = Str::password();
+        $service = app(PasswordRecovery::class);
+        $reset = $service->request($staff->username);
+        $code = $service->review($reset, $admin, 'approve', true, 'Synthetic administrator password');
 
-        $this->actingAs($admin)->patch(route('administration.users.password.update', $staff), [
-            'password' => $password,
-            'password_confirmation' => $password,
-        ])->assertRedirect();
+        $this->post(route('password.update'), ['username' => $staff->username, 'recovery_code' => $code,
+            'password' => $password, 'password_confirmation' => $password])->assertRedirectToRoute('login');
 
         $staff->refresh();
         $this->assertTrue(Hash::check($password, $staff->password_hash));
         $this->assertNull($staff->remember_token);
-        $this->assertDatabaseCount('audit_logs', 1);
-        $this->assertDatabaseHas('audit_logs', ['user_id' => $admin->id, 'action' => 'user.password_reset', 'auditable_id' => $staff->id]);
-        $audit = AuditLog::query()->sole();
-        $this->assertNull($audit->old_values);
-        $this->assertNull($audit->new_values);
-        $this->assertDatabaseCount('login_logs', 0);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'user.password_reset', 'auditable_id' => $staff->id]);
+        $audit = AuditLog::where('action', 'user.password_reset')->sole();
+        $this->assertStringNotContainsString($password, json_encode($audit->new_values));
+        $this->assertStringNotContainsString($code, json_encode($audit->new_values));
+        $this->assertDatabaseHas('login_logs', ['user_id' => $staff->id, 'event' => 'PASSWORD_RESET']);
         $this->actingAs($staff)->withSession(['password_hash_web' => $previousHash])
             ->get(route('dashboard'))->assertRedirect(route('login'));
         $this->assertGuest();

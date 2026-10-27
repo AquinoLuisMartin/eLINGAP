@@ -8,6 +8,7 @@ use App\Models\Barangay;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
 use App\Models\User;
+use App\Services\Auth\PasswordRecovery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Exceptions;
@@ -134,19 +135,24 @@ class AuditResilienceTest extends TestCase
 
     public function test_password_reset_audit_failure_rolls_back_the_password_change(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->create(['password_hash' => 'Synthetic administrator password']);
         $staff = User::factory()->create();
         $originalHash = $staff->password_hash;
         $password = Str::password();
+        $service = app(PasswordRecovery::class);
+        $reset = $service->request($staff->username);
+        $code = $service->review($reset, $admin, 'approve', true, 'Synthetic administrator password');
+        $auditCount = AuditLog::count();
         Event::listen('eloquent.creating: '.AuditLog::class, fn () => throw new RuntimeException('Synthetic audit failure'));
         Exceptions::fake([RuntimeException::class]);
 
-        $this->actingAs($admin)->patch(route('administration.users.password.update', $staff), [
+        $this->post(route('password.update'), [
+            'username' => $staff->username, 'recovery_code' => $code,
             'password' => $password, 'password_confirmation' => $password,
         ])->assertServerError();
 
         $this->assertSame($originalHash, $staff->fresh()->password_hash);
-        $this->assertDatabaseCount('audit_logs', 0);
+        $this->assertDatabaseCount('audit_logs', $auditCount);
         Exceptions::assertReported(RuntimeException::class);
     }
 }

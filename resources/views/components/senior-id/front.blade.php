@@ -7,8 +7,8 @@
     @if ($card['seal'])<img src="{{ $card['seal'] }}" class="id-seal" alt="Municipal seal">@endif
     <header class="id-heading">
         <p class="id-republic">Republic of the Philippines</p>
-        <p class="id-office">Office for Senior Citizens Affairs</p>
-        <p class="municipality">MUNICIPALITY OF SANTA MARIA</p>
+        <p class="id-office">{{ $card['office']['office_name'] ?? 'Office not configured' }}</p>
+        <p class="municipality">{{ mb_strtoupper($card['office']['organization_name'] ?? '') }}</p>
     </header>
     <div class="id-photo"><span>Attach physical photo<br><small>1 x 1 inch<br>2.54 x 2.54 cm</small></span></div>
     <div class="id-number"><span>OSCA ID No.</span> <strong>{{ $senior->osca_id_number ?? 'On issuance' }}</strong></div>

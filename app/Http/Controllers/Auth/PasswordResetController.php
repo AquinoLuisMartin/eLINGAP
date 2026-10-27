@@ -5,11 +5,10 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
-use App\Models\User;
-use Illuminate\Auth\Events\PasswordReset;
+use App\Services\Auth\PasswordRecovery;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Timebox;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PasswordResetController extends Controller
@@ -19,30 +18,26 @@ class PasswordResetController extends Controller
         return view('auth.forgot-password');
     }
 
-    public function sendRequest(ForgotPasswordRequest $request): RedirectResponse
+    public function sendRequest(ForgotPasswordRequest $request, PasswordRecovery $recovery, Timebox $timebox): RedirectResponse
     {
-        Password::sendResetLink($request->only('email'));
+        $timebox->call(fn () => $recovery->request($request->validated('username')), 200000);
 
-        return back()->with('status', 'If an account matches that email address, a password reset link will be sent.');
+        return back()->with('status', PasswordRecovery::CONFIRMATION);
     }
 
-    public function createReset(string $token): View
+    public function createReset(): View
     {
-        $email = request()->query('email');
-
-        return view('auth.reset-password', ['token' => $token, 'email' => is_string($email) ? $email : '']);
+        return view('auth.reset-password');
     }
 
-    public function reset(ResetPasswordRequest $request): RedirectResponse
+    public function reset(ResetPasswordRequest $request, PasswordRecovery $recovery, Timebox $timebox): RedirectResponse
     {
-        $status = Password::reset($request->validated(), function (User $user, string $password): void {
-            $user->forceFill(['password_hash' => Hash::make($password), 'remember_token' => null])->save();
+        $completed = $timebox->call(fn () => $recovery->complete($request->validated('username'),
+            $request->validated('recovery_code'), $request->validated('password')), 200000);
+        if (! $completed) {
+            throw ValidationException::withMessages(['recovery_code' => PasswordRecovery::INVALID_CODE]);
+        }
 
-            event(new PasswordReset($user));
-        });
-
-        return $status === Password::PASSWORD_RESET
-            ? redirect()->route('login')->with('status', __($status))
-            : back()->withInput($request->only('email'))->withErrors(['email' => __($status)]);
+        return redirect()->route('login')->with('status', 'Password reset. Sign in with your new password.');
     }
 }

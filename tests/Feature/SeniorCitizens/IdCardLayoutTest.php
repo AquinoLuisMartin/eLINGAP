@@ -14,7 +14,7 @@ class IdCardLayoutTest extends TestCase
 {
     public function test_printed_address_keeps_the_complete_street_without_repeating_the_locality(): void
     {
-        $address = app(IdCardAddress::class)->format('Unit 20, Sample Street, sample barangay, Santa Maria, Bulacan', 'Sample Barangay');
+        $address = app(IdCardAddress::class)->format('Unit 20, Sample Street, sample barangay, Santa Maria, Bulacan', 'Sample Barangay', ['municipality' => 'Santa Maria', 'province' => 'Bulacan']);
 
         $this->assertTrue($address['fits']);
         $this->assertSame('Unit 20, Sample Street, Sample Barangay, Santa Maria, Bulacan', implode(' ', $address['lines']));
@@ -35,7 +35,8 @@ class IdCardLayoutTest extends TestCase
         $senior->setRelation('barangay', new Barangay(['name' => 'Sample Barangay']));
         $image = 'data:image/jpeg;base64,'.base64_encode(file_get_contents(base_path('tests/Fixtures/id-photo.jpg')));
         $card = ['senior' => $senior, 'draft' => false, 'age' => 76, 'seal' => $image, 'qr' => $image,
-            'address' => app(IdCardAddress::class)->format($address, 'Sample Barangay'),
+            'address' => app(IdCardAddress::class)->format($address, 'Sample Barangay', ['municipality' => 'Santa Maria', 'province' => 'Bulacan']),
+            'office' => ['office_name' => 'Office for Senior Citizens Affairs', 'organization_name' => 'Municipality of Santa Maria'],
             'headSignature' => $signatures ? $image : null, 'mayorSignature' => $signatures ? $image : null,
             'officials' => ['osca_head_name' => 'Sample OSCA Head', 'municipal_mayor_name' => 'Sample Municipal Mayor']];
         $this->assertTrue($card['address']['fits']);

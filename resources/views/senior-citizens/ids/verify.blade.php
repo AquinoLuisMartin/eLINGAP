@@ -9,7 +9,7 @@
             <p class="mt-6 text-sm text-slate-500">Senior citizen ID verification</p>
             <h1 id="verification-status" class="mt-3 text-3xl font-medium {{ $valid ? 'text-emerald-700' : 'text-slate-700' }}">{{ $valid ? 'Verified' : 'Not valid' }}</h1>
             <p class="mt-4 text-sm">{{ $valid ? 'This ID is recognized by eLINGAP.' : 'This ID cannot be verified as valid. Contact the issuing office for assistance.' }}</p>
-            <p class="mt-8 border-t pt-6 text-sm">Office of the Senior Citizens Affairs<br>Municipality of Santa Maria, Bulacan</p>
+            <p class="mt-8 border-t pt-6 text-sm">{{ $officeDetails['office_name'] ?? 'Issuing office not configured' }}<br>{{ $officeDetails['organization_name'] }}</p>
             <p class="mt-6 text-xs text-slate-500">Personal information is protected and is not displayed on this page.</p>
         </section>
     </main>

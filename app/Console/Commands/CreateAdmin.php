@@ -2,20 +2,24 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\LoginEvent;
 use App\Enums\UserRole;
 use App\Models\Role;
 use App\Models\User;
-use App\Rules\PasswordInput;
+use App\Rules\NewPassword;
+use App\Rules\UsernameInput;
+use App\Services\Auth\AuthAudit;
+use App\Services\Auth\Credentials;
+use App\Services\Auth\Username;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 
 class CreateAdmin extends Command
 {
-    protected $signature = 'app:create-admin';
+    protected $signature = 'app:create-admin {--recover : Recover an administrator after approved identity verification}';
 
     protected $description = 'Create an administrator using interactive prompts';
 
@@ -27,9 +31,12 @@ class CreateAdmin extends Command
             return self::FAILURE;
         }
 
+        if ($this->option('recover')) {
+            return $this->recover();
+        }
+
         $data = [
             'username' => Str::lower(trim($this->ask('Username') ?? '')),
-            'email' => Str::lower(trim($this->ask('Email address') ?? '')),
             'first_name' => trim($this->ask('First name') ?? ''),
             'last_name' => trim($this->ask('Last name') ?? ''),
             'password' => $this->secret('Password', false),
@@ -37,11 +44,10 @@ class CreateAdmin extends Command
         ];
 
         $validator = Validator::make($data, [
-            'username' => ['required', 'string', 'min:3', 'max:100', 'regex:/^[a-z0-9._-]+$/', Rule::unique('users', 'username')],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+            'username' => ['required', 'string', new UsernameInput],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
-            'password' => ['required', 'string', 'confirmed', new PasswordInput, Password::defaults()],
+            'password' => ['required', 'string', 'confirmed', new NewPassword(new User(collect($data)->only(['username', 'first_name', 'last_name'])->all()))],
         ]);
 
         if ($validator->fails()) {
@@ -56,15 +62,48 @@ class CreateAdmin extends Command
             $data = $validator->safe()->except('password');
             $role = Role::firstOrCreate(['name' => UserRole::Admin->value], ['description' => 'System Administrator']);
 
-            User::create([
+            $user = User::create([
                 ...$data,
                 'role_id' => $role->id,
                 'password_hash' => $validator->validated()['password'],
                 'is_active' => true,
             ]);
+            AuthAudit::record('user.created', $user, null, ['source' => 'console']);
         });
 
         $this->info('Administrator account created.');
+
+        return self::SUCCESS;
+    }
+
+    private function recover(): int
+    {
+        if (! $this->confirm('Has the administrator identity been verified under the approved office procedure?')) {
+            return self::FAILURE;
+        }
+        $username = Username::normalize($this->ask('Username') ?? '');
+        $password = $this->secret('New temporary password', false);
+        $confirmation = $this->secret('Confirm password', false);
+        try {
+            DB::transaction(function () use ($username, $password, $confirmation): void {
+                $user = User::query()->whereRaw('lower(username) = ?', [$username])->lockForUpdate()->first();
+                if (! $user || ! $user->isAdmin() || ! $user->is_active) {
+                    throw ValidationException::withMessages(['username' => 'An eligible administrator account was not found.']);
+                }
+                validator(['password' => $password, 'password_confirmation' => $confirmation], ['password' => ['required', 'string', 'confirmed', new NewPassword($user)]])->validate();
+                app(Credentials::class)->replaceLocked($user, $password, LoginEvent::PasswordReset, mustChange: true);
+                AuthAudit::record('user.console_recovery', $user, null, ['source' => 'console', 'identity_verified' => true]);
+            });
+        } catch (ValidationException $exception) {
+            foreach ($exception->errors() as $messages) {
+                foreach ($messages as $message) {
+                    $this->error($message);
+                }
+            }
+
+            return self::FAILURE;
+        }
+        $this->info('Administrator recovery completed. A password change is required at the next sign-in.');
 
         return self::SUCCESS;
     }

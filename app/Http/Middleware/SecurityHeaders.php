@@ -13,7 +13,7 @@ class SecurityHeaders
         $response = $next($request);
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
-        $response->headers->set('Referrer-Policy', $request->routeIs('id.verify') ? 'no-referrer' : 'same-origin');
+        $response->headers->set('Referrer-Policy', $request->routeIs('id.verify', 'password.*', 'administration.password-reset-requests.*') ? 'no-referrer' : 'same-origin');
 
         if ($request->user() || $request->is('login', 'forgot-password', 'reset-password', 'reset-password/*')) {
             $response->headers->set('Cache-Control', 'private, no-store');
