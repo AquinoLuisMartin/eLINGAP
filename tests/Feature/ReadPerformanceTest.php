@@ -68,7 +68,7 @@ class ReadPerformanceTest extends TestCase
 
     private function senior(Barangay $barangay, int $index, ?Program $program = null): void
     {
-        $senior = SeniorCitizen::create(['barangay_id' => $barangay->id, 'registration_number' => 'SC-SYN-'.$index, 'osca_id_number' => 'SYN-'.$index, 'first_name' => 'Synthetic', 'last_name' => 'Applicant '.$index, 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED']);
+        $senior = SeniorCitizen::create(['barangay_id' => $barangay->id, 'osca_id_number' => 'SYN-'.$index, 'first_name' => 'Synthetic', 'last_name' => 'Applicant '.$index, 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED']);
         if ($program) {
             Beneficiary::create(['program_id' => $program->id, 'senior_citizen_id' => $senior->id, 'enrolled_on' => '2026-10-16', 'status' => 'ACTIVE']);
         }

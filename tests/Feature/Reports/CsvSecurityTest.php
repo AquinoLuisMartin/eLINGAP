@@ -22,8 +22,7 @@ class CsvSecurityTest extends TestCase
         $staff = User::factory()->create();
         $barangay = Barangay::create(['name' => 'Test barangay', 'code' => 'TEST']);
         SeniorCitizen::create([
-            'barangay_id' => $barangay->id, 'registration_number' => 'SC-CSV-1',
-            'first_name' => $name, 'last_name' => 'Applicant', 'birth_date' => '1948-01-01',
+            'barangay_id' => $barangay->id, 'first_name' => $name, 'last_name' => 'Applicant', 'birth_date' => '1948-01-01',
             'sex' => 'FEMALE', 'address' => 'Test address',
         ]);
 

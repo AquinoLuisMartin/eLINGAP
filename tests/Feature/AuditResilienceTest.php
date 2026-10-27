@@ -56,7 +56,7 @@ class AuditResilienceTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $barangay = Barangay::create(['name' => 'Synthetic barangay', 'code' => 'SYN']);
-        $senior = SeniorCitizen::create(['barangay_id' => $barangay->id, 'registration_number' => 'SC-SYN', 'first_name' => 'Synthetic', 'last_name' => 'Applicant', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'PENDING']);
+        $senior = SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'PENDING']);
         Event::listen('eloquent.creating: '.AuditLog::class, function (AuditLog $audit) {
             if ($audit->action === 'senior_citizen.archived') {
                 throw new RuntimeException('Synthetic audit storage failure');

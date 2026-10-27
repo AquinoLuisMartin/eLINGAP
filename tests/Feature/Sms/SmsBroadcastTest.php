@@ -20,7 +20,7 @@ class SmsBroadcastTest extends TestCase
         Queue::fake();
         $barangay = Barangay::create(['name' => 'Poblacion', 'code' => 'POB']);
         foreach ([['VERIFIED', '09171234567'], ['VERIFIED', null], ['DECEASED', '09181234567']] as $index => [$status, $mobile]) {
-            SeniorCitizen::create(['barangay_id' => $barangay->id, 'registration_number' => 'SC-TEST-'.$index, 'first_name' => 'Test', 'last_name' => 'Senior'.$index, 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => $status, 'contact_number' => $mobile]);
+            SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Test', 'last_name' => 'Senior'.$index, 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => $status, 'contact_number' => $mobile]);
         }
         $staff = User::factory()->create();
 

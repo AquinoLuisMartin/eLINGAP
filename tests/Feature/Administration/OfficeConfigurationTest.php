@@ -315,7 +315,7 @@ class OfficeConfigurationTest extends TestCase
         $barangay = Barangay::create(['code' => 'SYN', 'name' => 'Synthetic barangay']);
 
         return SeniorCitizen::unguarded(fn () => SeniorCitizen::create(['barangay_id' => $barangay->id,
-            'registration_number' => 'SYN-OFFICE-1', 'first_name' => 'Synthetic', 'last_name' => 'Applicant',
+            'first_name' => 'Synthetic', 'last_name' => 'Applicant',
             'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'address' => 'Synthetic street',
             'status' => 'VERIFIED', 'verified_at' => now(), 'id_generated_at' => now(), 'osca_id_number' => 'SYN-OFFICE-ID']));
     }

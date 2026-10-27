@@ -114,6 +114,6 @@ class ApplicationWorkflowTest extends TestCase
     {
         $barangay = Barangay::create(['name' => 'Poblacion', 'code' => 'POB']);
 
-        return SeniorCitizen::create(['barangay_id' => $barangay->id, 'registration_number' => 'SC-TEST-001', 'first_name' => 'Maria', 'last_name' => 'Santos', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Poblacion']);
+        return SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Maria', 'last_name' => 'Santos', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Poblacion']);
     }
 }

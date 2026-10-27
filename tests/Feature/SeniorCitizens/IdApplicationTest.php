@@ -154,7 +154,7 @@ class IdApplicationTest extends TestCase
         $this->actingAs(User::factory()->create());
         $input = $this->input();
         $component = $this->application()->set('form', $input)->call('next')->call('next');
-        SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'registration_number' => 'SYNTHETIC-EXISTING', 'status' => 'DECEASED']);
+        SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'status' => 'DECEASED']);
         $component->set('informationReviewed', true)->call('submit')->assertHasErrors('form.first_name')->assertSet('step', 1);
         $this->assertDatabaseCount('senior_citizens', 1);
     }
@@ -163,13 +163,13 @@ class IdApplicationTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $input = $this->input();
-        $pending = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'first_name' => '<script>synthetic</script>', 'registration_number' => 'SYNTHETIC-PENDING']);
-        $verified = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'first_name' => '<script>synthetic</script>', 'registration_number' => 'SYNTHETIC-VERIFIED', 'status' => 'VERIFIED']);
-        $issued = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'registration_number' => 'SYNTHETIC-ISSUED', 'status' => 'VERIFIED']);
+        $pending = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'first_name' => '<script>synthetic</script>']);
+        $verified = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'first_name' => '<script>synthetic</script>', 'last_name' => 'Verified', 'status' => 'VERIFIED']);
+        $issued = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'last_name' => 'Issued', 'status' => 'VERIFIED']);
         $issued->forceFill(['id_generated_at' => now()])->save();
-        Livewire::test(Index::class)->assertDontSee($pending->registration_number)->assertSee($verified->registration_number)->assertDontSee('<script>synthetic</script>', false)
-            ->set('stage', 'VERIFIED')->assertSee($verified->registration_number)->assertDontSee($pending->registration_number)->assertDontSee($issued->registration_number)
-            ->set('stage', 'ISSUED')->assertSee($issued->registration_number)->assertDontSee($verified->registration_number)
+        Livewire::test(Index::class)->assertDontSee($pending->full_name)->assertSee($verified->full_name)->assertDontSee('<script>synthetic</script>', false)
+            ->set('stage', 'VERIFIED')->assertSee($verified->full_name)->assertDontSee($pending->full_name)->assertDontSee($issued->full_name)
+            ->set('stage', 'ISSUED')->assertSee($issued->full_name)->assertDontSee($verified->full_name)
             ->set('barangayId', '999999')->assertSee('No matching registration records');
     }
 
@@ -195,13 +195,13 @@ class IdApplicationTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $input = Arr::except($this->input(), ['requirements_status']);
-        $pending = SeniorCitizen::create([...$input, 'registration_number' => 'SYN-PENDING']);
-        $existing = SeniorCitizen::create([...$input, 'registration_number' => 'SYN-EXISTING', 'status' => $status]);
+        $pending = SeniorCitizen::create([...$input, 'last_name' => 'Pending']);
+        $existing = SeniorCitizen::create([...$input, 'last_name' => 'Existing', 'status' => $status]);
 
-        Livewire::test(Index::class)->assertSee($existing->registration_number)->assertDontSee($pending->registration_number)
+        Livewire::test(Index::class)->assertSee($existing->full_name)->assertDontSee($pending->full_name)
             ->assertDontSee('New ID Application')->assertDontSeeLivewire(IdApplication::class)
-            ->set('stage', 'INACTIVE')->assertSee($existing->registration_number)
-            ->set('search', 'SYN-PENDING')->assertDontSee($pending->registration_number);
+            ->set('stage', 'INACTIVE')->assertSee($existing->full_name)
+            ->set('search', 'Pending')->assertDontSee($pending->full_name);
     }
 
     public function test_registry_application_cancel_preserves_the_list_filters(): void
@@ -218,7 +218,7 @@ class IdApplicationTest extends TestCase
     public function test_id_navigation_keeps_the_origin_and_filters(string $from, string $route, string $exit): void
     {
         $this->actingAs(User::factory()->create());
-        $senior = SeniorCitizen::create([...Arr::except($this->input(), ['requirements_status']), 'registration_number' => 'SYN-NAVIGATION']);
+        $senior = SeniorCitizen::create([...Arr::except($this->input(), ['requirements_status'])]);
         $context = ['search' => 'Synthetic', 'page' => 2];
 
         $response = $this->get(route('senior-id.show', [$senior, 'from' => $from, ...$context]));
@@ -248,7 +248,7 @@ class IdApplicationTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $input = $this->input();
-        $senior = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'registration_number' => 'SYN-EDIT', 'status' => 'VERIFIED']);
+        $senior = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'status' => 'VERIFIED']);
         $context = ['from' => 'registrations', 'search' => 'Synthetic', 'stage' => 'VERIFIED', 'page' => 2];
 
         $this->get(route('senior-citizens.show', [$senior, ...$context]))
@@ -320,7 +320,7 @@ class IdApplicationTest extends TestCase
         $this->actingAs(User::factory()->create());
         $input = $this->input();
         $this->application()->set('form', [...$input, 'civil_status' => 'INVALID'])->call('next')->assertSet('step', 1)->assertHasErrors('form.civil_status');
-        $senior = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'registration_number' => 'SYNTHETIC-CIVIL-STATUS', 'civil_status' => 'SINGLE']);
+        $senior = SeniorCitizen::create([...Arr::except($input, ['requirements_status']), 'civil_status' => 'SINGLE']);
         $this->put(route('senior-citizens.update', $senior), [...$input, 'civil_status' => 'INVALID'])->assertSessionHasErrors('civil_status');
         $this->assertSame('SINGLE', $senior->fresh()->civil_status);
     }

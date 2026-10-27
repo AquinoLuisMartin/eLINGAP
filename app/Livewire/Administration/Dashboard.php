@@ -257,7 +257,7 @@ class Dashboard extends Component
         $term = trim($this->search);
 
         return SeniorCitizen::query()
-            ->select(['id', 'barangay_id', 'registration_number', 'osca_id_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'status', 'updated_at'])
+            ->select(['id', 'barangay_id', 'osca_id_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'status', 'updated_at'])
             ->with('barangay:id,name')
             ->when($term !== '', fn ($query) => $query->where(fn ($query) => $query->searchable($term)
                 ->orWhereHas('barangay', fn ($query) => $query->whereRaw('lower(name) like ?', ['%'.mb_strtolower($term).'%']))))

@@ -36,3 +36,6 @@ eLINGAP.md
 elingap_schema.sql
 /docs/
 *sample*.sql
+!/database/seeders/sql/sample-filipino-names.sql
+!/database/seeders/sql/sample-registry.sql
+!/database/seeders/sql/rename-sample-registry.sql

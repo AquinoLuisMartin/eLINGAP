@@ -56,6 +56,6 @@ class StaffDashboardDataTest extends TestCase
 
     private function senior(Barangay $barangay, int $index, string $birthDate): void
     {
-        SeniorCitizen::create(['barangay_id' => $barangay->id, 'registration_number' => 'SC-SYN-'.$index, 'first_name' => 'Synthetic', 'last_name' => 'Applicant '.$index, 'birth_date' => $birthDate, 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED']);
+        SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant '.$index, 'birth_date' => $birthDate, 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED']);
     }
 }

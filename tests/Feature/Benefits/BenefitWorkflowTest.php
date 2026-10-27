@@ -552,6 +552,8 @@ class BenefitWorkflowTest extends TestCase
         ob_start();
         $response->sendContent();
         $csv = ob_get_clean();
+        $this->assertStringStartsWith('"OSCA ID No.",', $csv);
+        $this->assertStringContainsString('ID-0,', $csv);
         $this->assertStringContainsString("'".$programName, $csv);
         $this->assertStringContainsString('2026', $csv);
         $this->assertDatabaseHas('audit_logs', ['action' => 'benefit.report_exported']);
@@ -908,8 +910,7 @@ class BenefitWorkflowTest extends TestCase
         $barangay = Barangay::create(['name' => 'Synthetic Barangay '.Barangay::count(), 'code' => 'T'.Barangay::count()]);
 
         return SeniorCitizen::unguarded(fn () => SeniorCitizen::create([
-            'barangay_id' => $barangay->id, 'registration_number' => 'TEST-'.SeniorCitizen::count(),
-            'first_name' => 'Synthetic', 'last_name' => 'Applicant '.SeniorCitizen::count(), 'birth_date' => '1950-01-01',
+            'barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant '.SeniorCitizen::count(), 'birth_date' => '1950-01-01',
             'sex' => 'FEMALE', 'address' => 'Synthetic address', 'contact_number' => '+639171234567',
             'status' => 'VERIFIED', 'verified_at' => '2026-01-01', 'osca_id_number' => 'ID-'.SeniorCitizen::count(), 'id_generated_at' => '2026-01-01', ...$attributes,
         ]));

@@ -15,7 +15,7 @@
     <header>@if($seal)<img class="seal" src="{{ $seal }}" alt="Municipal seal">@endif<br>Republic of the Philippines<br>{{ implode(', ', [$officeDetails['municipality'], $officeDetails['province']]) }}<br>{{ $officeDetails['office_name'] }}</header>
     <h1>Certificate of Cancellation</h1>
     <p>Reference: SC-TRANSFER-{{ $transfer->id }}</p>
-    <p>This certifies that the local senior citizen registration of <strong>{{ $transfer->senior_name }}</strong>, registration number <strong>{{ $transfer->registration_number }}</strong>@if($transfer->osca_id_number), OSCA ID number <strong>{{ $transfer->osca_id_number }}</strong>@endif, was cancelled effective {{ $transfer->transferred_on->format('F j, Y') }} following a transfer of registration.</p>
+    <p>This certifies that the local senior citizen registration of <strong>{{ $transfer->senior_name }}</strong>@if($transfer->osca_id_number), OSCA ID No. <strong>{{ $transfer->osca_id_number }}</strong>@endif, was cancelled effective {{ $transfer->transferred_on->format('F j, Y') }} following a transfer of registration.</p>
     <p>Previous location: {{ $transfer->previous_location }}.</p>
     <p>Destination: {{ $transfer->destination }}.</p>
     <p>Requested by: {{ $transfer->requester_name }} ({{ $transfer->requested_by === 'SELF' ? 'senior citizen' : $transfer->requester_relationship }}).</p>

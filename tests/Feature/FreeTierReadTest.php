@@ -134,7 +134,7 @@ class FreeTierReadTest extends TestCase
         $barangay = Barangay::create(['name' => 'Synthetic barangay', 'code' => 'SYN']);
 
         return SeniorCitizen::create([
-            'barangay_id' => $barangay->id, 'registration_number' => 'SYN-REG', 'osca_id_number' => 'SYN-ID',
+            'barangay_id' => $barangay->id, 'osca_id_number' => 'SYN-ID',
             'first_name' => 'Synthetic', 'middle_name' => 'Middle', 'last_name' => 'Applicant', 'name_suffix' => 'Jr.',
             'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'address' => 'Synthetic address', 'status' => 'VERIFIED',
             'requirements_checks' => ['notes' => str_repeat('x', 32000)],

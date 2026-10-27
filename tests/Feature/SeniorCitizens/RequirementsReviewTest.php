@@ -129,15 +129,15 @@ class RequirementsReviewTest extends TestCase
         $this->assertNull($senior->verified_at);
 
         $this->get(route('senior-citizens.index', ['status' => 'PENDING']))
-            ->assertSee($senior->registration_number)->assertSee('Review requirements');
-        $this->get(route('registrations.index'))->assertDontSee($senior->registration_number);
+            ->assertSee($senior->full_name)->assertSee('Review requirements');
+        $this->get(route('registrations.index'))->assertDontSee($senior->full_name);
 
         $component = Livewire::test(RequirementsReview::class, ['seniorId' => $senior->id])
             ->assertDontSee($reason, false)->call('verify')->assertHasErrors('documentsChecked')
             ->set('documentsChecked', true)->call('verify')->assertHasNoErrors()->assertDispatched('registration-verified');
 
         $this->assertSame('VERIFIED', $senior->fresh()->status->value);
-        $this->get(route('registrations.index'))->assertSee($senior->registration_number)->assertSee('Approved / ID pending');
+        $this->get(route('registrations.index'))->assertSee($senior->full_name)->assertSee('Approved / ID pending');
         $this->assertNull($senior->fresh()->review_reason);
         $this->assertSame($reason, $senior->histories()->where('action', 'verified')->sole()->changes['resolved_review_reason']);
         $this->assertDatabaseHas('senior_citizen_histories', ['senior_citizen_id' => $senior->id, 'action' => 'requirements_review_requested']);
@@ -214,7 +214,7 @@ class RequirementsReviewTest extends TestCase
         $input = $this->input();
         unset($input['requirements_status']);
 
-        return SeniorCitizen::create([...$input, 'registration_number' => 'SYNTHETIC-REVIEW', 'status' => 'PENDING']);
+        return SeniorCitizen::create([...$input, 'status' => 'PENDING']);
     }
 
     private function input(): array

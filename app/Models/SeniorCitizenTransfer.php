@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['senior_citizen_id', 'type', 'requested_by', 'requester_name', 'requester_relationship', 'previous_location', 'destination_municipality', 'destination_province', 'destination_barangay', 'destination_address', 'transferred_on', 'reason', 'senior_name', 'registration_number', 'osca_id_number', 'recorded_by'])]
+#[Fillable(['senior_citizen_id', 'type', 'requested_by', 'requester_name', 'requester_relationship', 'previous_location', 'destination_municipality', 'destination_province', 'destination_barangay', 'destination_address', 'transferred_on', 'reason', 'senior_name', 'osca_id_number', 'recorded_by'])]
 class SeniorCitizenTransfer extends Model
 {
     protected function casts(): array

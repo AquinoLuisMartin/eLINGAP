@@ -53,7 +53,7 @@ class EntitlementReport extends Component
         return BenefitEntitlement::query()->select(['id', 'program_id', 'senior_citizen_id', 'benefit_schedule_id', 'period_key', 'amount', 'status'])
             ->with([
                 'program:id,name,government_level',
-                'seniorCitizen:id,barangay_id,registration_number,first_name,middle_name,last_name,name_suffix,status',
+                'seniorCitizen:id,barangay_id,osca_id_number,first_name,middle_name,last_name,name_suffix,status',
                 'seniorCitizen.barangay:id,name', 'schedule:id,status',
                 'payments:id,benefit_entitlement_id,reference_number,paid_at,reversed_at,reversal_reason',
             ])
@@ -90,10 +90,10 @@ class EntitlementReport extends Component
 
         return response()->streamDownload(function () use ($query): void {
             $stream = fopen('php://output', 'w');
-            fputcsv($stream, ['Registration ID', 'Program', 'Original period', 'Amount (PHP)', 'Status', 'Senior status', 'Payment references'], escape: '');
+            fputcsv($stream, ['OSCA ID No.', 'Program', 'Original period', 'Amount (PHP)', 'Status', 'Senior status', 'Payment references'], escape: '');
             $query->chunkById(200, function ($entries) use ($stream): void {
                 foreach ($entries as $entry) {
-                    $row = [$entry->seniorCitizen->registration_number, $entry->program->name, $entry->period_key, $entry->amount ?? '', $entry->status->value, $entry->seniorCitizen->status->value, $entry->payments->map(fn ($payment) => $payment->reference_number.($payment->reversed_at ? ' (reversed)' : ''))->implode('; ')];
+                    $row = [$entry->seniorCitizen->osca_id_number ?? '', $entry->program->name, $entry->period_key, $entry->amount ?? '', $entry->status->value, $entry->seniorCitizen->status->value, $entry->payments->map(fn ($payment) => $payment->reference_number.($payment->reversed_at ? ' (reversed)' : ''))->implode('; ')];
                     fputcsv($stream, array_map(CsvCell::escape(...), $row), escape: '');
                 }
             });

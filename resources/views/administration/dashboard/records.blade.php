@@ -11,9 +11,9 @@
         @endforeach
     </div></div>
     <p wire:loading wire:target="search,recordFilter" role="status">Updating records...</p>
-    <div class="table-scroll" role="region" aria-label="Senior records" tabindex="0"><table><thead><tr><th>OSCA / Registration ID</th><th>Senior citizen</th><th>Barangay</th><th>Age</th><th>Status</th><th>Last updated</th><th>Details</th></tr></thead><tbody>
+    <div class="table-scroll" role="region" aria-label="Senior records" tabindex="0"><table><thead><tr><th>OSCA ID No.</th><th>Senior citizen</th><th>Barangay</th><th>Age</th><th>Status</th><th>Last updated</th><th>Details</th></tr></thead><tbody>
         @forelse ($this->filteredRecords as $record)
-            <tr wire:key="record-{{ $record->id }}"><td>{{ $record->osca_id_number ?? $record->registration_number }}</td><td>{{ $record->full_name }}</td><td>{{ $record->barangay?->name ?? 'Unassigned' }}</td><td>{{ $record->birth_date->age }}</td><td><span class="status-badge {{ $record->status->value === 'VERIFIED' ? 'active' : 'pending' }}">{{ ucfirst(strtolower($record->status->value)) }}</span></td><td>{{ $record->updated_at->format('M j, Y') }}</td><td><a class="text-button" href="{{ route('senior-citizens.show', $record) }}">View</a></td></tr>
+            <tr wire:key="record-{{ $record->id }}"><td>{{ $record->osca_id_number ?: 'Not issued' }}</td><td>{{ $record->full_name }}</td><td>{{ $record->barangay?->name ?? 'Unassigned' }}</td><td>{{ $record->birth_date->age }}</td><td><span class="status-badge {{ $record->status->value === 'VERIFIED' ? 'active' : 'pending' }}">{{ ucfirst(strtolower($record->status->value)) }}</span></td><td>{{ $record->updated_at->format('M j, Y') }}</td><td><a class="text-button" href="{{ route('senior-citizens.show', $record) }}">View</a></td></tr>
         @empty
             <tr><td colspan="7"><div class="empty-log-state"><strong>No matching senior records</strong><span>Adjust your search and status filter. Senior registration is managed by OSCA staff.</span></div></td></tr>
         @endforelse

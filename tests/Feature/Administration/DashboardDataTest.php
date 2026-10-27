@@ -41,7 +41,7 @@ class DashboardDataTest extends TestCase
     {
         $this->travelTo(now()->setDate(2026, 10, 8)->startOfDay());
         $senior = $this->senior();
-        $this->senior(['registration_number' => 'TEST-PENDING', 'status' => 'PENDING']);
+        $this->senior(['status' => 'PENDING']);
         $program = Program::create(['name' => 'Test Assistance', 'agency' => 'Test Agency', 'budget' => 1000]);
         Beneficiary::create(['program_id' => $program->id, 'senior_citizen_id' => $senior->id, 'enrolled_on' => today(), 'status' => 'ACTIVE']);
         foreach (['SENT', 'FAILED', 'QUEUED'] as $status) {
@@ -113,15 +113,15 @@ class DashboardDataTest extends TestCase
     public function test_registry_filters_database_records_and_resets_its_page(): void
     {
         for ($index = 0; $index < 16; $index++) {
-            $this->senior(['registration_number' => 'TEST-'.$index]);
+            $this->senior([]);
         }
-        $pending = $this->senior(['registration_number' => 'TEST-PENDING', 'status' => 'PENDING', 'first_name' => '<script>example</script>']);
+        $pending = $this->senior(['status' => 'PENDING', 'first_name' => '<script>example</script>']);
 
         $component = Livewire::actingAs(User::factory()->admin()->create())->test(Dashboard::class)
             ->call('navigate', 'records')
             ->call('gotoPage', 2, 'recordsPage')
             ->set('recordFilter', 'PENDING')
-            ->assertSee($pending->registration_number)
+            ->assertSee($pending->full_name)
             ->assertDontSee('<script>example</script>', false);
 
         $this->assertSame(1, $component->get('filteredRecords')->total());
@@ -153,7 +153,7 @@ class DashboardDataTest extends TestCase
     {
         $this->travelTo(now()->setDate(2026, 10, 8)->startOfDay());
         foreach (['1966-10-09', '1966-10-08', '1956-10-09', '1956-10-08', '1946-10-09', '1946-10-08'] as $index => $birthDate) {
-            $this->senior(['registration_number' => 'AGE-'.$index, 'birth_date' => $birthDate]);
+            $this->senior(['birth_date' => $birthDate]);
         }
 
         Livewire::actingAs(User::factory()->admin()->create())->test(Dashboard::class)
@@ -231,8 +231,7 @@ class DashboardDataTest extends TestCase
         $barangay = Barangay::firstOrCreate(['code' => 'TEST'], ['name' => 'Test Barangay']);
 
         return SeniorCitizen::create(array_replace([
-            'barangay_id' => $barangay->id, 'registration_number' => 'TEST-REGISTRY',
-            'first_name' => 'Test', 'last_name' => 'Senior', 'birth_date' => '1950-01-01',
+            'barangay_id' => $barangay->id, 'first_name' => 'Test', 'last_name' => 'Senior', 'birth_date' => '1950-01-01',
             'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED',
         ], $attributes));
     }

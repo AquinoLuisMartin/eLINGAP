@@ -18,7 +18,7 @@
         <h3 id="registration-filters-title" class="mb-4 text-base font-semibold">Find registered seniors</h3>
         <div class="staff-filter-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-12">
             <div class="field-label xl:col-span-3"><label data-select-label>Search by</label><x-select label="Search by" wire:model.live="searchBy">
-                    <option value="all">ID No. or names</option><option value="osca_id">OSCA ID No.</option><option value="name">Names</option><option value="registration">Registration No.</option>
+                    <option value="all">ID No. or names</option><option value="osca_id">OSCA ID No.</option><option value="name">Names</option>
                 </x-select>
                 @error('searchBy')<span role="alert" class="text-sm text-red-700 dark:text-red-300">{{ $message }}</span>@enderror
             </div>
@@ -35,7 +35,7 @@
                 </x-select>
             </div>
         </div>
-        <p id="registration-search-help" class="mt-3 text-sm text-[var(--muted)]">OSCA ID No. and Registration No. require the complete number. Names accepts first, middle, or last names together, in any order.</p>
+        <p id="registration-search-help" class="mt-3 text-sm text-[var(--muted)]">OSCA ID No. requires the complete number. Names accepts first, middle, or last names together, in any order.</p>
         <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
             <p class="text-sm text-[var(--muted)]" role="status">
                 <span wire:loading.remove wire:target="search,searchBy,stage,barangayId">Results update as you search or change filters.</span>
@@ -62,7 +62,7 @@
                 <tbody>
                     @forelse ($registrations as $senior)
                         <tr wire:key="registration-record-{{ $senior->id }}">
-                            <td><span class="font-medium">{{ $senior->full_name }}</span><p class="mt-1 text-xs text-[var(--muted)]">{{ $senior->registration_number }}</p></td>
+                            <td><span class="font-medium">{{ $senior->full_name }}</span><p class="mt-1 text-xs text-[var(--muted)]">{{ $senior->osca_id_number ?: 'Not issued' }}</p></td>
                             <td>{{ $senior->barangay->name }}</td>
                             <td>{{ $senior->applicant_type === 'REPRESENTATIVE' ? 'Authorized representative' : 'Senior personally' }}</td>
                             <td class="whitespace-nowrap">{{ $senior->created_at->format('M j, Y') }}</td>

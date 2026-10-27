@@ -27,7 +27,7 @@ class OptimizeRegistrySearch extends Command
                 return self::FAILURE;
             }
             $operator = DB::connection()->getQueryGrammar()->wrap($schema.'.gin_trgm_ops');
-            $columns = collect(['registration_number', 'first_name', 'middle_name', 'last_name', 'osca_id_number'])
+            $columns = collect(['first_name', 'middle_name', 'last_name', 'osca_id_number'])
                 ->map(fn ($column) => 'lower('.$column.') '.$operator)->implode(', ');
             DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_seniors_search_trgm ON senior_citizens USING gin ('.$columns.')');
             $valid = DB::scalar("SELECT i.indisvalid FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid WHERE c.relname = 'idx_seniors_search_trgm' AND i.indrelid = 'senior_citizens'::regclass");

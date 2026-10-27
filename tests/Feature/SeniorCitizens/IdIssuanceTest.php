@@ -486,8 +486,7 @@ class IdIssuanceTest extends TestCase
         $barangay = Barangay::create(['name' => 'Synthetic Barangay '.Barangay::count(), 'code' => 'SYN-'.Barangay::count()]);
 
         return SeniorCitizen::unguarded(fn () => SeniorCitizen::create([
-            'barangay_id' => $barangay->id, 'registration_number' => 'SYN-ID-'.SeniorCitizen::count(),
-            'first_name' => 'Synthetic', 'last_name' => 'Applicant', 'birth_date' => '1960-01-01',
+            'barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant', 'birth_date' => '1960-01-01',
             'sex' => 'FEMALE', 'address' => 'Synthetic street', 'contact_number' => '+639170000001',
             'status' => 'VERIFIED', 'verified_at' => '2026-01-01', ...$overrides,
         ]));

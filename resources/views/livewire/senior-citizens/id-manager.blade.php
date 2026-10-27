@@ -3,7 +3,7 @@
         <div>
             <x-record-return-link :senior="$senior" />
             <h2 class="mt-3 text-3xl font-medium text-osca-primary dark:text-slate-100">Senior citizen ID</h2>
-            <p class="mt-2 text-slate-500">{{ $senior->full_name }} <span class="ml-2">{{ $senior->osca_id_number ?? $senior->registration_number }}</span></p>
+            <p class="mt-2 text-slate-500">{{ $senior->full_name }} <span class="ml-2">{{ $senior->osca_id_number ?: 'Not issued' }}</span></p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
             @can('create', \App\Models\SeniorCitizen::class)

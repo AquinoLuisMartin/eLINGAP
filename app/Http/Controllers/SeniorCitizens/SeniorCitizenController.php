@@ -30,7 +30,7 @@ class SeniorCitizenController extends Controller
 
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
-            'search_by' => ['nullable', 'in:all,name,osca_id,registration'],
+            'search_by' => ['nullable', 'in:all,name,osca_id'],
             'barangay_id' => ['nullable', 'integer', 'exists:barangays,id'],
             'status' => ['nullable', 'in:PENDING,VERIFIED,ARCHIVED,DECEASED,TRANSFERRED'],
             'age' => ['nullable', 'in:60-69,70-79,80+'],
@@ -74,7 +74,7 @@ class SeniorCitizenController extends Controller
         )->first();
 
         return view('senior-citizens.index', [
-            'seniorCitizens' => (clone $query)->select(['id', 'barangay_id', 'registration_number', 'osca_id_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'status', 'verified_at', 'id_generated_at', 'has_national_pension', 'has_local_pension'])->orderBy('id')->paginate(15)->withQueryString(),
+            'seniorCitizens' => (clone $query)->select(['id', 'barangay_id', 'osca_id_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'status', 'verified_at', 'id_generated_at', 'has_national_pension', 'has_local_pension'])->orderBy('id')->paginate(15)->withQueryString(),
             'counts' => [
                 'Total registry' => (int) $counts->total,
                 'Age 60–69' => (int) $counts->age_60_69,

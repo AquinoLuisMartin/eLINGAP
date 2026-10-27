@@ -32,8 +32,8 @@ class SeedSampleRegistry extends Command
                 throw new RuntimeException('Use a non-production PostgreSQL database with the public search path.');
             }
             if (! $this->option('rename') && (DB::table('programs')->where('benefit_code', 'synthetic-registry-2000-2026')->exists()
-                || DB::table('senior_citizens')->where('registration_number', 'like', 'SYN-%')->exists())) {
-                throw new RuntimeException('Sample dataset or reserved registration prefix already exists.');
+                || DB::table('senior_citizens')->where('address', 'SYNTHETIC ADDRESS - NOT A RESIDENCE')->exists())) {
+                throw new RuntimeException('Sample dataset or synthetic profiles already exist.');
             }
 
             $config = $connection->getConfig();

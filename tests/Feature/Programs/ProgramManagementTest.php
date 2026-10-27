@@ -105,7 +105,7 @@ class ProgramManagementTest extends TestCase
         $staff = User::factory()->create();
         $program = Program::create(['name' => 'Assistance', 'agency' => 'OSCA', 'budget' => 10000, 'status' => 'ACTIVE']);
         $barangay = Barangay::create(['name' => 'Poblacion', 'code' => 'POB']);
-        $senior = SeniorCitizen::create(['barangay_id' => $barangay->id, 'registration_number' => 'SC-TEST-001', 'first_name' => 'Maria', 'last_name' => 'Santos', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED']);
+        $senior = SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Maria', 'last_name' => 'Santos', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED']);
         $senior->forceFill(['verified_at' => now(), 'id_generated_at' => now(), 'osca_id_number' => 'SYN-ISSUED'])->save();
         $payload = ['program_id' => $program->id, 'senior_citizen_id' => $senior->id, 'enrolled_on' => today()->toDateString()];
 

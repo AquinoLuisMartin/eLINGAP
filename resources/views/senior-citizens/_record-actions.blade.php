@@ -3,7 +3,7 @@
         <x-benefit-panel>
             <details>
                 <summary class="cursor-pointer text-sm font-medium text-osca-danger dark:text-red-300">Declare deceased</summary>
-                <p class="mt-3 max-w-2xl text-sm text-slate-500">This declaration stops future releases and requires a death document. Confirm the record identifier before saving.</p>
+                <p class="mt-3 max-w-2xl text-sm text-slate-500">This declaration stops future releases and requires a death document. Confirm the OSCA ID No. or, if not issued, the full name before saving.</p>
                 <form method="POST" action="{{ route('senior-citizens.death.store', $seniorCitizen) }}" enctype="multipart/form-data" class="mt-4 grid gap-4 sm:grid-cols-2" onsubmit="return confirm('Declare this senior deceased?')">
                     @csrf
                     <label class="field-label mt-0!">Date of death
@@ -12,7 +12,7 @@
                     <label class="field-label mt-0!">Death certificate or supporting document
                         <input type="file" name="death_document" accept=".pdf,.jpg,.jpeg,.png" required>
                     </label>
-                    <label class="field-label mt-0! sm:col-span-2">Type {{ $seniorCitizen->osca_id_number ?: $seniorCitizen->registration_number }} to confirm
+                    <label class="field-label mt-0! sm:col-span-2">Type {{ $seniorCitizen->osca_id_number ?: $seniorCitizen->full_name }} to confirm
                         <input name="confirmation" required autocomplete="off">
                     </label>
                     <div class="sm:col-span-2"><button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-osca-danger px-4 py-3 text-sm text-white hover:bg-osca-danger/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-osca-danger"><x-admin.icon name="alert-triangle" size="16" /> Record declaration</button></div>

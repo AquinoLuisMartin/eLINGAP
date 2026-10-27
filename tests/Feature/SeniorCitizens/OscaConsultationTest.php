@@ -423,8 +423,7 @@ class OscaConsultationTest extends TestCase
         $number = SeniorCitizen::count();
 
         return SeniorCitizen::unguarded(fn () => SeniorCitizen::create([
-            'barangay_id' => $barangay->id, 'registration_number' => 'SYN-CONSULT-'.$number,
-            'first_name' => 'Synthetic', 'last_name' => 'Applicant', 'birth_date' => '1950-01-01',
+            'barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant', 'birth_date' => '1950-01-01',
             'sex' => 'FEMALE', 'address' => 'Synthetic street', 'contact_number' => '+639170000001',
             'status' => 'VERIFIED', 'verified_at' => now(), 'id_generated_at' => now(), 'osca_id_number' => 'SYN-ID-'.$number,
             ...$overrides,

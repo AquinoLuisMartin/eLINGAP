@@ -102,7 +102,7 @@ class PayoutReleaseTest extends TestCase
         $payout = $this->payout();
         $program = $payout->schedule->program;
         $archived = $payout->seniorCitizen->replicate();
-        $archived->registration_number = 'SC-TEST-002';
+
         $archived->status = 'DECEASED';
         $archived->save();
         Beneficiary::create(['program_id' => $program->id, 'senior_citizen_id' => $archived->id, 'enrolled_on' => today(), 'status' => 'ACTIVE']);
@@ -128,7 +128,7 @@ class PayoutReleaseTest extends TestCase
     private function payout(): Payout
     {
         $barangay = Barangay::create(['name' => 'Poblacion', 'code' => 'POB']);
-        $senior = SeniorCitizen::create(['barangay_id' => $barangay->id, 'registration_number' => 'SC-TEST-001', 'first_name' => 'Maria', 'last_name' => 'Santos', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Poblacion', 'status' => 'VERIFIED']);
+        $senior = SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Maria', 'last_name' => 'Santos', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Poblacion', 'status' => 'VERIFIED']);
         $program = Program::create(['name' => 'Assistance', 'agency' => 'OSCA', 'budget' => 10000, 'status' => 'ACTIVE']);
         $schedule = PayoutSchedule::create(['program_id' => $program->id, 'reference_number' => 'SCH-TEST-001', 'scheduled_on' => today(), 'amount' => 1000]);
         Beneficiary::create(['program_id' => $program->id, 'senior_citizen_id' => $senior->id, 'enrolled_on' => today(), 'status' => 'ACTIVE']);

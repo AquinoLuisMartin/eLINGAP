@@ -24,8 +24,7 @@ class InputSecurityTest extends TestCase
         if ($operation === 'update') {
             $barangay = Barangay::create(['name' => 'Test barangay', 'code' => 'TEST']);
             $senior = SeniorCitizen::create([
-                'barangay_id' => $barangay->id, 'registration_number' => 'SC-INPUT-1',
-                'first_name' => 'Synthetic', 'last_name' => 'Applicant', 'birth_date' => '1948-01-01',
+                'barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant', 'birth_date' => '1948-01-01',
                 'sex' => 'FEMALE', 'address' => 'Test address',
             ]);
             $this->putJson(route('senior-citizens.update', $senior), ['contact_number' => ['unexpected']])

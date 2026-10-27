@@ -132,7 +132,7 @@ class SeniorImport
                 $data = $row['data'];
                 $senior = SeniorCitizen::create([
                     ...collect($data)->except('requirements_status')->all(),
-                    'registration_number' => 'SC-'.Str::ulid(), 'status' => 'PENDING',
+                    'status' => 'PENDING',
                 ]);
                 $historicalIds += (int) filled($senior->osca_id_number);
                 $senior->histories()->create(['changed_by' => auth()->id(), 'action' => 'imported', 'changes' => ['batch_id' => $batchId, 'status' => 'PENDING', 'source_row' => $row['row'], 'historical_id_preserved' => filled($senior->osca_id_number)]]);

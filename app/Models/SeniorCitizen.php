@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['barangay_id', 'registration_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'sex', 'civil_status', 'address', 'contact_number', 'osca_id_number', 'status', 'verified_at', 'verified_by', 'died_on', 'death_declared_at', 'death_declared_by', 'applicant_type', 'representative_name', 'representative_relationship', 'representative_contact', 'requirements_checks', 'review_reason'])]
+#[Fillable(['barangay_id', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'sex', 'civil_status', 'address', 'contact_number', 'osca_id_number', 'status', 'verified_at', 'verified_by', 'died_on', 'death_declared_at', 'death_declared_by', 'applicant_type', 'representative_name', 'representative_relationship', 'representative_contact', 'requirements_checks', 'review_reason'])]
 class SeniorCitizen extends Model
 {
     public function benefitEntitlements(): HasMany
@@ -83,15 +83,14 @@ class SeniorCitizen extends Model
     protected function searchable(Builder $query, string $term, string $field = 'all'): Builder
     {
         $term = trim($term);
-        if ($field === 'osca_id' || $field === 'registration') {
-            return $query->where($field === 'osca_id' ? 'osca_id_number' : 'registration_number', $term);
+        if ($field === 'osca_id') {
+            return $query->where('osca_id_number', $term);
         }
         $literal = fn (string $value) => '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], mb_strtolower($value)).'%';
 
         return $query->where(function (Builder $query) use ($term, $field, $literal) {
             if ($field !== 'name') {
-                $query->whereRaw('lower(registration_number) like ?', [$literal($term)])
-                    ->orWhereRaw('lower(osca_id_number) like ?', [$literal($term)]);
+                $query->whereRaw('lower(osca_id_number) like ?', [$literal($term)]);
             }
             $query->orWhere(function (Builder $names) use ($term, $literal) {
                 foreach (preg_split('/[\s,]+/', $term, -1, PREG_SPLIT_NO_EMPTY) as $part) {

@@ -29,7 +29,7 @@ class StaffReportTest extends TestCase
     {
         $barangay = Barangay::create(['name' => 'Synthetic barangay', 'code' => 'SYN']);
         foreach (['TRANSFERRED', 'VERIFIED'] as $status) {
-            SeniorCitizen::create(['barangay_id' => $barangay->id, 'registration_number' => 'SC-'.$status, 'first_name' => 'Synthetic', 'last_name' => $status, 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => $status]);
+            SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => $status, 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => $status]);
         }
         $this->actingAs(User::factory()->create());
 
@@ -65,7 +65,7 @@ class StaffReportTest extends TestCase
         $first = Barangay::create(['name' => 'Poblacion', 'code' => 'POB']);
         $second = Barangay::create(['name' => 'Bagbaguin', 'code' => 'BAG']);
         foreach ([$first, $second] as $barangay) {
-            SeniorCitizen::create(['barangay_id' => $barangay->id, 'registration_number' => 'SC-'.$barangay->code, 'first_name' => 'Test', 'last_name' => $barangay->name, 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address']);
+            SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Test', 'last_name' => $barangay->name, 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address']);
         }
         $role = Role::firstOrCreate(['name' => 'OSCA_STAFF'], ['description' => 'OSCA Staff']);
         $staff = User::create(['role_id' => $role->id, 'username' => 'reportuser', 'email' => 'report@example.test', 'password_hash' => 'password', 'first_name' => 'Test', 'last_name' => 'User', 'is_active' => true]);

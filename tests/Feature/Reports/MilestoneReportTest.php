@@ -20,7 +20,7 @@ class MilestoneReportTest extends TestCase
         Program::create(['name' => 'Synthetic milestone program', 'agency' => 'Synthetic office', 'status' => 'ACTIVE', 'benefit_rules' => ['milestones' => [85 => 1000, 95 => 2000]]]);
         $barangay = Barangay::create(['name' => 'Synthetic area', 'code' => 'SYN']);
         foreach (['1941-10-16' => 'Included', '1942-10-16' => 'Excluded'] as $date => $name) {
-            SeniorCitizen::create(['barangay_id' => $barangay->id, 'registration_number' => 'SC-'.$name, 'first_name' => 'Synthetic', 'last_name' => $name, 'birth_date' => $date, 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED']);
+            SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => $name, 'birth_date' => $date, 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED']);
         }
 
         $this->get(route('reports.workspace', ['type' => 'milestones']))->assertOk()

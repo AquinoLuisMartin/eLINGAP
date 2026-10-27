@@ -21,7 +21,7 @@ class SampleRegistryTest extends TestCase
         $reserved = DB::table('osca_id_numbers')->insertGetId(['issued_year' => 2000, 'created_at' => '2000-01-01']);
         $existingId = DB::table('senior_citizens')->insertGetId([
             'barangay_id' => DB::table('barangays')->where('code', 'BAG')->value('id'),
-            'registration_number' => 'KEEP-1', 'first_name' => 'SYNTHETIC', 'last_name' => 'Existing',
+            'first_name' => 'SYNTHETIC', 'last_name' => 'Existing',
             'birth_date' => '1930-01-01', 'sex' => 'FEMALE', 'address' => 'SYNTHETIC',
             'osca_id_number' => sprintf('00-%04d', $reserved + 1),
         ]);
@@ -34,25 +34,25 @@ class SampleRegistryTest extends TestCase
             $this->assertDatabaseCount($table, 10000);
         }
         $this->assertSame($before, DB::table('barangays')->orderBy('id')->get()->toJson());
-        $this->assertDatabaseHas('senior_citizens', ['registration_number' => 'SYN-00001', 'birth_date' => '1939-01-01']);
-        $this->assertDatabaseHas('senior_citizens', ['registration_number' => 'SYN-10000']);
+        $this->assertDatabaseHas('senior_citizens', ['id' => $this->sampleId(1), 'birth_date' => '1939-01-01']);
+        $this->assertDatabaseHas('senior_citizens', ['id' => $this->sampleId(10000)]);
         $this->assertSame(371, DB::table('senior_citizens')->whereYear('created_at', 2000)->count());
         $this->assertSame(370, DB::table('senior_citizens')->whereYear('created_at', 2026)->count());
         $this->assertSame(10001, DB::table('senior_citizens')->distinct()->count('osca_id_number'));
         $this->assertEquals($existing, DB::table('senior_citizens')->find($existingId));
-        $this->assertDatabaseHas('senior_citizens', ['registration_number' => 'SYN-00001', 'first_name' => 'Maria Josefina', 'middle_name' => 'Santiago', 'last_name' => 'Santos']);
+        $this->assertDatabaseHas('senior_citizens', ['id' => $this->sampleId(1), 'first_name' => 'Maria Josefina', 'middle_name' => 'Santiago', 'last_name' => 'Santos']);
 
         DB::statement('DROP TABLE sample_filipino_names');
-        DB::table('senior_citizens')->where('registration_number', 'like', 'SYN-%')->update(['first_name' => 'SYNTHETIC', 'middle_name' => null, 'last_name' => 'Sample']);
+        DB::table('senior_citizens')->whereIn('id', DB::table('applications')->where('application_number', 'like', 'SYN-APP-%')->select('senior_citizen_id'))->update(['first_name' => 'SYNTHETIC', 'middle_name' => null, 'last_name' => 'Sample']);
         DB::transaction(fn () => DB::unprepared(file_get_contents(database_path('seeders/sql/sample-filipino-names.sql')).PHP_EOL
             .file_get_contents(database_path('seeders/sql/rename-sample-registry.sql'))));
 
-        $this->assertDatabaseHas('senior_citizens', ['registration_number' => 'SYN-00001', 'first_name' => 'Maria Josefina', 'middle_name' => 'Santiago', 'last_name' => 'Santos']);
-        $this->assertSame(10000, DB::table('senior_citizens')->where('registration_number', 'like', 'SYN-%')->whereNotNull('middle_name')->count());
-        $this->assertSame(10000, DB::table('senior_citizens')->where('registration_number', 'like', 'SYN-%')->distinct()->count('first_name'));
-        $this->assertSame(100, DB::table('senior_citizens')->where('registration_number', 'like', 'SYN-%')->distinct()->count('last_name'));
-        $this->assertSame(0, DB::table('senior_citizens')->where('registration_number', 'like', 'SYN-%')->where('last_name', 'like', '%-%')->count());
-        $this->assertSame(100, (int) DB::scalar("SELECT count(*) FROM (SELECT last_name FROM senior_citizens WHERE registration_number LIKE 'SYN-%' GROUP BY last_name HAVING count(DISTINCT first_name) = count(*) AND count(DISTINCT barangay_id) > 1) surnames"));
+        $this->assertDatabaseHas('senior_citizens', ['id' => $this->sampleId(1), 'first_name' => 'Maria Josefina', 'middle_name' => 'Santiago', 'last_name' => 'Santos']);
+        $this->assertSame(10000, DB::table('senior_citizens')->whereIn('id', DB::table('applications')->where('application_number', 'like', 'SYN-APP-%')->select('senior_citizen_id'))->whereNotNull('middle_name')->count());
+        $this->assertSame(10000, DB::table('senior_citizens')->whereIn('id', DB::table('applications')->where('application_number', 'like', 'SYN-APP-%')->select('senior_citizen_id'))->distinct()->count('first_name'));
+        $this->assertSame(100, DB::table('senior_citizens')->whereIn('id', DB::table('applications')->where('application_number', 'like', 'SYN-APP-%')->select('senior_citizen_id'))->distinct()->count('last_name'));
+        $this->assertSame(0, DB::table('senior_citizens')->whereIn('id', DB::table('applications')->where('application_number', 'like', 'SYN-APP-%')->select('senior_citizen_id'))->where('last_name', 'like', '%-%')->count());
+        $this->assertSame(100, (int) DB::scalar("SELECT count(*) FROM (SELECT last_name FROM senior_citizens WHERE id IN (SELECT senior_citizen_id FROM applications WHERE application_number LIKE 'SYN-APP-%') GROUP BY last_name HAVING count(DISTINCT first_name) = count(*) AND count(DISTINCT barangay_id) > 1) surnames"));
         $this->assertEquals($existing, DB::table('senior_citizens')->find($existingId));
     }
 
@@ -103,7 +103,7 @@ class SampleRegistryTest extends TestCase
         $this->prerequisites();
         DB::transaction(fn () => DB::unprepared($this->sql()));
         DB::statement('DROP TABLE sample_filipino_names');
-        DB::table('senior_citizens')->where('registration_number', 'SYN-00001')->update([
+        DB::table('senior_citizens')->where('id', $this->sampleId(1))->update([
             'first_name' => 'Maria Test', 'middle_name' => 'Retained', 'last_name' => 'Santos-Reyes',
         ]);
 
@@ -111,7 +111,7 @@ class SampleRegistryTest extends TestCase
             .file_get_contents(database_path('seeders/sql/sample-filipino-names.sql')).PHP_EOL
             .file_get_contents(database_path('seeders/sql/rename-sample-registry.sql'))));
 
-        $this->assertDatabaseHas('senior_citizens', ['registration_number' => 'SYN-00001', 'first_name' => 'Maria Test', 'middle_name' => 'Retained', 'last_name' => 'Santos']);
+        $this->assertDatabaseHas('senior_citizens', ['id' => $this->sampleId(1), 'first_name' => 'Maria Test', 'middle_name' => 'Retained', 'last_name' => 'Santos']);
         $this->assertDatabaseCount('senior_citizens', 10000);
     }
 
@@ -120,7 +120,7 @@ class SampleRegistryTest extends TestCase
         $this->prerequisites();
         DB::transaction(fn () => DB::unprepared($this->sql()));
         DB::statement('DROP TABLE sample_filipino_names');
-        DB::table('senior_citizens')->where('registration_number', 'SYN-00001')->update(['middle_name' => null]);
+        DB::table('senior_citizens')->where('id', $this->sampleId(1))->update(['middle_name' => null]);
         DB::unprepared("CREATE FUNCTION sample_test_rename() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN NEW.address := 'Unexpected change'; RETURN NEW; END $$;
             CREATE TRIGGER sample_test_rename BEFORE UPDATE ON senior_citizens FOR EACH ROW EXECUTE FUNCTION sample_test_rename()");
 
@@ -132,7 +132,7 @@ class SampleRegistryTest extends TestCase
             $this->assertStringContainsString('Changes outside sample name fields', $exception->getMessage());
         }
 
-        $this->assertDatabaseHas('senior_citizens', ['registration_number' => 'SYN-00001', 'middle_name' => null, 'address' => 'SYNTHETIC ADDRESS - NOT A RESIDENCE']);
+        $this->assertDatabaseHas('senior_citizens', ['id' => $this->sampleId(1), 'middle_name' => null, 'address' => 'SYNTHETIC ADDRESS - NOT A RESIDENCE']);
         $this->assertDatabaseCount('senior_citizens', 10000);
         $this->assertDatabaseCount('benefit_payments', 10000);
     }
@@ -145,6 +145,11 @@ class SampleRegistryTest extends TestCase
 
         $this->assertDatabaseCount('programs', 1);
         $this->assertDatabaseCount('senior_citizens', 0);
+    }
+
+    private function sampleId(int $number): int
+    {
+        return DB::table('applications')->where('application_number', sprintf('SYN-APP-%05d', $number))->value('senior_citizen_id');
     }
 
     private function prerequisites(): void

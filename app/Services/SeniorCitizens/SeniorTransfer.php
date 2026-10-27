@@ -37,7 +37,7 @@ class SeniorTransfer
                 'destination_municipality' => $external ? $data['destination_municipality'] : $office['municipality'],
                 'destination_province' => $external ? $data['destination_province'] : $office['province'],
                 'destination_barangay' => $external ? $data['destination_barangay'] : $barangay->name,
-                'senior_name' => $senior->full_name, 'registration_number' => $senior->registration_number,
+                'senior_name' => $senior->full_name,
                 'osca_id_number' => $senior->osca_id_number, 'recorded_by' => auth()->id(),
             ]);
             if ($external) {

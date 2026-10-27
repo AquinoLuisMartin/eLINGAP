@@ -28,13 +28,13 @@
                 <h3 id="registry-filters-title" class="mb-4 text-base font-semibold">Find applications and records</h3>
                 <div class="grid items-end gap-4 sm:grid-cols-2 xl:grid-cols-12">
                     <div class="field-label xl:col-span-2"><label data-select-label>Search by</label><x-select label="Search by" name="search_by">
-                            @foreach (['all' => 'ID No. or names', 'osca_id' => 'OSCA ID No.', 'name' => 'Names', 'registration' => 'Registration No.'] as $value => $label)
+                            @foreach (['all' => 'ID No. or names', 'osca_id' => 'OSCA ID No.', 'name' => 'Names'] as $value => $label)
                                 <option value="{{ $value }}" @selected(request('search_by', 'all') === $value)>{{ $label }}</option>
                             @endforeach
                         </x-select>
                     </div>
                     <label class="field-label xl:col-span-4">Search term
-                        <input type="search" name="search" maxlength="100" value="{{ request('search') }}" placeholder="OSCA ID No., registration number, or name" aria-describedby="registry-search-help">
+                        <input type="search" name="search" maxlength="100" value="{{ request('search') }}" placeholder="OSCA ID No. or name" aria-describedby="registry-search-help">
                     </label>
                     <div class="min-w-0 xl:col-span-2">
                         @include('senior-citizens._barangay-filter', ['barangays' => $barangays])
@@ -55,7 +55,7 @@
                     </div>
                 </div>
 
-                <p id="registry-search-help" class="mt-3 text-sm text-[var(--muted)]">OSCA ID No. and Registration No. require the complete number. Names accepts first, middle, or last names together, in any order.</p>
+                <p id="registry-search-help" class="mt-3 text-sm text-[var(--muted)]">OSCA ID No. requires the complete number. Names accepts first, middle, or last names together, in any order.</p>
 
                 <details class="mt-4 border-t border-[var(--line)] pt-1" @if ($additionalFilters) open @endif>
                     <summary class="w-fit cursor-pointer rounded py-3 text-sm text-[var(--blue)] dark:text-blue-300">More filters and sorting</summary>
@@ -127,7 +127,7 @@
                     <thead>
                         <tr>
                             @if ($canPrint)<th scope="col" class="w-16">Print</th>@endif
-                            @foreach (['OSCA / Registration ID', 'Last name', 'First name', 'Middle name', 'Age', 'Barangay', 'Programs and benefits', 'Status', 'Actions'] as $heading)
+                            @foreach (['OSCA ID No.', 'Last name', 'First name', 'Middle name', 'Age', 'Barangay', 'Programs and benefits', 'Status', 'Actions'] as $heading)
                                 <th scope="col">{{ $heading }}</th>
                             @endforeach
                         </tr>
@@ -144,7 +144,7 @@
                                         @endif
                                     </td>
                                 @endif
-                                <td class="whitespace-nowrap tabular-nums">{{ $seniorCitizen->osca_id_number ?: $seniorCitizen->registration_number }}</td>
+                                <td class="whitespace-nowrap tabular-nums">{{ $seniorCitizen->osca_id_number ?: 'Not issued' }}</td>
                                 <td>{{ $seniorCitizen->last_name }}</td>
                                 <td>{{ $seniorCitizen->first_name }}</td>
                                 <td>{{ $seniorCitizen->middle_name ?: '—' }}</td>

@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
 
 class SeniorCitizenManagementTest extends TestCase
@@ -212,6 +213,34 @@ class SeniorCitizenManagementTest extends TestCase
         $this->get(route('senior-citizens.edit', $senior))->assertForbidden();
     }
 
+    #[TestWith([null, 'Synthetic Applicant', true])]
+    #[TestWith([null, 'Not issued', false])]
+    #[TestWith(['26-10004', '26-10004', true])]
+    #[TestWith(['26-10004', 'Synthetic Applicant', false])]
+    public function test_death_confirmation_uses_the_osca_id_or_full_name_before_issuance(?string $oscaId, string $confirmation, bool $accepted): void
+    {
+        Storage::fake('local');
+        $senior = $this->seniorCitizen();
+        $senior->update(['first_name' => 'Synthetic', 'last_name' => 'Applicant', 'osca_id_number' => $oscaId]);
+
+        $response = $this->actingAs($this->user('OSCA_STAFF'))->post(route('senior-citizens.death.store', $senior), [
+            'died_on' => '2026-01-01', 'confirmation' => $confirmation,
+            'death_document' => UploadedFile::fake()->create('certificate.pdf', 10, 'application/pdf'),
+        ]);
+
+        if ($accepted) {
+            $response->assertRedirect()->assertSessionHasNoErrors();
+            $this->assertSame('DECEASED', $senior->fresh()->status->value);
+            $this->assertDatabaseHas('senior_citizen_documents', ['senior_citizen_id' => $senior->id, 'document_type' => 'DEATH_CERTIFICATE']);
+            $this->assertDatabaseHas('audit_logs', ['auditable_id' => $senior->id, 'action' => 'senior_citizen.deceased_declared']);
+        } else {
+            $response->assertSessionHasErrors(['confirmation' => 'The selected confirmation is invalid.']);
+            $this->assertSame('PENDING', $senior->fresh()->status->value);
+            $this->assertDatabaseCount('senior_citizen_documents', 0);
+            $this->assertDatabaseCount('audit_logs', 0);
+        }
+    }
+
     public function test_existing_id_photo_remains_private_and_available_to_authorized_staff(): void
     {
         Storage::fake('local');
@@ -242,7 +271,7 @@ class SeniorCitizenManagementTest extends TestCase
         $barangay = Barangay::create(['name' => 'Test Barangay', 'code' => 'TEST']);
         for ($index = 1; $index <= 16; $index++) {
             $senior = $otherSenior->replicate();
-            $senior->fill(['barangay_id' => $barangay->id, 'registration_number' => 'SC-FILTER-'.$index]);
+            $senior->fill(['barangay_id' => $barangay->id]);
             $senior->save();
         }
 
@@ -290,7 +319,6 @@ class SeniorCitizenManagementTest extends TestCase
 
         return SeniorCitizen::create([
             'barangay_id' => $barangay->id,
-            'registration_number' => 'SC-TEST-001',
             'first_name' => 'Maria',
             'last_name' => 'Santos',
             'birth_date' => '1948-01-01',

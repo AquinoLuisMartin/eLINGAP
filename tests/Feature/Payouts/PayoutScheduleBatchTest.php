@@ -23,7 +23,7 @@ class PayoutScheduleBatchTest extends TestCase
         $barangay = Barangay::create(['name' => 'Synthetic area', 'code' => 'BATCH']);
         $rows = [];
         for ($index = 1; $index <= 402; $index++) {
-            $rows[] = ['barangay_id' => $barangay->id, 'registration_number' => 'BATCH-'.$index, 'first_name' => 'Synthetic', 'last_name' => 'Record',
+            $rows[] = ['barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Record',
                 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Synthetic address', 'status' => $index === 402 ? 'DECEASED' : 'VERIFIED'];
         }
         SeniorCitizen::insert($rows);

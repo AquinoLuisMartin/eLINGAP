@@ -49,7 +49,7 @@ class ApplicationController extends Controller
 
         return view('applications.create', [
             'seniorCitizens' => $search ? SeniorCitizen::query()
-                ->select(['id', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'registration_number', 'osca_id_number'])
+                ->select(['id', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'osca_id_number'])
                 ->where('status', 'VERIFIED')->searchable($search)
                 ->orderBy('last_name')->limit(25)->get() : collect(),
             'programs' => Program::query()

@@ -19,7 +19,7 @@ class DeclareDeceasedRequest extends FormRequest
 
         return [
             'died_on' => ['required', 'date', 'after_or_equal:'.$senior->birth_date->format('Y-m-d'), 'before_or_equal:today'],
-            'confirmation' => ['required', 'string', Rule::in([$senior->osca_id_number ?: $senior->registration_number])],
+            'confirmation' => ['required', 'string', Rule::in([$senior->osca_id_number ?: $senior->full_name])],
             'death_document' => ['required', File::types(['pdf', 'jpg', 'jpeg', 'png'])->max(5 * 1024)],
         ];
     }

@@ -8,7 +8,6 @@ use App\Services\Benefits\SeniorEligibilityRecord;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Throwable;
 
 class SeniorRegistration
@@ -32,7 +31,7 @@ class SeniorRegistration
                 $data = SeniorRegistrationInput::validator($data)->validate();
                 $senior = SeniorCitizen::create([
                     ...collect($data)->except(['photo', 'authorization_file', 'identification_file', 'requirements_status'])->all(),
-                    'registration_number' => 'SC-'.Str::ulid(), 'status' => 'PENDING',
+                    'status' => 'PENDING',
                 ]);
                 foreach (['authorization_file' => 'AUTHORIZATION', 'identification_file' => 'IDENTIFICATION'] as $field => $type) {
                     if ($file = $data[$field] ?? null) {
@@ -41,8 +40,8 @@ class SeniorRegistration
                         $senior->documents()->create(['document_type' => $type, 'path' => $path, 'original_name' => $file->getClientOriginalName(), 'mime_type' => $file->getMimeType(), 'size' => $file->getSize(), 'uploaded_by' => auth()->id()]);
                     }
                 }
-                $senior->histories()->create(['changed_by' => auth()->id(), 'action' => 'created', 'changes' => $senior->only(['registration_number', 'status'])]);
-                BenefitAudit::record('senior_citizen.created', $senior, $senior->only(['registration_number', 'status']));
+                $senior->histories()->create(['changed_by' => auth()->id(), 'action' => 'created', 'changes' => $senior->only(['osca_id_number', 'status'])]);
+                BenefitAudit::record('senior_citizen.created', $senior, $senior->only(['osca_id_number', 'status']));
 
                 if ($data['requirements_status'] === 'CHECKED') {
                     $this->eligibility->verify($senior, true);

@@ -51,8 +51,7 @@
                     </div>
                     <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                         @foreach ([
-                            'Registration number' => $seniorCitizen->registration_number,
-                            'OSCA ID' => $seniorCitizen->osca_id_number ?: 'Not issued',
+                            'OSCA ID No.' => $seniorCitizen->osca_id_number ?: 'Not issued',
                             'Birth date' => $seniorCitizen->birth_date->format('F j, Y'),
                             'Age' => $seniorCitizen->birth_date->age.' years old',
                             'Sex' => ucfirst(strtolower($seniorCitizen->sex)),

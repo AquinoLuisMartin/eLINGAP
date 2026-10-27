@@ -95,7 +95,7 @@ class SmsWorkflowTest extends TestCase
     public function test_sms_job_refuses_a_recipient_who_became_ineligible(): void
     {
         $barangay = Barangay::create(['name' => 'Poblacion', 'code' => 'POB']);
-        $senior = SeniorCitizen::create(['barangay_id' => $barangay->id, 'registration_number' => 'SC-TEST-001', 'first_name' => 'Maria', 'last_name' => 'Santos', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Poblacion', 'status' => 'DECEASED', 'contact_number' => '09171234567']);
+        $senior = SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Maria', 'last_name' => 'Santos', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Poblacion', 'status' => 'DECEASED', 'contact_number' => '09171234567']);
         $message = SmsMessage::create(['senior_citizen_id' => $senior->id, 'recipient_number' => '+639171234567', 'message' => 'Reminder', 'status' => 'QUEUED']);
         $gateway = Mockery::mock(SmsGateway::class);
         $gateway->shouldNotReceive('send');

@@ -27,8 +27,7 @@ class BeneficiarySecurityTest extends TestCase
         $staff = User::factory()->create();
         $barangay = Barangay::create(['name' => 'Test barangay', 'code' => 'TEST']);
         $senior = SeniorCitizen::create([
-            'barangay_id' => $barangay->id, 'registration_number' => 'SC-SECURITY-1',
-            'first_name' => 'Synthetic', 'last_name' => 'Applicant', 'birth_date' => '1948-01-01',
+            'barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant', 'birth_date' => '1948-01-01',
             'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED',
         ]);
         $senior->forceFill(['verified_at' => now(), 'id_generated_at' => now(), 'osca_id_number' => 'SYN-ISSUED'])->save();
@@ -45,7 +44,7 @@ class BeneficiarySecurityTest extends TestCase
         if ($case === 'senior') {
             $other = SeniorCitizen::create([
                 ...$senior->only(['barangay_id', 'birth_date', 'sex', 'address', 'status']),
-                'registration_number' => 'SC-SECURITY-2', 'first_name' => 'Other', 'last_name' => 'Applicant',
+                'first_name' => 'Other', 'last_name' => 'Applicant',
             ]);
             $application->update(['senior_citizen_id' => $other->id]);
         }
