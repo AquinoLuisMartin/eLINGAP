@@ -50,7 +50,7 @@
                 </div>
                 <div class="brand-copy">
                     <strong>eLINGAP</strong>
-                    <small>{{ $officeDetails['office_name'] ?? 'Office not configured' }}</small>
+                    <small>{{ $officeDetails['office_name'] ?? 'Office of the Senior Citizen Affairs' }}</small>
                 </div>
             </div>
 
@@ -120,7 +120,7 @@
                 <div>
                     <a href="{{ route('password.change') }}" class="text-button">Change password</a>
                     <small>Assigned Office</small>
-                    <strong>{{ $officeDetails['office_name'] ?? 'Office not configured' }}</strong>
+                    <strong>{{ $officeDetails['office_name'] ?? 'Office of the Senior Citizen Affairs' }}</strong>
                 </div>
                 <div>
                     <small>Last Active / Login</small>

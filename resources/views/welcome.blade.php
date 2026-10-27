@@ -16,7 +16,7 @@
         <div class="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-3 px-4 sm:gap-6 sm:px-6 lg:px-8">
             <a href="#hero" data-view="home" class="flex shrink-0 items-center gap-2 rounded-lg sm:gap-3" aria-label="eLINGAP home">
                 <img src="{{ asset('images/eLINGAP.png') }}" alt="" class="size-10 object-contain sm:size-12" width="48" height="48">
-                <div><span class="block text-lg font-bold tracking-tight text-osca-ink sm:text-xl">eLINGAP</span><span class="block text-[11px] text-slate-600 sm:text-xs">{{ $officeDetails['office_name'] ?? 'Office not configured' }}</span></div>
+                <div><span class="block text-lg font-bold tracking-tight text-osca-ink sm:text-xl">eLINGAP</span><span class="block text-[11px] text-slate-600 sm:text-xs">{{ $officeDetails['office_name'] ?? 'Office of the Senior Citizen Affairs' }}</span></div>
             </a>
             <nav class="ml-auto hidden items-center gap-8 text-sm font-medium lg:flex" aria-label="Main menu">
                 <a href="#hero" data-view="home" data-view-link class="public-nav-link">Home</a>
@@ -58,9 +58,9 @@
                                 <img src="{{ asset('images/lgu-seal.png') }}" alt="Municipal seal" class="size-24 object-contain" width="96" height="96">
                             </div>
                             <div class="flex flex-1 flex-col gap-5 p-6 sm:p-8">
-                                <h2 class="text-2xl leading-snug font-semibold tracking-tight text-osca-ink">{{ $officeDetails['office_name'] ?? 'Office not configured' }}</h2>
+                                <h2 class="text-2xl leading-snug font-semibold tracking-tight text-osca-ink">{{ $officeDetails['office_name'] ?? 'Office of the Senior Citizen Affairs' }}</h2>
                                 <p class="text-sm leading-relaxed">Program information and registration guidance, with assistance from your municipal OSCA team.</p>
-                                <p class="border-t border-slate-100 pt-5 text-sm font-medium text-slate-700">{{ $officeDetails['office_name'] ?? 'Office not configured' }}<br><span class="font-normal text-slate-600">{{ $officeDetails['office_address'] ?? 'Address not configured' }}</span></p>
+                                <p class="border-t border-slate-100 pt-5 text-sm font-medium text-slate-700">{{ $officeDetails['office_name'] ?? 'Office of the Senior Citizen Affairs' }}<br><span class="font-normal text-slate-600">{{ $officeDetails['office_address'] ?? 'Address not configured' }}</span></p>
                             </div>
                         </div>
                     </aside>

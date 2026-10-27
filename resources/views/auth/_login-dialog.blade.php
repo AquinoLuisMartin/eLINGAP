@@ -5,7 +5,7 @@
                 <img src="{{ asset('images/eLINGAP.png') }}" alt="eLINGAP" class="size-12 rounded-lg bg-white object-contain" width="48" height="48">
                 <div>
                     <p class="text-sm font-medium text-osca-ink">eLINGAP</p>
-                    <p class="mt-0.5 text-xs text-osca-body">{{ $officeDetails['office_name'] ?? 'Office not configured' }}</p>
+                    <p class="mt-0.5 text-xs text-osca-body">{{ $officeDetails['office_name'] ?? 'Office of the Senior Citizen Affairs' }}</p>
                 </div>
             </div>
             <button type="button" data-close-modal="login" class="absolute top-4 right-4 inline-flex size-10 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-osca-muted hover:text-osca-ink sm:top-6 sm:right-6" aria-label="Close login dialog">

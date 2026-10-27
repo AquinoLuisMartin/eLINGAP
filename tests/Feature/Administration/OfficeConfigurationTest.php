@@ -34,7 +34,7 @@ class OfficeConfigurationTest extends TestCase
     #[TestWith(['/login'])]
     public function test_public_pages_have_empty_states_instead_of_fixed_office_information(string $path): void
     {
-        $this->get($path)->assertOk()->assertSee('Office not configured')
+        $this->get($path)->assertOk()->assertSee('Office of the Senior Citizen Affairs')
             ->assertSee('Address not configured')->assertSee('Contact number not configured')
             ->assertSee('Office hours not configured')->assertDontSee('Santa Maria')
             ->assertDontSee('+63 44 288 2604')->assertDontSee('google.com/maps/search')
@@ -57,7 +57,7 @@ class OfficeConfigurationTest extends TestCase
         DB::statement('ALTER TABLE system_configurations RENAME TO temporarily_unavailable_settings');
         Log::shouldReceive('warning')->once()->with('Office settings are unavailable.', ['failure_type' => QueryException::class]);
 
-        $this->get('/login')->assertOk()->assertSee('Office not configured')->assertDontSee('+63 44 288 2604');
+        $this->get('/login')->assertOk()->assertSee('Office of the Senior Citizen Affairs')->assertDontSee('+63 44 288 2604');
     }
 
     public function test_administrator_can_save_settings_and_only_actual_changes_are_audited(): void
