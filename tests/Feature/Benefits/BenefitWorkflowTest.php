@@ -24,6 +24,7 @@ use App\Services\Benefits\BenefitPayments;
 use App\Services\Benefits\BenefitScheduling;
 use App\Services\Benefits\BenefitSms;
 use App\Services\Benefits\SeniorEligibilityRecord;
+use App\Services\OfficeSettings;
 use App\Services\Reports\AdminDashboardReport;
 use App\Services\SeniorCitizens\IdAssets;
 use App\Services\Sms\SmsGateway;
@@ -903,6 +904,56 @@ class BenefitWorkflowTest extends TestCase
 
         $this->assertSame(2, AuditLog::where('action', 'benefit.program_configured')->count());
         $this->assertSame('Synthetic revised program', $program->fresh()->name);
+    }
+
+    public function test_program_editor_cancellation_clears_edits_and_errors_without_saving(): void
+    {
+        $program = $this->program('december-assistance');
+        $agency = app(OfficeSettings::class)->values()['office_name'] ?? '';
+
+        Livewire::test(Programs::class)
+            ->call('edit', $program->id)
+            ->assertSet('editing', $program->id)
+            ->assertSet('form.name', $program->name)
+            ->assertDispatched('program-editor-opened')
+            ->set('form.name', '')
+            ->set('historicalClaimsChecked', true)
+            ->call('save')->assertHasErrors(['form.name'])
+            ->call('cancel')->assertHasNoErrors()
+            ->assertSet('editing', null)
+            ->assertSet('form.name', '')
+            ->assertSet('form.agency', $agency)
+            ->assertSet('historicalClaimsChecked', false);
+
+        $this->assertSame($program->name, $program->fresh()->name);
+        $this->assertSame(0, AuditLog::where('action', 'benefit.program_configured')->count());
+    }
+
+    public function test_program_directory_explains_milestone_amounts_and_supports_read_only_access(): void
+    {
+        $program = $this->program('december-assistance');
+        $program->update(['benefit_rules' => ['cadence' => 'MILESTONE', 'milestones' => [80 => 10000]], 'default_amount' => null, 'provisional' => true]);
+
+        Livewire::test(Programs::class)
+            ->assertSee('Varies by milestone age')
+            ->assertSee('Provisional rules')
+            ->call('edit', $program->id)
+            ->assertSee('Milestone ages and cash amounts')
+            ->assertSet('form.milestones', '80:10000');
+
+        $this->actingAs(User::factory()->admin()->create());
+        Livewire::test(Programs::class)
+            ->assertSee($program->name)
+            ->assertDontSee('Configure program')
+            ->assertDontSee('Save program')
+            ->call('cancel')->assertForbidden();
+    }
+
+    public function test_program_directory_has_an_empty_state(): void
+    {
+        Program::query()->delete();
+
+        Livewire::test(Programs::class)->assertSee('No programs recorded')->assertSee('Create program');
     }
 
     private function senior(array $attributes = []): SeniorCitizen

@@ -49,6 +49,15 @@ class Programs extends Component
         ];
         $this->historicalClaimsChecked = false;
         $this->resetValidation();
+        $this->dispatch('program-editor-opened');
+    }
+
+    public function cancel(): void
+    {
+        Gate::authorize('manage', BenefitSchedule::class);
+        $this->reset('form', 'editing', 'historicalClaimsChecked', 'notice');
+        $this->form['agency'] = app(OfficeSettings::class)->values()['office_name'] ?? '';
+        $this->resetValidation();
     }
 
     public function save(): void
