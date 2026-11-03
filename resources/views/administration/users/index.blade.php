@@ -19,12 +19,12 @@
         <button type="submit">Search</button>
     </form>
     <table>
-        <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Name</th><th>Employee ID</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
             @forelse ($users as $user)
                 <tr>
                     <td>{{ $user->full_name }}</td>
-                    <td>{{ $user->username }}</td>
+                    <td>{{ $user->employee_id }}</td>
                     <td>{{ $user->role->name->label() }}</td>
                     <td>{{ $user->is_active ? 'Active' : 'Suspended' }}</td>
                     <td>

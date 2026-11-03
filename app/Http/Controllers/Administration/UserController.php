@@ -14,9 +14,7 @@ use App\Rules\NewPassword;
 use App\Services\Auth\AccountAccess;
 use App\Services\Auth\AuthAudit;
 use App\Services\Auth\Credentials;
-use App\Services\Auth\Username;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +34,7 @@ class UserController extends Controller
         ]);
 
         $users = User::query()
-            ->select(['id', 'role_id', 'username', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'is_active', 'created_at', 'last_login_at'])
+            ->select(['id', 'role_id', 'employee_id', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'is_active', 'created_at', 'last_login_at'])
             ->with('role')
             ->when($request->filled('search'), fn ($query) => $query->search($request->string('search')->toString()))
             ->when($request->filled('role'), fn ($query) => $query->whereRelation('role', 'name', $request->string('role')->toString()))
@@ -76,13 +74,13 @@ class UserController extends Controller
                 return $user;
             });
         } catch (UniqueConstraintViolationException $exception) {
-            if (! str_contains($exception->getMessage(), 'uq_users_username')) {
+            if (! str_contains($exception->getMessage(), 'uq_users_employee_id')) {
                 throw $exception;
             }
-            throw ValidationException::withMessages(['username' => 'This username is already in use. Request a new suggestion or choose another username.']);
+            throw ValidationException::withMessages(['employee_id' => 'This employee ID is already assigned to another account.']);
         }
 
-        return view('administration.users.credential', ['username' => $user->username, 'credential' => $password,
+        return view('administration.users.credential', ['employee_id' => $user->employee_id, 'credential' => $password,
             'credentialLabel' => 'Temporary password', 'handoverMessage' => 'Account created. Hand this temporary password directly to the verified employee. The employee must change it before using the system.']);
     }
 
@@ -107,7 +105,7 @@ class UserController extends Controller
 
                 $oldRole = $user->role_id;
                 $user->update($request->validated());
-                if ($user->wasChanged('username')) {
+                if ($user->wasChanged('employee_id')) {
                     $credentials->revokeLocked($user, $request->user());
                 }
                 if ($user->wasChanged()) {
@@ -117,21 +115,13 @@ class UserController extends Controller
                 return $user;
             });
         } catch (UniqueConstraintViolationException $exception) {
-            if (! str_contains($exception->getMessage(), 'uq_users_username')) {
+            if (! str_contains($exception->getMessage(), 'uq_users_employee_id')) {
                 throw $exception;
             }
-            throw ValidationException::withMessages(['username' => 'This username is already in use. Choose another username.']);
+            throw ValidationException::withMessages(['employee_id' => 'This employee ID is already assigned to another account.']);
         }
 
         return redirect()->route('administration.users.index')
-            ->with('status', "Account {$user->username} updated.");
-    }
-
-    public function suggestUsername(Request $request, Username $usernames): JsonResponse
-    {
-        Gate::authorize('create', User::class);
-        $input = $request->validate(['first_name' => ['required', 'string', 'max:100'], 'last_name' => ['required', 'string', 'max:100']]);
-
-        return response()->json(['username' => $usernames->suggestion($input['first_name'], $input['last_name'])]);
+            ->with('status', "Account {$user->employee_id} updated.");
     }
 }

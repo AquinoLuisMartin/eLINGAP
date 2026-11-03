@@ -30,7 +30,7 @@ class RoleRoutingTest extends TestCase
     public function test_admin_login_redirects_to_administration_dashboard(): void
     {
         $response = $this->post('/login', [
-            'username' => $this->admin->username,
+            'employee_id' => $this->admin->employee_id,
             'password' => $this->password,
         ]);
 
@@ -41,7 +41,7 @@ class RoleRoutingTest extends TestCase
     public function test_staff_login_redirects_to_staff_dashboard(): void
     {
         $response = $this->post('/login', [
-            'username' => $this->staff->username,
+            'employee_id' => $this->staff->employee_id,
             'password' => $this->password,
         ]);
 
@@ -84,10 +84,10 @@ class RoleRoutingTest extends TestCase
             ->assertOk();
     }
 
-    public function test_admin_can_login_with_username(): void
+    public function test_admin_can_login_with_employee_id(): void
     {
         $response = $this->post('/login', [
-            'username' => $this->admin->username,
+            'employee_id' => $this->admin->employee_id,
             'password' => $this->password,
         ]);
 
@@ -97,13 +97,13 @@ class RoleRoutingTest extends TestCase
 
     #[TestWith([true, 'administration.dashboard'])]
     #[TestWith([false, 'dashboard'])]
-    public function test_accounts_without_email_can_login_with_a_spaced_username_and_access_their_dashboard(bool $admin, string $dashboard): void
+    public function test_accounts_without_email_can_login_with_their_assigned_employee_id_and_access_their_dashboard(bool $admin, string $dashboard): void
     {
         $user = $admin ? $this->admin : $this->staff;
-        $user->update(['username' => $admin ? 'Synthetic Admin' : 'Synthetic Staff', 'email' => null]);
+        $user->update(['employee_id' => $admin ? '2026-9001' : '2026-9002', 'email' => null]);
 
         $this->post(route('login'), [
-            'username' => Str::upper($user->username),
+            'employee_id' => Str::upper($user->employee_id),
             'password' => $this->password,
         ])->assertRedirect(route($dashboard));
 

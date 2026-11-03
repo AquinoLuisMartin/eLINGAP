@@ -18,18 +18,18 @@ use PHPUnit\Framework\Attributes\TestWith;
 use RuntimeException;
 use Tests\TestCase;
 
-class UsernameRecoveryTest extends TestCase
+class EmployeeIdRecoveryTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_username_login_ignores_email_and_upgrades_legacy_hashes(): void
+    public function test_employee_id_login_ignores_email_and_upgrades_legacy_hashes(): void
     {
-        $user = User::factory()->create(['username' => 'legacy_user']);
+        $user = User::factory()->create(['employee_id' => '2026-0003']);
         DB::table('users')->where('id', $user->id)->update(['password_hash' => hash('sha256', 'Synthetic legacy password')]);
-        $this->post(route('login'), ['username' => $user->email, 'password' => 'Synthetic legacy password'])->assertSessionHasErrors('username');
+        $this->post(route('login'), ['employee_id' => $user->email, 'password' => 'Synthetic legacy password'])->assertSessionHasErrors('employee_id');
         $this->assertGuest();
 
-        $this->post(route('login'), ['username' => 'LEGACY_USER', 'password' => 'Synthetic legacy password'])->assertRedirectToRoute('dashboard');
+        $this->post(route('login'), ['employee_id' => '2026-0003', 'password' => 'Synthetic legacy password'])->assertRedirectToRoute('dashboard');
 
         $this->assertAuthenticatedAs($user);
         $this->assertSame('argon2id', password_get_info($user->fresh()->password_hash)['algoName']);
@@ -51,7 +51,7 @@ class UsernameRecoveryTest extends TestCase
         };
         $before = $user?->password_hash;
 
-        $this->post(route('password.request.store'), ['username' => $user?->username ?? 'missing.user'])
+        $this->post(route('password.request.store'), ['employee_id' => $user?->employee_id ?? 'missing.user'])
             ->assertRedirect()->assertSessionHas('status', PasswordRecovery::CONFIRMATION);
 
         $this->assertDatabaseCount('password_reset_requests', $kind === 'active' ? 1 : 0);
@@ -64,24 +64,23 @@ class UsernameRecoveryTest extends TestCase
     {
         $user = User::factory()->create();
         $service = app(PasswordRecovery::class);
-        $request = $service->request($user->username);
-        $this->assertSame($request->id, $service->request(strtoupper($user->username))->id);
+        $request = $service->request($user->employee_id);
+        $this->assertSame($request->id, $service->request(strtoupper($user->employee_id))->id);
         $admin = User::factory()->admin()->create(['password_hash' => 'Synthetic admin password']);
         $service->review($request, $admin, 'approve', true, 'Synthetic admin password');
 
-        $this->assertSame($request->id, $service->request($user->username)->id);
+        $this->assertSame($request->id, $service->request($user->employee_id)->id);
         $this->assertDatabaseCount('password_reset_requests', 1);
         $this->assertSame(1, AuditLog::where('action', 'user.recovery_requested')->count());
     }
 
-    public function test_username_suggestions_normalize_names_and_add_numeric_suffixes(): void
+    public function test_account_creation_requires_an_official_employee_id_instead_of_generating_one_from_names(): void
     {
         $admin = User::factory()->admin()->create();
-        User::factory()->create(['username' => 'mariaclara.delacruz']);
-        $this->actingAs($admin)->postJson(route('administration.users.username-suggestion'),
-            ['first_name' => 'María Clara', 'last_name' => 'De la Cruz'])->assertExactJson(['username' => 'mariaclara.delacruz2']);
-        $this->postJson(route('administration.users.username-suggestion'), ['first_name' => '!!!', 'last_name' => '???'])
-            ->assertExactJson(['username' => 'user.account']);
+        $this->actingAs($admin)->post(route('administration.users.store'), [...$this->account(), 'employee_id' => ''])
+            ->assertSessionHasErrors('employee_id');
+
+        $this->assertDatabaseCount('users', 1);
     }
 
     public function test_account_creation_generates_a_private_temporary_password_and_requires_a_change(): void
@@ -90,7 +89,7 @@ class UsernameRecoveryTest extends TestCase
         $response = $this->post(route('administration.users.store'), $this->account());
         $response->assertOk()->assertSee('Private credential handover');
         $credential = $response->viewData('credential');
-        $user = User::where('username', 'synthetic.staff')->sole();
+        $user = User::where('employee_id', '2026-0001')->sole();
 
         $this->assertSame(24, strlen($credential));
         $this->assertTrue(Hash::check($credential, $user->password_hash));
@@ -115,19 +114,26 @@ class UsernameRecoveryTest extends TestCase
     #[TestWith(['with-dash'])]
     #[TestWith(['with space'])]
     #[TestWith(['abcd'])]
-    public function test_new_username_formats_are_rejected(string $username): void
+    #[TestWith(['2026-001'])]
+    #[TestWith(['2026-00010'])]
+    #[TestWith(['20260001'])]
+    #[TestWith(['2026/0001'])]
+    #[TestWith(['2026-0001x'])]
+    public function test_new_employee_id_formats_are_rejected(string $employeeId): void
     {
         $this->actingAs(User::factory()->admin()->create())->post(route('administration.users.store'),
-            [...$this->account(), 'username' => $username])->assertSessionHasErrors('username');
+            [...$this->account(), 'employee_id' => $employeeId])->assertSessionHasErrors([
+                'employee_id' => 'Enter the official employee ID in YYYY-NNNN format, for example 2026-0001.',
+            ]);
 
         $this->assertDatabaseCount('users', 1);
     }
 
-    public function test_case_insensitive_uniqueness_is_enforced_by_postgresql(): void
+    public function test_employee_id_uniqueness_is_enforced_by_postgresql(): void
     {
-        User::factory()->create(['username' => 'synthetic.staff']);
+        User::factory()->create(['employee_id' => '2026-0001']);
         try {
-            DB::transaction(fn () => User::factory()->create(['username' => 'SYNTHETIC.STAFF']));
+            DB::transaction(fn () => User::factory()->create(['employee_id' => '2026-0001']));
             $this->fail('The database must reject a case-insensitive duplicate.');
         } catch (UniqueConstraintViolationException $exception) {
             $this->assertSame('23505', (string) $exception->getCode());
@@ -135,13 +141,50 @@ class UsernameRecoveryTest extends TestCase
         $this->assertDatabaseCount('users', 1);
     }
 
-    public function test_legacy_username_is_preserved_when_updating_staff_details(): void
+    public function test_employee_id_is_preserved_when_updating_staff_details(): void
     {
-        $user = User::factory()->create(['username' => 'Legacy_User']);
+        $user = User::factory()->create(['employee_id' => '2026-0003']);
         $this->actingAs(User::factory()->admin()->create())->put(route('administration.users.update', $user),
-            [...$user->only(['role_id', 'first_name', 'last_name']), 'username' => 'legacy_user'])->assertSessionHasNoErrors();
+            [...$user->only(['role_id', 'first_name', 'last_name']), 'employee_id' => '2026-0003'])->assertSessionHasNoErrors();
 
-        $this->assertSame('Legacy_User', $user->fresh()->username);
+        $this->assertSame('2026-0003', $user->fresh()->employee_id);
+    }
+
+    public function test_duplicate_employee_ids_are_rejected_when_creating_or_editing_accounts(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $existing = User::factory()->create(['employee_id' => '2026-0001']);
+        $other = User::factory()->create(['employee_id' => '2026-0002']);
+
+        $this->post(route('administration.users.store'), $this->account())->assertSessionHasErrors([
+            'employee_id' => 'This employee ID is already assigned to another account.',
+        ]);
+        $this->put(route('administration.users.update', $other), [...$this->account(), 'employee_id' => $existing->employee_id])
+            ->assertSessionHasErrors('employee_id');
+
+        $this->assertSame('2026-0002', $other->fresh()->employee_id);
+        $this->assertDatabaseCount('users', 3);
+        $this->assertDatabaseCount('audit_logs', 0);
+    }
+
+    public function test_changing_an_employee_id_revokes_previous_sessions_and_recovery_codes(): void
+    {
+        $user = User::factory()->create(['employee_id' => '2026-0001', 'remember_token' => 'synthetic-token']);
+        $reset = app(PasswordRecovery::class)->request($user->employee_id);
+        $admin = User::factory()->admin()->create();
+        $passwordHash = $user->password_hash;
+        config(['session.driver' => 'database']);
+        DB::table('sessions')->insert(['id' => 'synthetic-staff-session', 'user_id' => $user->id, 'payload' => 'synthetic', 'last_activity' => time()]);
+
+        $this->actingAs($admin)->put(route('administration.users.update', $user), [...$this->account(), 'employee_id' => '2026-0002'])
+            ->assertRedirectToRoute('administration.users.index')->assertSessionHasNoErrors();
+
+        $this->assertSame('2026-0002', $user->fresh()->employee_id);
+        $this->assertSame($passwordHash, $user->fresh()->password_hash);
+        $this->assertSame(2, $user->fresh()->credential_version);
+        $this->assertNull($user->fresh()->remember_token);
+        $this->assertSame(PasswordResetStatus::Expired, $reset->fresh()->status);
+        $this->assertDatabaseMissing('sessions', ['id' => 'synthetic-staff-session']);
     }
 
     public function test_staff_management_cannot_create_promote_edit_or_recover_administrators(): void
@@ -160,7 +203,7 @@ class UsernameRecoveryTest extends TestCase
     {
         $user = User::factory()->create(['password_hash' => 'Synthetic temporary password']);
         $user->forceFill(['must_change_password' => true])->save();
-        $this->post(route('login'), ['username' => $user->username, 'password' => 'Synthetic temporary password'])->assertRedirectToRoute('password.change');
+        $this->post(route('login'), ['employee_id' => $user->employee_id, 'password' => 'Synthetic temporary password'])->assertRedirectToRoute('password.change');
         $this->get(route('senior-citizens.index'))->assertRedirectToRoute('password.change');
         $this->post(route('password.change.update'), ['current_password' => 'wrong password',
             'password' => 'A new private staff passphrase', 'password_confirmation' => 'A new private staff passphrase'])->assertSessionHasErrors('current_password');
@@ -177,7 +220,7 @@ class UsernameRecoveryTest extends TestCase
     {
         $user = User::factory()->create();
         $admin = User::factory()->admin()->create(['password_hash' => 'Synthetic admin password']);
-        $reset = app(PasswordRecovery::class)->request($user->username);
+        $reset = app(PasswordRecovery::class)->request($user->employee_id);
         $this->actingAs($admin)->patch(route('administration.password-reset-requests.update', $reset),
             ['decision' => 'approve', 'identity_verified' => true, 'admin_password' => 'incorrect password'])->assertSessionHasErrors('admin_password');
         $this->patch(route('administration.password-reset-requests.update', $reset),
@@ -200,7 +243,7 @@ class UsernameRecoveryTest extends TestCase
     {
         [$user, $reset, $code] = $this->approved();
         $user->forceFill(['remember_token' => 'synthetic-persistent-token'])->save();
-        $payload = ['username' => $user->username, 'recovery_code' => $code,
+        $payload = ['employee_id' => $user->employee_id, 'recovery_code' => $code,
             'password' => 'A replacement personal passphrase', 'password_confirmation' => 'A replacement personal passphrase'];
 
         $this->post(route('password.update'), $payload)->assertRedirectToRoute('login');
@@ -221,13 +264,13 @@ class UsernameRecoveryTest extends TestCase
         [$user, $reset, $code] = $this->approved();
         $service = app(PasswordRecovery::class);
         for ($attempt = 1; $attempt <= 5; $attempt++) {
-            $this->assertFalse($service->complete($user->username, str_repeat('x', 43), 'A replacement personal passphrase'));
+            $this->assertFalse($service->complete($user->employee_id, str_repeat('x', 43), 'A replacement personal passphrase'));
             $this->assertSame($attempt, $reset->fresh()->failed_attempts);
         }
 
         $this->assertSame(PasswordResetStatus::Expired, $reset->fresh()->status);
         $this->assertNull($reset->fresh()->recovery_code_hash);
-        $this->assertFalse($service->complete($user->username, $code, 'A replacement personal passphrase'));
+        $this->assertFalse($service->complete($user->employee_id, $code, 'A replacement personal passphrase'));
         $this->assertSame(1, $user->fresh()->credential_version);
     }
 
@@ -237,8 +280,8 @@ class UsernameRecoveryTest extends TestCase
         [$user, $reset, $code] = $this->approved();
         $this->travel(15)->minutes();
 
-        $this->assertFalse(app(PasswordRecovery::class)->complete($user->username, $code, 'A replacement personal passphrase'));
-        $new = app(PasswordRecovery::class)->request($user->username);
+        $this->assertFalse(app(PasswordRecovery::class)->complete($user->employee_id, $code, 'A replacement personal passphrase'));
+        $new = app(PasswordRecovery::class)->request($user->employee_id);
         $this->assertNotSame($reset->id, $new->id);
         $this->assertSame(PasswordResetStatus::Pending, $new->status);
     }
@@ -250,7 +293,7 @@ class UsernameRecoveryTest extends TestCase
         Exceptions::fake();
         Event::listen('eloquent.creating: '.AuditLog::class, fn () => throw new RuntimeException('Synthetic audit failure'));
 
-        $this->post(route('password.update'), ['username' => $user->username, 'recovery_code' => $code,
+        $this->post(route('password.update'), ['employee_id' => $user->employee_id, 'recovery_code' => $code,
             'password' => 'A replacement personal passphrase', 'password_confirmation' => 'A replacement personal passphrase'])->assertInternalServerError();
 
         $this->assertSame($old, $user->fresh()->password_hash);
@@ -261,9 +304,9 @@ class UsernameRecoveryTest extends TestCase
     public function test_recovery_request_throttles_unknown_identifiers_without_requiring_email(): void
     {
         foreach (range(1, 3) as $attempt) {
-            $this->post(route('password.request.store'), ['username' => 'missing.user'])->assertRedirect();
+            $this->post(route('password.request.store'), ['employee_id' => 'missing.user'])->assertRedirect();
         }
-        $this->post(route('password.request.store'), ['username' => 'missing.user'])->assertStatus(429);
+        $this->post(route('password.request.store'), ['employee_id' => 'missing.user'])->assertStatus(429);
         $this->assertDatabaseCount('password_reset_requests', 0);
     }
 
@@ -271,7 +314,7 @@ class UsernameRecoveryTest extends TestCase
     {
         $role = Role::firstOrCreate(['name' => 'OSCA_STAFF']);
 
-        return ['first_name' => 'Synthetic', 'last_name' => 'Staff', 'username' => 'synthetic.staff', 'role_id' => $role->id, 'is_active' => true];
+        return ['first_name' => 'Synthetic', 'last_name' => 'Staff', 'employee_id' => '2026-0001', 'role_id' => $role->id, 'is_active' => true];
     }
 
     public function test_synthetic_employee_handover_covers_provisioning_first_login_and_verified_recovery(): void
@@ -280,22 +323,22 @@ class UsernameRecoveryTest extends TestCase
         $response = $this->actingAs($admin)->post(route('administration.users.store'), $this->account())->assertOk();
         $temporary = $response->viewData('credential');
         $this->post(route('logout'))->assertRedirectToRoute('home');
-        $this->post(route('login'), ['username' => 'synthetic.staff', 'password' => $temporary])->assertRedirectToRoute('password.change');
+        $this->post(route('login'), ['employee_id' => '2026-0001', 'password' => $temporary])->assertRedirectToRoute('password.change');
         $this->get(route('reports.index'))->assertRedirectToRoute('password.change');
         $this->post(route('password.change.update'), ['current_password' => $temporary,
             'password' => 'Synthetic employee personal passphrase', 'password_confirmation' => 'Synthetic employee personal passphrase'])->assertRedirectToRoute('dashboard');
         $this->post(route('logout'))->assertRedirectToRoute('home');
-        $this->post(route('password.request.store'), ['username' => 'synthetic.staff'])->assertSessionHas('status', PasswordRecovery::CONFIRMATION);
-        $this->post(route('login'), ['username' => $admin->username, 'password' => 'Synthetic administrator passphrase'])->assertRedirectToRoute('administration.dashboard');
+        $this->post(route('password.request.store'), ['employee_id' => '2026-0001'])->assertSessionHas('status', PasswordRecovery::CONFIRMATION);
+        $this->post(route('login'), ['employee_id' => $admin->employee_id, 'password' => 'Synthetic administrator passphrase'])->assertRedirectToRoute('administration.dashboard');
         $reset = PasswordResetRequest::sole();
-        $this->get(route('administration.password-reset-requests.index'))->assertSee('synthetic.staff')->assertSee('PENDING');
+        $this->get(route('administration.password-reset-requests.index'))->assertSee('2026-0001')->assertSee('PENDING');
         $approval = $this->patch(route('administration.password-reset-requests.update', $reset),
             ['decision' => 'approve', 'identity_verified' => true, 'admin_password' => 'Synthetic administrator passphrase'])->assertOk();
         $code = $approval->viewData('credential');
         $this->post(route('logout'))->assertRedirectToRoute('home');
-        $this->post(route('password.update'), ['username' => 'synthetic.staff', 'recovery_code' => $code,
+        $this->post(route('password.update'), ['employee_id' => '2026-0001', 'recovery_code' => $code,
             'password' => 'Synthetic employee recovered passphrase', 'password_confirmation' => 'Synthetic employee recovered passphrase'])->assertRedirectToRoute('login');
-        $this->post(route('login'), ['username' => 'synthetic.staff', 'password' => 'Synthetic employee recovered passphrase'])->assertRedirectToRoute('dashboard');
+        $this->post(route('login'), ['employee_id' => '2026-0001', 'password' => 'Synthetic employee recovered passphrase'])->assertRedirectToRoute('dashboard');
 
         $this->get(route('reports.index'))->assertOk();
         $this->assertSame(PasswordResetStatus::Completed, $reset->fresh()->status);
@@ -307,7 +350,7 @@ class UsernameRecoveryTest extends TestCase
         $user = User::factory()->create();
         $admin = User::factory()->admin()->create(['password_hash' => 'Synthetic admin password']);
         $service = app(PasswordRecovery::class);
-        $reset = $service->request($user->username);
+        $reset = $service->request($user->employee_id);
         $code = $service->review($reset, $admin, 'approve', true, 'Synthetic admin password');
 
         return [$user, $reset, $code];

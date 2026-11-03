@@ -27,7 +27,7 @@ class AuthenticatedSessionController extends Controller
             $logger->failure(LoginEvent::LoginFailed, $request->identity(), 'Invalid credentials or inactive account.');
 
             throw ValidationException::withMessages([
-                'username' => trans('auth.failed'),
+                'employee_id' => trans('auth.failed'),
             ]);
         }
 

@@ -33,10 +33,10 @@ class NewPassword implements ValidationRule
         }
         $normalize = fn ($text) => preg_replace('/[^a-z0-9]/', '', Str::lower(Str::ascii($text)));
         $password = $normalize($value);
-        foreach ([$this->user->username, $this->user->full_name] as $identifier) {
+        foreach ([$this->user->employee_id, $this->user->full_name] as $identifier) {
             $identifier = $normalize($identifier);
             if ($identifier !== '' && preg_match('/\A'.preg_quote($identifier, '/').'[0-9]*\z/', $password)) {
-                $fail('Choose a password that is not based on your username or name.');
+                $fail('Choose a password that is not based on your employee ID or name.');
 
                 return;
             }

@@ -113,7 +113,7 @@
                 <div>
                     <strong>{{ $user->first_name }} {{ $user->last_name }}</strong>
                     <span class="role-badge">{{ $user->role->name->label() }}</span>
-                    <small>{{ $user->username }}</small>
+                    <small>{{ $user->employee_id }}</small>
                 </div>
             </div>
             <div class="profile-details">

@@ -78,7 +78,7 @@
                 <tr>
                     <th>User</th>
                     <th>Role</th>
-                    <th>Username</th>
+                    <th>Employee ID</th>
                     <th>Status</th>
                     <th>Last Login</th>
                     <th>Created</th>
@@ -106,7 +106,7 @@
                         <td>
                             <span class="role-badge">{{ $user->role->name->label() }}</span>
                         </td>
-                        <td>{{ $user->username }}</td>
+                        <td>{{ $user->employee_id }}</td>
                         <td>
                             <span class="status-badge {{ $user->is_active ? 'active' : 'suspended' }}">
                                 {{ $user->is_active ? 'Active' : 'Suspended' }}

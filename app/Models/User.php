@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['role_id', 'username', 'email', 'password_hash', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'is_active'])]
+#[Fillable(['role_id', 'employee_id', 'email', 'password_hash', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'is_active'])]
 #[Hidden(['password_hash', 'remember_token', 'credential_version'])]
 class User extends Authenticatable
 {
@@ -82,7 +82,7 @@ class User extends Authenticatable
         $term = '%'.mb_strtolower($term).'%';
 
         return $query->where(function (Builder $query) use ($term) {
-            $query->whereRaw('lower(username) like ?', [$term])
+            $query->whereRaw('lower(employee_id) like ?', [$term])
                 ->orWhereRaw('lower(email) like ?', [$term])
                 ->orWhereRaw('lower(first_name) like ?', [$term])
                 ->orWhereRaw('lower(last_name) like ?', [$term]);

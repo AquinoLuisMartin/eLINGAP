@@ -140,14 +140,14 @@ class AuditResilienceTest extends TestCase
         $originalHash = $staff->password_hash;
         $password = Str::password();
         $service = app(PasswordRecovery::class);
-        $reset = $service->request($staff->username);
+        $reset = $service->request($staff->employee_id);
         $code = $service->review($reset, $admin, 'approve', true, 'Synthetic administrator password');
         $auditCount = AuditLog::count();
         Event::listen('eloquent.creating: '.AuditLog::class, fn () => throw new RuntimeException('Synthetic audit failure'));
         Exceptions::fake([RuntimeException::class]);
 
         $this->post(route('password.update'), [
-            'username' => $staff->username, 'recovery_code' => $code,
+            'employee_id' => $staff->employee_id, 'recovery_code' => $code,
             'password' => $password, 'password_confirmation' => $password,
         ])->assertServerError();
 

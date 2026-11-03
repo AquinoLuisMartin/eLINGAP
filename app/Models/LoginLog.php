@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['user_id', 'username_attempted', 'event', 'ip_address', 'user_agent', 'success', 'failure_reason'])]
+#[Fillable(['user_id', 'employee_id_attempted', 'event', 'ip_address', 'user_agent', 'success', 'failure_reason'])]
 class LoginLog extends Model
 {
     // The table records when an event happened and is never updated afterwards.

@@ -22,7 +22,7 @@ class UserStatusController extends Controller
         $user = $access->setStatus($request->user(), $user, (bool) $validated['is_active']);
 
         return back()->with('status', $user->is_active
-            ? "Account {$user->username} activated."
-            : "Account {$user->username} deactivated.");
+            ? "Account {$user->employee_id} activated."
+            : "Account {$user->employee_id} deactivated.");
     }
 }

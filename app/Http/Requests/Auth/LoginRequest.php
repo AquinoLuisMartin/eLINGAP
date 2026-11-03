@@ -9,7 +9,6 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
@@ -22,7 +21,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'username' => ['required', 'string', 'max:100', 'not_regex:/[\x00-\x1F\x7F]/u'],
+            'employee_id' => ['required', 'string', 'max:100', 'not_regex:/[\x00-\x1F\x7F]/u'],
             'password' => ['required', 'string', new PasswordInput],
             'remember' => ['boolean'],
         ];
@@ -31,19 +30,18 @@ class LoginRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'username.required' => 'Enter your assigned username.',
+            'employee_id.required' => 'Enter your assigned employee ID.',
         ];
     }
 
-    // Authenticate only the assigned username through Laravel's session guard.
+    // Authenticate only the assigned employee ID through Laravel's session guard.
     public function attemptLogin(): bool
     {
         $this->ensureIsNotRateLimited();
 
         $credentials = [
-            // Match the stored username without changing legacy spellings.
-            'username' => function (Builder $query): void {
-                $query->whereRaw('lower(username) = ?', [$this->identity()])->lockForUpdate();
+            'employee_id' => function (Builder $query): void {
+                $query->where('employee_id', $this->identity())->lockForUpdate();
             },
             // Deactivated accounts must not authenticate even with a valid password.
             'is_active' => true,
@@ -63,10 +61,10 @@ class LoginRequest extends FormRequest
 
     public function identity(): string
     {
-        return Str::lower(trim($this->string('username')->toString()));
+        return trim($this->string('employee_id')->toString());
     }
 
-    // Limit failures across addresses without storing a readable username in cache.
+    // Limit failures across addresses without storing a readable employee ID in cache.
     protected function throttleKey(): string
     {
         return 'login:'.hash_hmac('sha256', $this->identity(), config('app.key'));
@@ -83,7 +81,7 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'username' => trans('auth.throttle', [
+            'employee_id' => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),

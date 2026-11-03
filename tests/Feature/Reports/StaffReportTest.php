@@ -68,7 +68,7 @@ class StaffReportTest extends TestCase
             SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Test', 'last_name' => $barangay->name, 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address']);
         }
         $role = Role::firstOrCreate(['name' => 'OSCA_STAFF'], ['description' => 'OSCA Staff']);
-        $staff = User::create(['role_id' => $role->id, 'username' => 'reportuser', 'email' => 'report@example.test', 'password_hash' => 'password', 'first_name' => 'Test', 'last_name' => 'User', 'is_active' => true]);
+        $staff = User::create(['role_id' => $role->id, 'employee_id' => '2026-0007', 'email' => 'report@example.test', 'password_hash' => 'password', 'first_name' => 'Test', 'last_name' => 'User', 'is_active' => true]);
 
         $this->actingAs($staff)->get(route('reports.workspace', ['type' => 'masterlist', 'barangay_id' => $first->id]))
             ->assertOk()->assertSee('Test Poblacion')->assertDontSee('Test Bagbaguin');

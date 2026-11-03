@@ -135,13 +135,13 @@ class DashboardDataTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         AuditLog::create(['action' => 'program.created', 'new_values' => ['private' => 'private-test-payload']]);
-        LoginLog::create(['event' => 'LOGIN_FAILED', 'success' => false, 'username_attempted' => 'private-test-username']);
+        LoginLog::create(['event' => 'LOGIN_FAILED', 'success' => false, 'employee_id_attempted' => 'private-test-employee_id']);
         $this->message('FAILED');
 
         $component = Livewire::actingAs($admin)->test(Dashboard::class)
             ->call('navigate', 'system-logs')
             ->assertSee('Created a program')->assertSee('Failed sign-in attempt')
-            ->assertDontSee('private-test-payload')->assertDontSee('private-test-username');
+            ->assertDontSee('private-test-payload')->assertDontSee('private-test-employee_id');
 
         $this->assertSame(3, $component->get('filteredLogs')->total());
         $component->set('logCategory', 'Login Events');

@@ -1,25 +1,23 @@
-@unless (isset($user))
-<div data-username-suggestion="{{ route('administration.users.username-suggestion') }}" class="space-y-5">
-@endunless
+<div class="space-y-5">
 @csrf
 <p class="text-sm text-slate-500 dark:text-slate-400">Fields marked <span class="text-red-600">*</span> are required.</p>
-@foreach (['Personal details' => ['first_name' => 'First name', 'middle_name' => 'Middle name', 'last_name' => 'Last name', 'name_suffix' => 'Name suffix'], 'Account details' => ['username' => 'Username']] as $section => $fields)
+@foreach (['Personal details' => ['first_name' => 'First name', 'middle_name' => 'Middle name', 'last_name' => 'Last name', 'name_suffix' => 'Name suffix'], 'Account details' => ['employee_id' => 'Employee ID']] as $section => $fields)
     <fieldset>
         <legend class="mb-4 text-base font-medium">{{ $section }}</legend>
         <div class="grid gap-x-6 gap-y-5 sm:grid-cols-2">
             @foreach ($fields as $field => $label)
-                @php($required = ! in_array($field, ['middle_name', 'name_suffix'], true) && ($field !== 'username' || isset($user)))
+                @php($required = ! in_array($field, ['middle_name', 'name_suffix'], true))
                 @php($fieldValue = old($field, $user->{$field} ?? ''))
                 <div class="min-w-0">
                     <label class="mb-2 block text-sm" for="{{ $field }}">{{ $label }} @if ($required)<span class="text-red-600" aria-hidden="true">*</span>@else<span class="text-slate-400">(optional)</span>@endif</label>
                     <input class="w-full" id="{{ $field }}" name="{{ $field }}" type="{{ $field === 'email' ? 'email' : 'text' }}"
-                        value="{{ is_string($fieldValue) ? $fieldValue : '' }}" maxlength="{{ $field === 'name_suffix' ? 20 : 100 }}"
-                        autocomplete="{{ match ($field) { 'first_name' => 'given-name', 'middle_name' => 'additional-name', 'last_name' => 'family-name', 'email' => 'email', 'username' => 'username', default => 'off' } }}"
-                        @if (in_array($field, ['username', 'email'], true)) spellcheck="false" autocapitalize="none" @endif
-                        @if ($field === 'username' && ! isset($user)) minlength="5" @endif
+                        value="{{ is_string($fieldValue) ? $fieldValue : '' }}" maxlength="{{ match ($field) { 'employee_id' => 9, 'name_suffix' => 20, default => 100 } }}"
+                        autocomplete="{{ match ($field) { 'first_name' => 'given-name', 'middle_name' => 'additional-name', 'last_name' => 'family-name', 'email' => 'email', 'employee_id' => 'username', default => 'off' } }}"
+                        @if (in_array($field, ['employee_id', 'email'], true)) spellcheck="false" autocapitalize="none" @endif
+                        @if ($field === 'employee_id') minlength="9" pattern="[0-9]{4}-[0-9]{4}" placeholder="2026-0001" @endif
                         @required($required) aria-invalid="{{ $errors->has($field) ? 'true' : 'false' }}"
-                        @if ($errors->has($field) || $field === 'username') aria-describedby="{{ $field === 'username' ? 'username-help ' : '' }}{{ $errors->has($field) ? $field.'-error' : '' }}" @endif>
-                    @if ($field === 'username')<p id="username-help" class="mt-2 text-xs text-slate-500 dark:text-slate-400">New usernames use 5 to 40 lowercase letters, numbers and single periods, without a period at either end. Leave blank on creation for an automatic suggestion. Existing usernames can be kept unchanged.</p>@endif
+                        @if ($errors->has($field) || $field === 'employee_id') aria-describedby="{{ $field === 'employee_id' ? 'employee_id-help ' : '' }}{{ $errors->has($field) ? $field.'-error' : '' }}" @endif>
+                    @if ($field === 'employee_id')<p id="employee_id-help" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Enter the employee's official ID in YYYY-NNNN format, for example 2026-0001. Each employee ID can belong to only one account.</p>@endif
                     @error($field)<p id="{{ $field }}-error" class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
                 </div>
             @endforeach
@@ -46,6 +44,4 @@
     <button class="inline-flex min-h-11 items-center justify-center rounded-lg bg-osca-primary px-5 text-sm text-white hover:bg-osca-primary-dark" type="submit">{{ isset($user) ? 'Save changes' : 'Create account' }}</button>
 </div>
 
-@unless (isset($user))
 </div>
-@endunless

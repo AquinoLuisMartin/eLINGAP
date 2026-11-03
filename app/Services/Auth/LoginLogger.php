@@ -13,19 +13,19 @@ class LoginLogger
 
     public function success(LoginEvent $event, User $user): void
     {
-        $this->write($event, true, $user, $user->username);
+        $this->write($event, true, $user, $user->employee_id);
     }
 
-    public function failure(LoginEvent $event, string $username, string $reason): void
+    public function failure(LoginEvent $event, string $employeeId, string $reason): void
     {
-        $this->write($event, false, null, $username, $reason);
+        $this->write($event, false, null, $employeeId, $reason);
     }
 
-    private function write(LoginEvent $event, bool $success, ?User $user, ?string $username, ?string $reason = null): void
+    private function write(LoginEvent $event, bool $success, ?User $user, ?string $employeeId, ?string $reason = null): void
     {
         LoginLog::create([
             'user_id' => $user?->id,
-            'username_attempted' => $username === null ? null : mb_substr($username, 0, 100),
+            'employee_id_attempted' => $employeeId === null ? null : mb_substr($employeeId, 0, 100),
             'event' => $event,
             'ip_address' => $this->request->ip(),
             'user_agent' => mb_substr($this->request->userAgent() ?? '', 0, 1000),

@@ -22,7 +22,7 @@ class UserPasswordController extends Controller
         $input = $request->validate(['status' => ['nullable', Rule::enum(PasswordResetStatus::class)]]);
         $requests = PasswordResetRequest::query()->select(['id', 'user_id', 'status', 'requested_at', 'reviewed_by',
             'reviewed_at', 'identity_verified_at', 'recovery_expires_at', 'completed_at', 'failed_attempts'])
-            ->with(['user:id,username,first_name,middle_name,last_name,name_suffix', 'reviewer:id,username,first_name,middle_name,last_name,name_suffix'])
+            ->with(['user:id,employee_id,first_name,middle_name,last_name,name_suffix', 'reviewer:id,employee_id,first_name,middle_name,last_name,name_suffix'])
             ->when($input['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->orderByDesc('requested_at')->orderByDesc('id')->paginate(15)->withQueryString();
 
@@ -32,8 +32,8 @@ class UserPasswordController extends Controller
     public function show(PasswordResetRequest $resetRequest): View
     {
         Gate::authorize('viewAny', User::class);
-        $resetRequest->load(['user:id,role_id,username,first_name,middle_name,last_name,name_suffix,is_active', 'user.role',
-            'reviewer:id,username,first_name,middle_name,last_name,name_suffix']);
+        $resetRequest->load(['user:id,role_id,employee_id,first_name,middle_name,last_name,name_suffix,is_active', 'user.role',
+            'reviewer:id,employee_id,first_name,middle_name,last_name,name_suffix']);
 
         return view('administration.users.recovery-review', ['reset' => $resetRequest]);
     }
@@ -41,7 +41,7 @@ class UserPasswordController extends Controller
     public function store(Request $request, User $user, PasswordRecovery $recovery): RedirectResponse
     {
         Gate::authorize('manageAccess', $user);
-        $reset = $recovery->request($user->username, $request->user());
+        $reset = $recovery->request($user->employee_id, $request->user());
         abort_unless($reset, 422, 'Recovery is available only for active staff accounts.');
 
         return redirect()->route('administration.password-reset-requests.show', $reset);
@@ -56,7 +56,7 @@ class UserPasswordController extends Controller
             return redirect()->route('administration.password-reset-requests.index')->with('status', 'Recovery request rejected.');
         }
 
-        return view('administration.users.credential', ['username' => $resetRequest->user->username,
+        return view('administration.users.credential', ['employee_id' => $resetRequest->user->employee_id,
             'credential' => $code, 'credentialLabel' => 'Recovery code',
             'handoverMessage' => 'Identity verified and recovery approved. Hand this single-use code directly to the verified employee. It expires in 15 minutes.']);
     }

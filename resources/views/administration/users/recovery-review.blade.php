@@ -3,7 +3,7 @@
 <section class="panel mx-auto max-w-2xl space-y-5">
     <h2 class="text-2xl font-semibold">Review recovery request #{{ $reset->id }}</h2>
     <x-alert />
-    <dl class="space-y-3"><div><dt class="font-semibold">Staff member</dt><dd>{{ $reset->user->full_name }} ({{ $reset->user->username }})</dd></div><div><dt class="font-semibold">Requested</dt><dd>{{ $reset->requested_at->format('M j, Y g:i A') }}</dd></div><div><dt class="font-semibold">Status</dt><dd>{{ $reset->expired() ? 'EXPIRED' : $reset->status->value }}</dd></div><div><dt class="font-semibold">Identity verified</dt><dd>{{ $reset->identity_verified_at?->format('M j, Y g:i A') ?? 'Not confirmed' }}</dd></div><div><dt class="font-semibold">Reviewing administrator</dt><dd>{{ $reset->reviewer?->full_name ?? 'Not reviewed' }}</dd></div></dl>
+    <dl class="space-y-3"><div><dt class="font-semibold">Staff member</dt><dd>{{ $reset->user->full_name }} ({{ $reset->user->employee_id }})</dd></div><div><dt class="font-semibold">Requested</dt><dd>{{ $reset->requested_at->format('M j, Y g:i A') }}</dd></div><div><dt class="font-semibold">Status</dt><dd>{{ $reset->expired() ? 'EXPIRED' : $reset->status->value }}</dd></div><div><dt class="font-semibold">Identity verified</dt><dd>{{ $reset->identity_verified_at?->format('M j, Y g:i A') ?? 'Not confirmed' }}</dd></div><div><dt class="font-semibold">Reviewing administrator</dt><dd>{{ $reset->reviewer?->full_name ?? 'Not reviewed' }}</dd></div></dl>
     @if ($reset->status === \App\Enums\PasswordResetStatus::Pending && $reset->user->is_active && $reset->user->isOscaStaff())
         <form method="POST" action="{{ route('administration.password-reset-requests.update', $reset) }}" class="space-y-4">
             @csrf @method('PATCH')

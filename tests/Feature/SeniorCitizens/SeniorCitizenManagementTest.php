@@ -304,7 +304,7 @@ class SeniorCitizenManagementTest extends TestCase
 
         return User::create([
             'role_id' => $roleRecord->id,
-            'username' => strtolower($role).'user',
+            'employee_id' => $role === 'ADMIN' ? '2026-9001' : '2026-9002',
             'email' => strtolower($role).'@example.test',
             'password_hash' => 'password',
             'first_name' => 'Test',

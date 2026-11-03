@@ -51,7 +51,7 @@ class AccountProvisioningTest extends TestCase
         $password = Str::password();
 
         $this->artisan('app:create-admin')
-            ->expectsQuestion('Username', $user->username)
+            ->expectsQuestion('Employee ID', $user->employee_id)
             ->expectsQuestion('First name', $user->first_name)
             ->expectsQuestion('Last name', $user->last_name)
             ->expectsQuestion('Password', $password)
@@ -60,7 +60,7 @@ class AccountProvisioningTest extends TestCase
             ->assertSuccessful();
 
         $admin = User::sole();
-        $this->assertSame($user->username, $admin->username);
+        $this->assertSame($user->employee_id, $admin->employee_id);
         $this->assertTrue($admin->isAdmin());
         $this->assertTrue(Hash::check($password, $admin->password_hash));
     }
@@ -75,7 +75,7 @@ class AccountProvisioningTest extends TestCase
         $password = Str::password();
 
         $this->artisan('app:create-admin')
-            ->expectsQuestion('Username', $invalid === 'duplicate' ? $existing->username : $candidate->username)
+            ->expectsQuestion('Employee ID', $invalid === 'duplicate' ? $existing->employee_id : $candidate->employee_id)
             ->expectsQuestion('First name', $candidate->first_name)
             ->expectsQuestion('Last name', $candidate->last_name)
             ->expectsQuestion('Password', $password)
@@ -100,7 +100,7 @@ class AccountProvisioningTest extends TestCase
         $admin = User::factory()->admin()->create();
         $this->artisan('app:create-admin', ['--recover' => true])
             ->expectsConfirmation('Has the administrator identity been verified under the approved office procedure?', 'yes')
-            ->expectsQuestion('Username', $admin->username)
+            ->expectsQuestion('Employee ID', $admin->employee_id)
             ->expectsQuestion('New temporary password', 'Synthetic new console passphrase')
             ->expectsQuestion('Confirm password', 'Synthetic new console passphrase')
             ->expectsOutput('Administrator recovery completed. A password change is required at the next sign-in.')
@@ -118,7 +118,7 @@ class AccountProvisioningTest extends TestCase
         $before = $staff->password_hash;
         $this->artisan('app:create-admin', ['--recover' => true])
             ->expectsConfirmation('Has the administrator identity been verified under the approved office procedure?', 'yes')
-            ->expectsQuestion('Username', $staff->username)
+            ->expectsQuestion('Employee ID', $staff->employee_id)
             ->expectsQuestion('New temporary password', 'Synthetic new console passphrase')
             ->expectsQuestion('Confirm password', 'Synthetic new console passphrase')
             ->expectsOutput('An eligible administrator account was not found.')->assertFailed();

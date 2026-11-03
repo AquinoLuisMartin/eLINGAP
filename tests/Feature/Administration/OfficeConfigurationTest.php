@@ -107,7 +107,7 @@ class OfficeConfigurationTest extends TestCase
     {
         $this->actingAs(User::factory()->admin()->inactive()->create())
             ->patch(route('administration.configuration.update'), ['settings' => ['office_name' => 'Synthetic office']])
-            ->assertRedirectToRoute('login')->assertSessionHasErrors(['username' => 'This account has been deactivated.']);
+            ->assertRedirectToRoute('login')->assertSessionHasErrors(['employee_id' => 'This account has been deactivated.']);
 
         $this->assertDatabaseCount('system_configurations', 0);
     }

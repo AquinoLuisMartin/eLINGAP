@@ -42,7 +42,7 @@ class DashboardAccountsTest extends TestCase
             ->call('navigate', 'users')
             ->call('gotoPage', 2)
             ->set('userQuery', Str::upper($suspended->email))
-            ->assertSee($suspended->username);
+            ->assertSee($suspended->employee_id);
 
         $this->assertSame(1, $component->get('filteredUsers')->total());
         $this->assertSame(1, $component->get('filteredUsers')->currentPage());

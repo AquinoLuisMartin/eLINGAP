@@ -34,12 +34,12 @@ class LoginSecurityTest extends TestCase
     {
         $identity = Str::lower(Str::random(100));
 
-        $this->post(route('login'), ['username' => $identity, 'password' => Str::password()])
-            ->assertInvalid(['username' => trans('auth.failed')]);
+        $this->post(route('login'), ['employee_id' => $identity, 'password' => Str::password()])
+            ->assertInvalid(['employee_id' => trans('auth.failed')]);
 
         $this->assertGuest();
         $this->assertDatabaseHas('login_logs', [
-            'username_attempted' => mb_substr($identity, 0, 100),
+            'employee_id_attempted' => mb_substr($identity, 0, 100),
             'event' => LoginEvent::LoginFailed->value,
             'success' => false,
         ]);
@@ -50,19 +50,19 @@ class LoginSecurityTest extends TestCase
         $password = Str::password();
         $user = User::factory()->inactive()->create(['password_hash' => $password]);
 
-        $this->post(route('login'), ['username' => $user->username, 'password' => $password])
-            ->assertInvalid(['username' => trans('auth.failed')]);
+        $this->post(route('login'), ['employee_id' => $user->employee_id, 'password' => $password])
+            ->assertInvalid(['employee_id' => trans('auth.failed')]);
 
         $this->assertGuest();
         $this->assertNull($user->fresh()->last_login_at);
     }
 
-    public function test_login_remains_case_insensitive_and_records_success(): void
+    public function test_employee_id_login_records_success(): void
     {
         $password = Str::password();
         $user = User::factory()->create(['password_hash' => $password]);
 
-        $this->post(route('login'), ['username' => Str::upper($user->username), 'password' => $password])
+        $this->post(route('login'), ['employee_id' => Str::upper($user->employee_id), 'password' => $password])
             ->assertRedirect(route('dashboard'));
 
         $this->assertAuthenticatedAs($user);
@@ -75,34 +75,34 @@ class LoginSecurityTest extends TestCase
         $password = Str::password();
         $user = User::factory()->create(['password_hash' => $password]);
 
-        $response = $this->post(route('login'), ['username' => $user->username, 'password' => $password, 'remember' => '1']);
+        $response = $this->post(route('login'), ['employee_id' => $user->employee_id, 'password' => $password, 'remember' => '1']);
 
         $response->assertRedirect(route('dashboard'));
         $this->assertAuthenticatedAs($user);
         $this->assertNotEmpty($user->fresh()->remember_token);
     }
 
-    public function test_login_uses_the_stored_username_and_not_the_display_name(): void
+    public function test_login_uses_the_stored_employee_id_and_not_the_display_name(): void
     {
         $password = Str::password();
-        $user = User::factory()->create(['first_name' => 'Synthetic', 'last_name' => 'Person', 'username' => 'synthetic.person', 'password_hash' => $password]);
+        $user = User::factory()->create(['first_name' => 'Synthetic', 'last_name' => 'Person', 'employee_id' => '2026-0002', 'password_hash' => $password]);
 
-        $this->post(route('login'), ['username' => 'SyntheticPerson', 'password' => $password])->assertInvalid('username');
+        $this->post(route('login'), ['employee_id' => 'SyntheticPerson', 'password' => $password])->assertInvalid('employee_id');
         $this->assertGuest();
 
-        $this->post(route('login'), ['username' => 'SYNTHETIC.PERSON', 'password' => $password])->assertRedirect(route('dashboard'));
+        $this->post(route('login'), ['employee_id' => '2026-0002', 'password' => $password])->assertRedirect(route('dashboard'));
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_login_does_not_remove_spaces_from_an_existing_username(): void
+    public function test_login_preserves_hyphens_and_leading_zeros_in_employee_ids(): void
     {
         $password = Str::password();
-        User::factory()->create(['username' => 'synthetic person', 'password_hash' => $password]);
+        User::factory()->create(['employee_id' => '2026-0004', 'password_hash' => $password]);
 
-        $this->post(route('login'), ['username' => 'syntheticperson', 'password' => $password])->assertInvalid(['username' => trans('auth.failed')]);
+        $this->post(route('login'), ['employee_id' => '20260004', 'password' => $password])->assertInvalid(['employee_id' => trans('auth.failed')]);
         $this->assertGuest();
 
-        $this->post(route('login'), ['username' => 'synthetic person', 'password' => $password])->assertRedirect(route('dashboard'));
+        $this->post(route('login'), ['employee_id' => ' 2026-0004 ', 'password' => $password])->assertRedirect(route('dashboard'));
         $this->assertAuthenticated();
     }
 
@@ -112,18 +112,18 @@ class LoginSecurityTest extends TestCase
     #[TestWith(['synthetic@@example.com'])]
     public function test_unknown_legacy_identity_formats_have_generic_failures(string $identity): void
     {
-        $this->post(route('login'), ['username' => $identity, 'password' => Str::password()])->assertInvalid('username');
+        $this->post(route('login'), ['employee_id' => $identity, 'password' => Str::password()])->assertInvalid('employee_id');
         $this->assertGuest();
         $this->assertDatabaseCount('login_logs', 1);
     }
 
-    #[TestWith([['synthetic.person']])]
+    #[TestWith([['2026-0002']])]
     #[TestWith([true])]
     #[TestWith([123])]
     public function test_login_rejects_non_string_identities_without_a_server_error(mixed $identity): void
     {
-        $this->postJson(route('login'), ['username' => $identity, 'password' => Str::password()])
-            ->assertUnprocessable()->assertJsonValidationErrors('username');
+        $this->postJson(route('login'), ['employee_id' => $identity, 'password' => Str::password()])
+            ->assertUnprocessable()->assertJsonValidationErrors('employee_id');
 
         $this->assertGuest();
     }
@@ -134,16 +134,16 @@ class LoginSecurityTest extends TestCase
         $user = User::factory()->create(['password_hash' => $password]);
 
         foreach (range(1, 5) as $attempt) {
-            $this->post(route('login'), ['username' => $user->username, 'password' => Str::password()])
-                ->assertInvalid(['username' => trans('auth.failed')]);
+            $this->post(route('login'), ['employee_id' => $user->employee_id, 'password' => Str::password()])
+                ->assertInvalid(['employee_id' => trans('auth.failed')]);
         }
 
-        $this->post(route('login'), ['username' => $user->username, 'password' => $password])
-            ->assertInvalid(['username']);
+        $this->post(route('login'), ['employee_id' => $user->employee_id, 'password' => $password])
+            ->assertInvalid(['employee_id']);
         $this->assertGuest();
 
         $this->travel(61)->seconds();
-        $this->post(route('login'), ['username' => $user->username, 'password' => $password])
+        $this->post(route('login'), ['employee_id' => $user->employee_id, 'password' => $password])
             ->assertRedirect(route('dashboard'));
         $this->assertAuthenticatedAs($user);
     }

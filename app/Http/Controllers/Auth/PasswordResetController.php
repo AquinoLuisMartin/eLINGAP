@@ -20,7 +20,7 @@ class PasswordResetController extends Controller
 
     public function sendRequest(ForgotPasswordRequest $request, PasswordRecovery $recovery, Timebox $timebox): RedirectResponse
     {
-        $timebox->call(fn () => $recovery->request($request->validated('username')), 200000);
+        $timebox->call(fn () => $recovery->request($request->validated('employee_id')), 200000);
 
         return back()->with('status', PasswordRecovery::CONFIRMATION);
     }
@@ -32,7 +32,7 @@ class PasswordResetController extends Controller
 
     public function reset(ResetPasswordRequest $request, PasswordRecovery $recovery, Timebox $timebox): RedirectResponse
     {
-        $completed = $timebox->call(fn () => $recovery->complete($request->validated('username'),
+        $completed = $timebox->call(fn () => $recovery->complete($request->validated('employee_id'),
             $request->validated('recovery_code'), $request->validated('password')), 200000);
         if (! $completed) {
             throw ValidationException::withMessages(['recovery_code' => PasswordRecovery::INVALID_CODE]);

@@ -24,19 +24,19 @@ class AccountManagementTest extends TestCase
         $admin = User::factory()->admin()->create();
         $user = User::factory()->make();
         $password = Str::password();
-        $payload = $user->only(['role_id', 'username', 'first_name', 'last_name']);
+        $payload = $user->only(['role_id', 'employee_id', 'first_name', 'last_name']);
 
         $this->actingAs($admin)->get(route('administration.users.create'))->assertSee('Create user account');
         $response = $this->post(route('administration.users.store'), [
             ...$payload,
-            'username' => Str::upper($user->username),
+            'employee_id' => Str::upper($user->employee_id),
             'email' => Str::upper($user->email),
             'password' => $password,
             'password_confirmation' => $password,
             'last_login_at' => now()->toDateTimeString(),
         ])->assertOk();
 
-        $created = User::where('username', $user->username)->firstOrFail();
+        $created = User::where('employee_id', $user->employee_id)->firstOrFail();
         $this->assertDatabaseHas('users', $payload);
         $this->assertTrue(Hash::check($response->viewData('credential'), $created->password_hash));
         $this->assertFalse(Hash::check($password, $created->password_hash));
@@ -49,15 +49,15 @@ class AccountManagementTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $user = User::factory()->create();
-        $newUsername = Str::lower(Str::random(20));
+        $newEmployeeId = '2026-9999';
 
         $this->actingAs($admin)->get(route('administration.users.edit', $user))->assertSee('Edit user account');
         $this->put(route('administration.users.update', $user), [
             ...$user->only(['role_id', 'email', 'first_name', 'last_name']),
-            'username' => $newUsername,
+            'employee_id' => $newEmployeeId,
         ])->assertRedirect(route('administration.users.index'));
 
-        $this->assertSame($newUsername, $user->fresh()->username);
+        $this->assertSame($newEmployeeId, $user->fresh()->employee_id);
         $this->assertDatabaseCount('audit_logs', 1);
         $this->assertDatabaseHas('audit_logs', ['user_id' => $admin->id, 'action' => 'user.updated', 'auditable_id' => $user->id]);
     }
@@ -67,7 +67,7 @@ class AccountManagementTest extends TestCase
         $admin = User::factory()->admin()->create();
 
         $this->actingAs($admin)->post(route('administration.users.store'), [])
-            ->assertInvalid(['role_id', 'username', 'first_name', 'last_name']);
+            ->assertInvalid(['role_id', 'employee_id', 'first_name', 'last_name']);
 
         $this->assertDatabaseCount('users', 1);
         $this->assertDatabaseCount('audit_logs', 0);
@@ -80,7 +80,7 @@ class AccountManagementTest extends TestCase
         $password = Str::password();
 
         $this->actingAs($admin)->post(route('administration.users.store'), [
-            ...$user->only(['username', 'email', 'first_name', 'last_name']),
+            ...$user->only(['employee_id', 'email', 'first_name', 'last_name']),
             'role_id' => [$user->role_id],
             'password' => $password,
             'password_confirmation' => $password,
@@ -130,7 +130,7 @@ class AccountManagementTest extends TestCase
         $staff = User::factory()->create();
 
         $this->actingAs($admin)->put(route('administration.users.update', $admin), [
-            ...$admin->only(['username', 'email', 'first_name', 'last_name']),
+            ...$admin->only(['employee_id', 'email', 'first_name', 'last_name']),
             'role_id' => $staff->role_id,
         ])->assertForbidden();
 
@@ -144,10 +144,10 @@ class AccountManagementTest extends TestCase
         $previousHash = $staff->password_hash;
         $password = Str::password();
         $service = app(PasswordRecovery::class);
-        $reset = $service->request($staff->username);
+        $reset = $service->request($staff->employee_id);
         $code = $service->review($reset, $admin, 'approve', true, 'Synthetic administrator password');
 
-        $this->post(route('password.update'), ['username' => $staff->username, 'recovery_code' => $code,
+        $this->post(route('password.update'), ['employee_id' => $staff->employee_id, 'recovery_code' => $code,
             'password' => $password, 'password_confirmation' => $password])->assertRedirectToRoute('login');
 
         $staff->refresh();
@@ -168,7 +168,7 @@ class AccountManagementTest extends TestCase
         $admin = User::factory()->admin()->create();
         $staff = User::factory()->create();
 
-        $this->actingAs($admin)->put(route('administration.users.update', $staff), $staff->only(['role_id', 'username', 'email', 'first_name', 'last_name']))
+        $this->actingAs($admin)->put(route('administration.users.update', $staff), $staff->only(['role_id', 'employee_id', 'email', 'first_name', 'last_name']))
             ->assertRedirect(route('administration.users.index'));
 
         $this->assertDatabaseCount('audit_logs', 0);
@@ -211,7 +211,7 @@ class AccountManagementTest extends TestCase
         DB::table('users')->where('id', $admin->id)->update(['role_id' => $staff->role_id]);
         Route::bind('user', fn () => $admin);
 
-        $this->actingAs($admin)->put(route('administration.users.update', $admin), $admin->only(['role_id', 'username', 'email', 'first_name', 'last_name']))
+        $this->actingAs($admin)->put(route('administration.users.update', $admin), $admin->only(['role_id', 'employee_id', 'email', 'first_name', 'last_name']))
             ->assertForbidden();
 
         $this->assertSame($staff->role_id, $admin->fresh()->role_id);

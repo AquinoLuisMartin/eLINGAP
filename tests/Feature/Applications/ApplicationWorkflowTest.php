@@ -107,7 +107,7 @@ class ApplicationWorkflowTest extends TestCase
     {
         $roleRecord = Role::firstOrCreate(['name' => $role], ['description' => $role]);
 
-        return User::create(['role_id' => $roleRecord->id, 'username' => strtolower($role).'user', 'email' => strtolower($role).'@example.test', 'password_hash' => 'password', 'first_name' => 'Test', 'last_name' => 'User', 'is_active' => true]);
+        return User::create(['role_id' => $roleRecord->id, 'employee_id' => $role === 'ADMIN' ? '2026-9001' : '2026-9002', 'email' => strtolower($role).'@example.test', 'password_hash' => 'password', 'first_name' => 'Test', 'last_name' => 'User', 'is_active' => true]);
     }
 
     private function seniorCitizen(): SeniorCitizen

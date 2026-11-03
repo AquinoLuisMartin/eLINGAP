@@ -6,15 +6,14 @@ use App\Enums\LoginEvent;
 use App\Enums\UserRole;
 use App\Models\Role;
 use App\Models\User;
+use App\Rules\EmployeeIdInput;
 use App\Rules\NewPassword;
-use App\Rules\UsernameInput;
 use App\Services\Auth\AuthAudit;
 use App\Services\Auth\Credentials;
-use App\Services\Auth\Username;
+use App\Services\Auth\EmployeeId;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CreateAdmin extends Command
@@ -36,7 +35,7 @@ class CreateAdmin extends Command
         }
 
         $data = [
-            'username' => Str::lower(trim($this->ask('Username') ?? '')),
+            'employee_id' => EmployeeId::normalize($this->ask('Employee ID') ?? ''),
             'first_name' => trim($this->ask('First name') ?? ''),
             'last_name' => trim($this->ask('Last name') ?? ''),
             'password' => $this->secret('Password', false),
@@ -44,10 +43,10 @@ class CreateAdmin extends Command
         ];
 
         $validator = Validator::make($data, [
-            'username' => ['required', 'string', new UsernameInput],
+            'employee_id' => ['required', 'string', new EmployeeIdInput],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
-            'password' => ['required', 'string', 'confirmed', new NewPassword(new User(collect($data)->only(['username', 'first_name', 'last_name'])->all()))],
+            'password' => ['required', 'string', 'confirmed', new NewPassword(new User(collect($data)->only(['employee_id', 'first_name', 'last_name'])->all()))],
         ]);
 
         if ($validator->fails()) {
@@ -81,14 +80,14 @@ class CreateAdmin extends Command
         if (! $this->confirm('Has the administrator identity been verified under the approved office procedure?')) {
             return self::FAILURE;
         }
-        $username = Username::normalize($this->ask('Username') ?? '');
+        $employeeId = EmployeeId::normalize($this->ask('Employee ID') ?? '');
         $password = $this->secret('New temporary password', false);
         $confirmation = $this->secret('Confirm password', false);
         try {
-            DB::transaction(function () use ($username, $password, $confirmation): void {
-                $user = User::query()->whereRaw('lower(username) = ?', [$username])->lockForUpdate()->first();
+            DB::transaction(function () use ($employeeId, $password, $confirmation): void {
+                $user = User::query()->where('employee_id', $employeeId)->lockForUpdate()->first();
                 if (! $user || ! $user->isAdmin() || ! $user->is_active) {
-                    throw ValidationException::withMessages(['username' => 'An eligible administrator account was not found.']);
+                    throw ValidationException::withMessages(['employee_id' => 'An eligible administrator account was not found.']);
                 }
                 validator(['password' => $password, 'password_confirmation' => $confirmation], ['password' => ['required', 'string', 'confirmed', new NewPassword($user)]])->validate();
                 app(Credentials::class)->replaceLocked($user, $password, LoginEvent::PasswordReset, mustChange: true);

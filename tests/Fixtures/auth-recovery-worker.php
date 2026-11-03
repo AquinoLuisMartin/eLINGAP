@@ -31,9 +31,9 @@ while (! is_file($input['barrier'])) {
 try {
     $service = $app->make(PasswordRecovery::class);
     if ($input['action'] === 'request') {
-        $result = $service->request($input['username'])?->id;
+        $result = $service->request($input['employee_id'])?->id;
     } elseif ($input['action'] === 'complete') {
-        $result = $service->complete($input['username'], $input['code'], $input['password']);
+        $result = $service->complete($input['employee_id'], $input['code'], $input['password']);
     } elseif ($input['action'] === 'deactivate') {
         $app->make(AccountAccess::class)->setStatus(User::findOrFail($input['admin']), User::findOrFail($input['user']), false);
         $result = 'deactivated';

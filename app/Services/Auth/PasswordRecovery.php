@@ -20,10 +20,10 @@ class PasswordRecovery
 
     public function __construct(private Credentials $credentials) {}
 
-    public function request(string $username, ?User $actor = null): ?PasswordResetRequest
+    public function request(string $employeeId, ?User $actor = null): ?PasswordResetRequest
     {
-        return DB::transaction(function () use ($username, $actor): ?PasswordResetRequest {
-            $id = User::query()->whereRaw('lower(username) = ?', [Username::normalize($username)])->value('id');
+        return DB::transaction(function () use ($employeeId, $actor): ?PasswordResetRequest {
+            $id = User::query()->where('employee_id', EmployeeId::normalize($employeeId))->value('id');
             if (! $id) {
                 return null;
             }
@@ -93,10 +93,10 @@ class PasswordRecovery
         return $result['code'];
     }
 
-    public function complete(string $username, #[\SensitiveParameter] string $code, #[\SensitiveParameter] string $password): bool
+    public function complete(string $employeeId, #[\SensitiveParameter] string $code, #[\SensitiveParameter] string $password): bool
     {
-        return DB::transaction(function () use ($username, $code, $password): bool {
-            $user = User::query()->whereRaw('lower(username) = ?', [Username::normalize($username)])->lockForUpdate()->first();
+        return DB::transaction(function () use ($employeeId, $code, $password): bool {
+            $user = User::query()->where('employee_id', EmployeeId::normalize($employeeId))->lockForUpdate()->first();
             if (! $user || ! $this->eligible($user)) {
                 return false;
             }

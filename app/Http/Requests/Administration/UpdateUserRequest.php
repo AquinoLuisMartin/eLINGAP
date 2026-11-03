@@ -3,8 +3,8 @@
 namespace App\Http\Requests\Administration;
 
 use App\Enums\UserRole;
-use App\Rules\UsernameInput;
-use App\Services\Auth\Username;
+use App\Rules\EmployeeIdInput;
+use App\Services\Auth\EmployeeId;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,7 +24,7 @@ class UpdateUserRequest extends FormRequest
 
         return [
             'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->where('name', UserRole::OscaStaff->value)],
-            'username' => ['required', 'string', 'max:100', Rule::when($this->input('username') !== $user->username, [new UsernameInput($user->id)])],
+            'employee_id' => ['required', 'string', new EmployeeIdInput($user->id)],
             'first_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
@@ -35,10 +35,8 @@ class UpdateUserRequest extends FormRequest
     // Normalize login identifiers before validating uniqueness.
     protected function prepareForValidation(): void
     {
-        if (is_string($this->input('username'))) {
-            $username = Username::normalize($this->input('username'));
-            $stored = $this->route('user')->username;
-            $this->merge(['username' => $username === Username::normalize($stored) ? $stored : $username]);
+        if (is_string($this->input('employee_id'))) {
+            $this->merge(['employee_id' => EmployeeId::normalize($this->input('employee_id'))]);
         }
     }
 }

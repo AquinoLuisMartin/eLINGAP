@@ -153,7 +153,7 @@ class Dashboard extends Component
     public function filteredUsers(): LengthAwarePaginator
     {
         return User::query()
-            ->select(['id', 'role_id', 'username', 'email', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'is_active', 'last_login_at', 'created_at'])
+            ->select(['id', 'role_id', 'employee_id', 'email', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'is_active', 'last_login_at', 'created_at'])
             ->with('role:id,name')
             ->when(trim($this->userQuery) !== '', fn ($query) => $query->search(trim($this->userQuery)))
             ->when(in_array($this->userStatusFilter, ['Active', 'Suspended'], true), fn ($query) => $query->where('is_active', $this->userStatusFilter === 'Active'))

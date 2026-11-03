@@ -20,7 +20,7 @@ class PasswordRecoverySecurityTest extends TestCase
         $user = User::factory()->create();
         DB::table('users')->where('id', $user->id)->update(['password_hash' => hash('sha256', $password)]);
 
-        $this->post(route('login'), ['username' => $user->username, 'password' => $password])->assertRedirectToRoute('dashboard');
+        $this->post(route('login'), ['employee_id' => $user->employee_id, 'password' => $password])->assertRedirectToRoute('dashboard');
 
         $this->assertAuthenticatedAs($user);
         $this->assertSame('argon2id', password_get_info($user->fresh()->password_hash)['algoName']);
@@ -31,8 +31,8 @@ class PasswordRecoverySecurityTest extends TestCase
     {
         Notification::fake();
         $user = User::factory()->create();
-        foreach ([$user->username, 'missing.user', $user->username] as $username) {
-            $this->post(route('password.request.store'), ['username' => $username])
+        foreach ([$user->employee_id, 'missing.user', $user->employee_id] as $employeeId) {
+            $this->post(route('password.request.store'), ['employee_id' => $employeeId])
                 ->assertRedirect()->assertSessionHas('status', PasswordRecovery::CONFIRMATION);
         }
 
@@ -44,17 +44,17 @@ class PasswordRecoverySecurityTest extends TestCase
     {
         Notification::fake();
         foreach (range(1, 5) as $attempt) {
-            $this->post(route('password.request.store'), ['username' => 'missing.user'.$attempt])->assertRedirect();
+            $this->post(route('password.request.store'), ['employee_id' => 'missing.user'.$attempt])->assertRedirect();
         }
-        $this->post(route('password.request.store'), ['username' => 'missing.user6'])->assertStatus(429);
-        $this->post(route('login'), ['username' => 'missing.user', 'password' => 'Synthetic-test-password'])
-            ->assertInvalid(['username' => trans('auth.failed')]);
+        $this->post(route('password.request.store'), ['employee_id' => 'missing.user6'])->assertStatus(429);
+        $this->post(route('login'), ['employee_id' => 'missing.user', 'password' => 'Synthetic-test-password'])
+            ->assertInvalid(['employee_id' => trans('auth.failed')]);
         Notification::assertNothingSent();
     }
 
     public function test_reset_validation_does_not_flash_codes_or_passwords(): void
     {
-        $this->post(route('password.update'), ['username' => 'missing.user', 'recovery_code' => 'synthetic-code',
+        $this->post(route('password.update'), ['employee_id' => 'missing.user', 'recovery_code' => 'synthetic-code',
             'password' => ['malformed'], 'password_confirmation' => 'short'])->assertInvalid('password');
 
         $this->assertNull(session()->getOldInput('recovery_code'));

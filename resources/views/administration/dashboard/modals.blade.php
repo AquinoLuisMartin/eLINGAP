@@ -13,8 +13,8 @@
             </div>
             <div class="profile-modal-grid">
                 <div>
-                    <small>Username</small>
-                    <strong>{{ $this->currentUser->username }}</strong>
+                    <small>Employee ID</small>
+                    <strong>{{ $this->currentUser->employee_id }}</strong>
                 </div>
                 <div>
                     <small>Account Status</small>
@@ -43,7 +43,7 @@
             <div class="modal-heading">
                 <div>
                     <h2 id="password-modal-title">Change Password</h2>
-                    <p>Update the password for {{ $this->currentUser->username }}.</p>
+                    <p>Update the password for {{ $this->currentUser->employee_id }}.</p>
                 </div>
                 <button type="button" class="icon-button" wire:click="closeModal" aria-label="Close password dialog">
                     <x-admin.icon name="x" size="19" />

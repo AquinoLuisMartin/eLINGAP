@@ -23,8 +23,8 @@
             @endif
 
             <div class="space-y-2">
-                <label for="login-identity" class="block text-sm font-medium text-osca-ink">Username</label>
-                <input id="login-identity" name="username" type="text" value="{{ is_string(old('username')) ? old('username') : '' }}" autocomplete="username" autocapitalize="none" spellcheck="false" data-focus required class="login-input min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-osca-ink placeholder:text-sm placeholder:text-slate-400 transition-colors hover:border-slate-400" placeholder="Enter your username" @error('username') aria-invalid="true" aria-describedby="login-error" @enderror>
+                <label for="login-identity" class="block text-sm font-medium text-osca-ink">Employee ID</label>
+                <input id="login-identity" name="employee_id" type="text" value="{{ is_string(old('employee_id')) ? old('employee_id') : '' }}" autocomplete="username" minlength="9" maxlength="9" pattern="[0-9]{4}-[0-9]{4}" placeholder="2026-0001" autocapitalize="none" spellcheck="false" data-focus required class="login-input min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-osca-ink placeholder:text-sm placeholder:text-slate-400 transition-colors hover:border-slate-400" @error('employee_id') aria-invalid="true" aria-describedby="login-error" @enderror>
             </div>
 
             <div class="space-y-2">

@@ -9,7 +9,7 @@
                     <div><dt class="text-slate-500">Previous location</dt><dd>{{ $transfer->previous_location }}</dd></div>
                     <div><dt class="text-slate-500">Destination</dt><dd>{{ $transfer->destination }}</dd></div>
                     @if ($transfer->reason)<div><dt class="text-slate-500">Reason</dt><dd>{{ $transfer->reason }}</dd></div>@endif
-                    <div><dt class="text-slate-500">Recorded by</dt><dd>{{ $transfer->recorder->username }} on {{ $transfer->created_at->format('M j, Y g:i A') }}</dd></div>
+                    <div><dt class="text-slate-500">Recorded by</dt><dd>{{ $transfer->recorder->employee_id }} on {{ $transfer->created_at->format('M j, Y g:i A') }}</dd></div>
                 </dl>
                 @if ($transfer->type === 'EXTERNAL')
                     @can('manageId', $seniorCitizen)

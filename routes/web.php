@@ -135,7 +135,6 @@ Route::middleware(['auth', 'auth.session', 'active', EnsureCurrentCredentials::c
         Route::resource('programs', ProgramController::class)->only(['create', 'store']);
         Route::delete('senior-citizens/{senior_citizen}', [SeniorCitizenController::class, 'destroy'])->name('senior-citizens.destroy');
         Route::patch('users/{user}/status', [UserStatusController::class, 'update'])->name('users.status.update');
-        Route::post('users/username-suggestion', [UserController::class, 'suggestUsername'])->middleware('throttle:30,1,username-suggestion')->name('users.username-suggestion');
         Route::get('password-reset-requests', [UserPasswordController::class, 'index'])->name('password-reset-requests.index');
         Route::get('password-reset-requests/{resetRequest}', [UserPasswordController::class, 'show'])->name('password-reset-requests.show');
         Route::post('users/{user}/password-reset-requests', [UserPasswordController::class, 'store'])->name('password-reset-requests.store');

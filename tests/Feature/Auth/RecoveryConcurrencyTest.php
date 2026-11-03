@@ -18,7 +18,7 @@ class RecoveryConcurrencyTest extends TestCase
     public function test_simultaneous_requests_create_one_open_request(): void
     {
         $user = User::factory()->create();
-        $results = $this->race(['action' => 'request', 'username' => $user->username]);
+        $results = $this->race(['action' => 'request', 'employee_id' => $user->employee_id]);
 
         $this->assertSame($results[0], $results[1]);
         $this->assertDatabaseCount('password_reset_requests', 1);
@@ -30,9 +30,9 @@ class RecoveryConcurrencyTest extends TestCase
         $user = User::factory()->create();
         $admin = User::factory()->admin()->create(['password_hash' => 'Synthetic administrator password']);
         $service = app(PasswordRecovery::class);
-        $reset = $service->request($user->username);
+        $reset = $service->request($user->employee_id);
         $code = $service->review($reset, $admin, 'approve', true, 'Synthetic administrator password');
-        $results = $this->race(['action' => 'complete', 'username' => $user->username, 'code' => $code, 'password' => 'Synthetic replacement passphrase']);
+        $results = $this->race(['action' => 'complete', 'employee_id' => $user->employee_id, 'code' => $code, 'password' => 'Synthetic replacement passphrase']);
 
         sort($results);
         $this->assertSame([false, true], $results);
@@ -46,7 +46,7 @@ class RecoveryConcurrencyTest extends TestCase
     {
         $admin = User::factory()->admin()->create(['password_hash' => 'Synthetic administrator password']);
         $user = User::factory()->create();
-        $reset = app(PasswordRecovery::class)->request($user->username);
+        $reset = app(PasswordRecovery::class)->request($user->employee_id);
         $results = $this->race(['action' => 'review', 'admin' => $admin->id, 'user' => $user->id,
             'request' => $reset->id, 'password' => 'Synthetic administrator password'], ['action' => 'deactivate', 'admin' => $admin->id, 'user' => $user->id]);
 
