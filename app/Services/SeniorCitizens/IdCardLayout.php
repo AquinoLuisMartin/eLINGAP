@@ -27,7 +27,7 @@ class IdCardLayout
         abort_unless($draft || $credential, 422, 'Enable the permanent QR credential before printing this existing ID.');
         $officials = $this->officials->values();
         $senior->loadMissing('barangay');
-        $office = $draft ? $this->settings->values() : $this->settings->requireIdentity();
+        $office = $this->settings->values();
 
         return [
             'senior' => $senior, 'draft' => $draft,
@@ -49,7 +49,7 @@ class IdCardLayout
         return $this->sheetPdf([$data], $paper);
     }
 
-    public function sheetPdf(array $cards, string $paper): string
+    public function sheetPdf(array $cards, string $paper, string $printLayout = 'single'): string
     {
         abort_unless(count($cards) >= 1 && count($cards) <= 4, 422, 'Select one to four senior citizen IDs per sheet.');
         foreach ($cards as $data) {
@@ -73,7 +73,7 @@ class IdCardLayout
         $pdf = new Dompdf($options);
         [$width, $height] = self::PAPERS[$paper];
         $pdf->setPaper([0, 0, $width * 72 / 25.4, $height * 72 / 25.4]);
-        $pdf->loadHtml(view('senior-citizens.ids.pdf', ['cards' => $cards])->render());
+        $pdf->loadHtml(view('senior-citizens.ids.pdf', ['cards' => $cards, 'printLayout' => $printLayout])->render());
         $pdf->render();
 
         return $pdf->output();

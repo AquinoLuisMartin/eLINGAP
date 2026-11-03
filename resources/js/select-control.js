@@ -13,6 +13,13 @@ export function filterOptions(options, query) {
     return options.filter(option => !option.hidden && option.label.toLocaleLowerCase().includes(term));
 }
 
+export function visibleText(node) {
+    if (!node || node.nodeType === 3) return node?.textContent ?? '';
+    if (node.nodeType !== 1 || node.getAttribute?.('aria-hidden') === 'true') return '';
+
+    return Array.from(node.childNodes ?? [], visibleText).join('');
+}
+
 export function menuPosition(rect, width, height) {
     const gap = 6;
     const margin = 8;
@@ -111,7 +118,7 @@ export default function uiSelect({ searchable = null } = {}) {
                 .map(label => Array.from(label.childNodes)
                     .filter(node => node.nodeType === 3 || (node.nodeType === 1 && node.tagName === 'SPAN'
                         && node.getAttribute('aria-hidden') !== 'true' && !node.querySelector('input, select, button')))
-                    .map(node => node.textContent).join(' ')).join(' ').replace(/\s+/g, ' ').trim() || 'Options';
+                    .map(node => visibleText(node)).join(' ')).join(' ').replace(/\s+/g, ' ').trim() || 'Options';
             const labelledBy = native.getAttribute('aria-labelledby');
             if (labelledBy) this.label = labelledBy.split(/\s+/).map(id => document.getElementById(id)?.textContent ?? '').join(' ').trim() || this.label;
             if (native.validity.valid) this.message = '';

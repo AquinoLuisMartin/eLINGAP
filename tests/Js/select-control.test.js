@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import uiSelect, { filterOptions, menuPosition, readOptions } from '../../resources/js/select-control.js';
+import uiSelect, { filterOptions, menuPosition, readOptions, visibleText } from '../../resources/js/select-control.js';
 
 function control() {
     const attributes = new Map();
@@ -8,7 +8,7 @@ function control() {
     Object.assign(native, {
         options: [
             { label: 'Select program', value: '', disabled: false },
-            { label: 'Synthetic assistance', value: '42', disabled: false },
+            { label: 'Annual December Senior Assistance', value: '42', disabled: false },
             { label: 'Other - enter a new program', value: 'other', disabled: false },
         ],
         selectedIndex: 0,
@@ -50,14 +50,21 @@ function control() {
     return { state, native, buttons, focused: () => focused };
 }
 
+test('visible label text skips the decorative required mark', () => {
+    const asterisk = { nodeType: 1, tagName: 'SPAN', getAttribute: name => (name === 'aria-hidden' ? 'true' : null), childNodes: [{ nodeType: 3, textContent: '*' }] };
+    const text = { nodeType: 1, tagName: 'SPAN', getAttribute: () => null, childNodes: [{ nodeType: 3, textContent: 'Sex' }, asterisk, { nodeType: 3, textContent: ' required' }] };
+
+    assert.equal(visibleText(text).replace(/\s+/g, ' ').trim(), 'Sex required');
+});
+
 test('search trims whitespace, ignores case and excludes hidden options', () => {
     const options = [
-        { label: 'Synthetic assistance' },
+        { label: 'Annual December Senior Assistance' },
         { label: 'Other - enter a new program' },
-        { label: 'Synthetic hidden', hidden: true },
+        { label: 'Annual December Hidden', hidden: true },
     ];
 
-    assert.deepEqual(filterOptions(options, '  SYNTHETIC  '), [options[0]]);
+    assert.deepEqual(filterOptions(options, '  DECEMBER  '), [options[0]]);
     assert.deepEqual(filterOptions(options, 'missing'), []);
 });
 

@@ -11,7 +11,7 @@ class SelectComponentTest extends TestCase
 {
     public function test_native_fallback_preserves_submission_validation_and_option_metadata(): void
     {
-        $html = Blade::render('<x-select label="Program" id="program" name="program_id" required aria-describedby="program-help"><option value="">Select program</option><option value="42" selected data-body="Synthetic template">Synthetic assistance</option><option value="other" disabled>Other</option></x-select>');
+        $html = Blade::render('<x-select label="Program" id="program" name="program_id" required aria-describedby="program-help"><option value="">Select program</option><option value="42" selected data-body="Synthetic template">Annual December Senior Assistance</option><option value="other" disabled>Other</option></x-select>');
         $document = new DOMDocument;
         @$document->loadHTML($html);
         $xpath = new DOMXPath($document);

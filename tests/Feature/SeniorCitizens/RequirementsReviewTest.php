@@ -25,9 +25,12 @@ class RequirementsReviewTest extends TestCase
         $this->actingAs(User::factory()->create());
 
         Livewire::test(IdApplication::class)->call('next')
-            ->assertSet('step', 0)->assertHasErrors('form.requirements_status')
-            ->set('form.requirements_status', 'CHECKED')->call('next')
-            ->assertHasErrors(['form.requirements_checks.identity', 'form.requirements_checks.residency']);
+            ->assertSet('step', 0)
+            ->assertHasErrors(['form.requirements_checks.identity', 'form.requirements_checks.residency'])
+            ->set('form.requirements_checks.identity', true)->call('next')
+            ->assertSet('step', 0)->assertHasErrors('form.requirements_checks.residency')
+            ->set('form.requirements_checks.residency', true)->call('next')
+            ->assertSet('step', 1)->assertHasNoErrors();
 
         $this->assertDatabaseCount('senior_citizens', 0);
     }

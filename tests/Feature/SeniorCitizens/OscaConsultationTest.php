@@ -14,6 +14,7 @@ use App\Services\Benefits\BenefitAssignment;
 use App\Services\SeniorCitizens\IdCardLayout;
 use App\Services\SeniorCitizens\IdCredential;
 use App\Services\SeniorCitizens\IdOfficials;
+use Database\Seeders\BenefitProgramSeeder;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -85,8 +86,8 @@ class OscaConsultationTest extends TestCase
         $this->actingAs(User::factory()->create());
         $first = $this->senior();
         $second = $this->senior();
-        app(BenefitAssignment::class)->assign($first, $this->program('Zeta'));
-        app(BenefitAssignment::class)->assign($second, $this->program('Alpha'));
+        app(BenefitAssignment::class)->assign($first, $this->program('tss'));
+        app(BenefitAssignment::class)->assign($second, $this->program('december-assistance'));
 
         $this->get(route('senior-citizens.index', ['sort' => 'benefits', 'direction' => 'asc']))
             ->assertViewHas('seniorCitizens', fn ($records) => $records->modelKeys() === [$second->id, $first->id]);
@@ -354,7 +355,7 @@ class OscaConsultationTest extends TestCase
         $pdf = new Dompdf($options);
         [$width, $height] = IdCardLayout::PAPERS[$paper];
         $pdf->setPaper([0, 0, $width * 72 / 25.4, $height * 72 / 25.4]);
-        $pdf->loadHtml(view('senior-citizens.ids.pdf', compact('cards'))->render());
+        $pdf->loadHtml(view('senior-citizens.ids.pdf', [...compact('cards'), 'printLayout' => 'batch'])->render());
         $sides = 0;
         $photos = 0;
         $pdf->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$sides, &$photos): void {
@@ -370,8 +371,10 @@ class OscaConsultationTest extends TestCase
             }
             if ($node->getAttribute('class') === 'id-photo') {
                 $photos++;
-                $this->assertEqualsWithDelta(72, $box['w'], 0.02);
-                $this->assertEqualsWithDelta(72, $box['h'], 0.02);
+                $opening = $frame->get_content_box();
+                $this->assertEqualsWithDelta(72, $opening['w'], 0.02);
+                $this->assertEqualsWithDelta(72, $opening['h'], 0.02);
+                $this->assertEqualsWithDelta($box['w'], $box['h'], 0.02);
             }
         }]]);
 
@@ -430,9 +433,13 @@ class OscaConsultationTest extends TestCase
         ]));
     }
 
-    private function program(string $name = 'Synthetic benefit'): Program
+    private function program(string $code = 'december-assistance'): Program
     {
-        return Program::create(['name' => $name, 'agency' => 'Synthetic agency', 'status' => 'ACTIVE']);
+        $this->seed(BenefitProgramSeeder::class);
+        $program = Program::where('benefit_code', $code)->sole();
+        $program->update(['status' => 'ACTIVE']);
+
+        return $program;
     }
 
     private function registration(SeniorCitizen $senior): array

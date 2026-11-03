@@ -1,3 +1,4 @@
+import { workspaceTheme } from './workspace-theme';
 import Alpine from 'alpinejs';
 import collapse from '@alpinejs/collapse';
 import idImageEditor from './id-image-editor';
@@ -5,16 +6,22 @@ import initApplicationWizard from './application-wizard';
 import { formatSeniorMobile } from './senior-registration-input';
 import uiSelect from './select-control';
 import initFormFeedback from './form-feedback';
+import initFieldFeedback from './field-feedback';
 import initAccountSecurity from './account-security';
+import initInputSuggestions from './input-suggestions';
+import initUppercaseSearch from './uppercase-search';
 
 window.idImageEditor = idImageEditor;
 window.formatSeniorMobile = formatSeniorMobile;
 window.uiSelect = uiSelect;
+window.workspaceTheme = workspaceTheme;
 const modalTriggers = new WeakMap();
 
 // Landing page interactions
 
 document.addEventListener('DOMContentLoaded', () => {
+    initInputSuggestions();
+    initUppercaseSearch();
     if (!window.Alpine) {
         window.Alpine = Alpine;
         Alpine.plugin(collapse);
@@ -32,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initViewSwitcher();
     initEscapeClose();
     initFormFeedback();
+    initFieldFeedback();
     initAccountSecurity(document, window);
 });
 

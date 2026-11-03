@@ -23,8 +23,9 @@
                     <div class="min-w-0 space-y-1">
                         <h2 class="break-words text-xl font-semibold sm:text-2xl">{{ $seniorCitizen->full_name }}</h2>
                         <div class="flex flex-wrap items-center gap-2">
-                            <x-badge :status="$seniorCitizen->status" />
                             <span class="text-sm text-slate-500">{{ implode(', ', array_filter([$seniorCitizen->barangay->name, $officeDetails['municipality']])) }}</span>
+                            <x-badge :status="$seniorCitizen->status" />
+                            <x-milestone-badge :senior="$seniorCitizen" />
                         </div>
                     </div>
             </div>

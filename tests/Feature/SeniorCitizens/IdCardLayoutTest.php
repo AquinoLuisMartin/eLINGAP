@@ -23,6 +23,8 @@ class IdCardLayoutTest extends TestCase
 
     #[TestWith(['Sample Middle Citizen', '123 Sample Street', false])]
     #[TestWith(['Sample Additional Middle Family Citizen', '123 Sample Street', false])]
+    #[TestWith(['Sample First Middle Additional Given Family Names Citizen', '123 Sample Street', false])]
+    #[TestWith(['Sample María Ñandú Citizen', 'Unit 12, Sample Street', false])]
     #[TestWith(['Sample Given Names With Several Middle Names And An Extended Family Name', 'Unit 20, Block 10, Sample Residences, Sample Subdivision, Sample Road', true])]
     #[TestWith(['Sample Given Names With Several Additional Middle Names And An Extended Family Name With Additional Family Names', 'Unit 20, Block 10, Sample Residences, Sample Subdivision, Sample Road, Near the Sample Community Center', true])]
     #[TestWith(['Sample Middle Citizen', 'Unit 20 Block 10, Sample Residences, Sample Subdivision, Sample Road, Near the Sample Community Center and Municipal Health Center', false])]
@@ -48,8 +50,17 @@ class IdCardLayoutTest extends TestCase
         $pdf->setPaper('a4');
         $pdf->loadHtml(view('senior-citizens.ids.pdf', ['cards' => [$card]])->render());
         $boxes = [];
-        $pdf->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$boxes): void {
+        $textBoxes = [];
+        $pdf->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$boxes, &$textBoxes): void {
             $node = $frame->get_node();
+            if ($node instanceof \DOMText && trim($node->textContent) !== '') {
+                for ($parent = $node->parentNode; $parent instanceof \DOMElement; $parent = $parent->parentNode) {
+                    if ($parent->getAttribute('class') === 'id-card') {
+                        $textBoxes[] = ['side' => $parent->getAttribute('aria-label'), 'box' => $frame->get_border_box(), 'text' => $node->textContent];
+                        break;
+                    }
+                }
+            }
             if ($node instanceof \DOMElement) {
                 $key = explode(' ', $node->getAttribute('class'))[0];
                 if ($key === 'id-card') {
@@ -61,14 +72,19 @@ class IdCardLayoutTest extends TestCase
 
         $pdf->render();
 
+        foreach ($textBoxes as $text) {
+            $outer = $boxes[$text['side']];
+            $this->assertGreaterThanOrEqual($outer['x'], $text['box']['x'], $text['text'].' exceeds the left edge');
+            $this->assertLessThanOrEqual($outer['x'] + $outer['w'], $text['box']['x'] + $text['box']['w'], $text['text'].' exceeds the right edge');
+        }
         foreach ([['id-number', 'id-photo'], ['id-photo', 'id-personal'], ['id-heading', 'id-personal'], ['id-personal', 'id-address'],
-            ['id-seal', 'id-contact'], ['id-heading', 'id-contact'], ['id-contact', 'id-personal'], ['id-address', 'id-dates'], ['address', 'id-dates'], ['id-dates', 'id-validity'], ['id-validity', 'id-thumbprint'],
+            ['id-seal', 'id-contact'], ['id-heading', 'id-contact'], ['id-personal', 'id-contact'], ['id-address', 'id-contact'], ['address', 'id-contact'], ['id-contact', 'id-dates'], ['id-address', 'id-dates'], ['address', 'id-dates'], ['id-dates', 'id-validity'], ['id-validity', 'id-thumbprint'],
             ['id-birth', 'id-validity'], ['id-age', 'id-validity'], ['id-sex', 'id-validity'], ['id-issuance', 'id-validity'], ['id-holder-name', 'id-thumbprint-label'],
             ['id-back-heading', 'id-benefits'], ['id-benefits', 'id-warning'], ['id-benefits', 'id-qr'],
             ['id-warning', 'id-officials'], ['id-qr', 'id-qr-label']] as [$above, $below]) {
             $this->assertLessThanOrEqual($boxes[$below]['y'], $boxes[$above]['y'] + $boxes[$above]['h'], $above.' overlaps '.$below);
         }
-        foreach ([['id-seal', 'id-heading'], ['id-heading', 'id-photo'], ['id-contact', 'id-photo'], ['id-contact-label', 'id-contact-value'], ['id-birth', 'id-age'], ['id-age', 'id-sex'], ['id-sex', 'id-issuance'], ['id-officials', 'id-qr']] as [$left, $right]) {
+        foreach ([['id-seal', 'id-heading'], ['id-heading', 'id-photo'], ['id-contact-label', 'id-contact-value'], ['id-birth', 'id-age'], ['id-age', 'id-sex'], ['id-sex', 'id-issuance'], ['id-officials', 'id-qr']] as [$left, $right]) {
             $this->assertLessThanOrEqual($boxes[$right]['x'], $boxes[$left]['x'] + $boxes[$left]['w'], $left.' overlaps '.$right);
         }
         foreach (['Front of senior citizen ID' => ['id-seal', 'id-heading', 'id-photo', 'id-personal', 'id-address', 'id-contact', 'id-contact-label', 'id-contact-value', 'id-birth', 'id-age', 'id-sex', 'id-issuance', 'id-number', 'id-thumbprint', 'id-holder-name', 'id-thumbprint-label', 'id-validity'],

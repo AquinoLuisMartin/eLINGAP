@@ -3,7 +3,7 @@
     @if($initialImage)<button type="button" class="secondary-button" @click="loadSaved(@js($initialImage))" :disabled="busy">Adjust saved image</button>@endif
     <label class="block text-sm font-normal">
         {{ $label }}
-        <input type="file" accept="image/jpeg,image/png" @change="load($event)" :disabled="busy" class="mt-2 block w-full" aria-describedby="{{ $property }}-help">
+        <input type="file" data-validation-field="{{ $property }}" accept="image/jpeg,image/png" @change="load($event)" :disabled="busy" :aria-invalid="error ? 'true' : 'false'" class="mt-2 block w-full" aria-describedby="{{ $property }}-help">
     </label>
     <p id="{{ $property }}-help" class="text-sm text-slate-500">JPEG or PNG, up to 2MB.@if ($square) Adjust the square crop before saving.@endif</p>
     <p x-show="error" x-text="error" role="alert" class="text-sm text-red-700 dark:text-red-300" x-cloak></p>

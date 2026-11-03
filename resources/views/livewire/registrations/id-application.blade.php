@@ -31,7 +31,7 @@
         </header>
         <nav aria-label="ID application progress" class="border-b border-slate-200 px-3 py-5 sm:px-8 dark:border-slate-700">
             <ol class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                @foreach ([0 => 'Requirements', 1 => 'Personal Info', 2 => 'Address & Applicant', 3 => 'Confirm & Save'] as $number => $label)
+                @foreach ([0 => 'Requirements', 1 => 'Personal Info', 2 => 'Address & Contact', 3 => 'Confirm & Save'] as $number => $label)
                     <li wire:key="registration-step-{{ $number }}" @class(['border-b-2 pb-3', 'border-osca-primary' => $step === $number, 'border-slate-200 dark:border-slate-700' => $step !== $number]) @if ($step === $number) aria-current="step" @endif>
                         <span class="block text-xs text-slate-500">Step {{ $number + 1 }}</span>
                         <span @class(['mt-1 block text-sm font-medium', 'text-osca-primary dark:text-blue-300' => $step === $number, 'text-slate-500' => $step !== $number])>{{ $label }}</span>
@@ -41,30 +41,35 @@
         </nav>
         <form wire:submit="{{ $step === 3 ? 'submit' : 'next' }}" novalidate>
             <div class="space-y-5 p-5 sm:p-6">
-                <div class="flex flex-wrap items-center justify-between gap-3"><h3 class="text-lg font-semibold">{{ [0 => 'Check requirements first', 1 => 'Personal information', 2 => 'Address and applicant', 3 => 'Documents and confirmation'][$step] }}</h3><p class="text-xs text-slate-500">Step {{ $step + 1 }} of 4</p></div>
+                <div class="flex flex-wrap items-center justify-between gap-3"><h3 class="text-lg font-semibold">{{ [0 => 'Check requirements first', 1 => 'Personal information', 2 => 'Address and contact details', 3 => 'Documents and confirmation'][$step] }}</h3><p class="text-xs text-slate-500">Step {{ $step + 1 }} of 4</p></div>
                 @if ($step === 0)
-                    <p class="max-w-2xl text-sm text-slate-500">Check the presented documents before entering the senior's information. Flag a record only when a document needs further review.</p>
-                    <fieldset class="space-y-3">
-                        <legend class="mb-3 text-sm font-semibold">Document checks</legend>
-                        @foreach (['identity' => 'Identity and age requirement checked', 'residency' => 'Residency requirement checked', 'authorization' => 'Representative authorization checked (when applicable)'] as $key => $label)
-                            <div wire:key="requirements-check-{{ $key }}"><label class="flex items-start gap-2 text-sm"><input type="checkbox" wire:model="form.requirements_checks.{{ $key }}" class="mt-1"> {{ $label }}</label>@error('form.requirements_checks.'.$key)<p role="alert" class="mt-1 text-sm text-red-700 dark:text-red-300">{{ $message }}</p>@enderror</div>
+                    <p class="max-w-2xl text-sm text-slate-500">Verify and check the presented required documents before proceeding to enter the senior citizen's information.</p>
+                    <fieldset class="mt-6">
+                        <legend class="mb-3 text-base font-semibold text-slate-900 dark:text-slate-100">Document checks</legend>
+                        <div class="flex flex-col gap-4">
+                        @foreach ([
+                            'identity' => ['Birth Certificate / Proof of Age', 'Verify that the applicant is at least 60 years old.'],
+                            'residency' => ['Valid Government-Issued ID', "Must show the applicant's current address in Santa Maria, Bulacan."],
+                            'authorization' => ['Authorization Letter & Representative ID (Optional / If applicable)', 'Required only if an authorized representative is applying on behalf of the senior citizen.'],
+                        ] as $key => [$title, $description])
+                            <div wire:key="requirements-check-{{ $key }}">
+                                <label class="flex cursor-pointer items-start gap-3 text-sm">
+                                    <input type="checkbox" wire:model="form.requirements_checks.{{ $key }}" data-error-display="outline" aria-invalid="{{ $errors->has('form.requirements_checks.'.$key) ? 'true' : 'false' }}" aria-required="{{ $key !== 'authorization' || $this->needsRepresentative() ? 'true' : 'false' }}" class="mt-1 shrink-0">
+                                    <span class="flex flex-col gap-1"><span class="font-semibold text-slate-900 dark:text-slate-100">{{ $title }}@if ($key !== 'authorization' || $this->needsRepresentative())<span class="field-required" aria-hidden="true">*</span>@endif</span><span class="text-slate-500">{{ $description }}</span></span>
+                                </label>
+                            </div>
                         @endforeach
+                        </div>
                     </fieldset>
-                    <x-registration-field name="form.requirements_status" label="Document assessment" required>
-                        <x-select id="form-requirements_status" wire:model.live="form.requirements_status" class="w-full sm:max-w-md"><option value="">Select assessment</option><option value="CHECKED">Requirements checked - ready to register</option><option value="REVIEW">Needs review - document concern</option></x-select>
-                    </x-registration-field>
-                    @if (($form['requirements_status'] ?? '') === 'REVIEW')
-                        <x-registration-field name="form.review_reason" label="Reason for review" required hint="Explain which document needs checking or correction."><textarea id="form-review_reason" wire:model="form.review_reason" rows="3" minlength="5" maxlength="500" class="w-full max-w-2xl"></textarea></x-registration-field>
-                    @endif
                 @elseif ($step === 1)
-                    <p class="text-sm text-slate-500">Enter the senior's details as shown on their identification documents. Applicants must be at least 60 years old.</p>
-                    <div class="grid gap-4 sm:grid-cols-2">
+                    <p class="max-w-2xl text-sm text-slate-500">Enter the senior's details as shown on their identification documents. Applicants must be at least 60 years old. Fields marked <span class="field-required" aria-hidden="true">*</span><span class="sr-only"> with an asterisk</span> are required.</p>
+                    <div class="grid items-start gap-x-5 gap-y-4 sm:grid-cols-2">
                         @foreach (['first_name' => 'First name', 'last_name' => 'Last name', 'middle_name' => 'Middle name', 'name_suffix' => 'Name suffix'] as $field => $label)
                             <x-registration-field wire:key="personal-field-{{ $field }}" :name="'form.'.$field" :label="$label" :required="in_array($field, ['first_name', 'last_name'])"><input id="form-{{ $field }}" data-draft-name="{{ $field }}" wire:model="form.{{ $field }}" class="uppercase" maxlength="{{ $field === 'name_suffix' ? 20 : 100 }}" autocomplete="{{ ['first_name' => 'given-name', 'last_name' => 'family-name', 'middle_name' => 'additional-name'][$field] ?? 'off' }}"></x-registration-field>
                         @endforeach
                         <x-registration-field name="form.birth_date" label="Birth date" required>
                             <input id="form-birth_date" type="date" wire:model.live="form.birth_date" max="{{ today()->subYears(60)->toDateString() }}" aria-describedby="registration-age">
-                            <span id="registration-age" class="text-sm font-normal" role="status" aria-live="polite">
+                            <span id="registration-age" class="field-helper" role="status" aria-live="polite">
                                 @if ($this->age !== null)
                                     Age: {{ $this->age }} years.
                                     @if ($this->age >= 60) Meets the 60-year age requirement.
@@ -74,19 +79,18 @@
                                 @endif
                             </span>
                         </x-registration-field>
-                        <x-registration-field name="form.sex" label="Sex" required><x-select id="form-sex" wire:model="form.sex"><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option><option value="OTHER">Other</option></x-select></x-registration-field>
+                        <x-registration-field name="form.sex" label="Sex" required><x-select id="form-sex" wire:model="form.sex"><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></x-select></x-registration-field>
                         <x-registration-field name="form.civil_status" label="Civil status"><x-select id="form-civil_status" wire:model="form.civil_status"><option value="">Select civil status</option><option value="SINGLE">Single</option><option value="MARRIED">Married</option><option value="WIDOWED">Widowed</option></x-select></x-registration-field>
                     </div>
                 @elseif ($step === 2)
-                    <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid items-start gap-x-5 gap-y-4 sm:grid-cols-2">
                         <x-registration-field name="form.barangay_id" label="Barangay" required><x-select id="form-barangay_id" wire:model="form.barangay_id"><option value="">Select barangay</option>@foreach ($barangays as $barangay)<option wire:key="registration-barangay-{{ $barangay->id }}" value="{{ $barangay->id }}">{{ $barangay->name }}</option>@endforeach</x-select></x-registration-field>
                         <x-registration-field name="form.contact_number" label="Senior mobile number" required hint="Enter 10 digits starting with 9. The +63 country code is included."><x-senior-mobile-input id="form-contact_number" wire:model="form.contact_number" required /></x-registration-field>
                         <x-registration-field name="form.address" label="House and street address" required class="sm:col-span-2"><textarea id="form-address" class="resize-none uppercase" wire:model="form.address" maxlength="1000" rows="2" autocomplete="street-address"></textarea></x-registration-field>
-                        <x-registration-field name="form.applicant_type" label="Who is applying?" required class="sm:col-span-2"><x-select id="form-applicant_type" wire:model.live="form.applicant_type"><option value="SELF">Senior applying personally</option><option value="REPRESENTATIVE">Authorized representative</option></x-select></x-registration-field>
                     </div>
-                    @if ($form['applicant_type'] === 'SELF')<label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="representativeContact"> Add an authorized representative for SMS or future claiming</label>@endif
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="representativeContact"> Add an authorized representative for SMS or future claiming</label>
                     @if ($representativeContact || $this->needsRepresentative())
-                        <fieldset class="space-y-4 rounded-lg border border-slate-200 p-4 dark:border-slate-700"><legend class="px-2 text-sm font-semibold">Authorized representative</legend><p class="text-sm text-slate-500">Authorization proof will be uploaded in the next step.</p><div class="grid gap-4 sm:grid-cols-2">
+                        <fieldset class="space-y-4 rounded-lg border border-slate-200 p-4 dark:border-slate-700"><legend class="px-2 text-sm font-semibold">Authorized representative</legend><p class="text-sm text-slate-500">Authorization proof will be uploaded in the next step.</p><div class="grid items-start gap-x-5 gap-y-4 sm:grid-cols-2">
                             @foreach (['representative_name' => 'Full name', 'representative_relationship' => 'Relationship to senior', 'representative_contact' => 'Mobile number'] as $field => $label)
                                 <x-registration-field wire:key="representative-field-{{ $field }}" :name="'form.'.$field" :label="$label" required>
                                     @if ($field === 'representative_contact')
@@ -100,7 +104,7 @@
                     @endif
                 @else
                     <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-700 dark:bg-slate-800">
-                        <h3 class="font-semibold">Application summary</h3><dl class="mt-3 grid gap-3 sm:grid-cols-2"><div><dt class="text-slate-500">Senior</dt><dd>{{ $form['first_name'] }} {{ $form['middle_name'] }} {{ $form['last_name'] }} {{ $form['name_suffix'] }}</dd></div><div><dt class="text-slate-500">Birth date</dt><dd>{{ $form['birth_date'] }}</dd></div><div><dt class="text-slate-500">Barangay</dt><dd>{{ $barangays->firstWhere('id', (int) $form['barangay_id'])?->name }}</dd></div><div><dt class="text-slate-500">Applicant</dt><dd>{{ $form['applicant_type'] === 'REPRESENTATIVE' ? $form['representative_name'] : 'Senior personally' }}</dd></div></dl>
+                        <h3 class="font-semibold">Application summary</h3><dl class="mt-3 grid gap-3 sm:grid-cols-2"><div><dt class="text-slate-500">Senior</dt><dd>{{ $form['first_name'] }} {{ $form['middle_name'] }} {{ $form['last_name'] }} {{ $form['name_suffix'] }}</dd></div><div><dt class="text-slate-500">Birth date</dt><dd>{{ $form['birth_date'] }}</dd></div><div><dt class="text-slate-500">Barangay</dt><dd>{{ $barangays->firstWhere('id', (int) $form['barangay_id'])?->name }}</dd></div></dl>
                     </div>
                     <p class="text-sm text-slate-500">No photo upload is needed. Attach the senior's printed 1 x 1 inch photo to the ID after printing.</p>
                     <div class="grid gap-5 sm:grid-cols-2">
@@ -108,8 +112,8 @@
                         @if ($this->needsRepresentative())<x-registration-field name="authorizationFile" label="Proof of authorization" required hint="Required for the recorded representative. PDF, JPEG or PNG, up to 5 MB." class="sm:col-span-2"><input id="authorizationFile" type="file" wire:model="authorizationFile" accept=".pdf,.jpg,.jpeg,.png"></x-registration-field>@endif
                     </div>
                     <p wire:loading wire:target="authorizationFile,identificationFile" class="text-sm text-slate-500" role="status">Uploading document...</p>
-                    <p class="text-sm text-slate-500">{{ $form['requirements_status'] === 'CHECKED' ? 'Requirements checked. Saving verifies this registration and continues to ID preparation.' : 'Needs review: '.$form['review_reason'].'. ID issuance stays blocked until the concern is resolved.' }}</p>
-                    <label class="flex items-start gap-2 text-sm"><input type="checkbox" wire:model="informationReviewed" class="mt-1"> <span>I confirmed that the entered information matches the presented documents and the assessment above.</span></label>
+                    <p class="text-sm text-slate-500">Requirements checked. Saving verifies this registration and continues to ID preparation.</p>
+                    <label class="flex items-start gap-2 text-sm"><input type="checkbox" wire:model="informationReviewed" class="mt-1"> <span>I confirmed that the entered information matches the presented documents.</span></label>
                     @error('informationReviewed')<p class="text-sm text-red-700 dark:text-red-300" role="alert">{{ $message }}</p>@enderror
                 @endif
             </div>

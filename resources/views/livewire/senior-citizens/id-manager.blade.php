@@ -7,9 +7,6 @@
         </div>
         <div class="flex flex-wrap items-center gap-3">
             @can('create', \App\Models\SeniorCitizen::class)
-                @if (request('from') !== 'registrations')
-                    <a href="{{ route('senior-citizens.create') }}" class="primary-button"><x-admin.icon name="plus" size="17" /> New ID Application</a>
-                @endif
                 <a href="{{ route(request('from') === 'registrations' ? 'registrations.index' : 'senior-citizens.index', request()->only(request('from') === 'registrations' ? ['search', 'search_by', 'stage', 'barangay_id', 'page'] : ['search', 'search_by', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])) }}" class="secondary-button">{{ request('from') === 'registrations' ? 'Exit to registrations' : 'Exit to registry' }}</a>
             @endcan
             @can('configureId', \App\Models\SeniorCitizen::class)
@@ -33,15 +30,16 @@
         </div></details>
     @endif
     @if ($notice)<x-feedback>{{ $notice }}</x-feedback>@endif
-    <x-benefit-errors />
     @if ($card && ! $card['address']['fits'])
         <p role="alert" class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">The address is too long to fit legibly on the ID. Review the address in the senior record before printing.</p>
     @endif
     <nav aria-label="ID preparation progress" class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
         <ol class="grid gap-4 sm:grid-cols-3">
             @foreach ([1 => 'Physical ID preparation', 2 => 'Review and issuance', 3 => 'Print ID'] as $number => $label)
-                <li wire:key="id-step-{{ $number }}" @if($step === $number) aria-current="step" @endif class="flex items-center gap-3 text-sm {{ $step === $number ? 'text-osca-primary dark:text-blue-300' : 'text-slate-500' }}">
-                    <span class="flex size-9 shrink-0 items-center justify-center rounded-full border {{ $step === $number ? 'border-osca-primary bg-osca-primary text-white' : 'border-slate-200' }}">{{ $number }}</span>{{ $label }}
+                <li wire:key="id-step-{{ $number }}">
+                    <button type="button" wire:click="goToStep({{ $number }})" wire:loading.attr="disabled" wire:target="goToStep" @if($step === $number) aria-current="step" @endif class="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg p-2 text-left text-sm transition-colors hover:bg-blue-50 hover:text-osca-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-osca-primary disabled:cursor-wait dark:hover:bg-slate-800 dark:hover:text-blue-300 {{ $step === $number ? 'text-osca-primary dark:text-blue-300' : 'text-slate-500' }}">
+                        <span class="flex size-9 shrink-0 items-center justify-center rounded-full border {{ $step === $number ? 'border-osca-primary bg-osca-primary text-white' : 'border-slate-200' }}">{{ $number }}</span>{{ $label }}
+                    </button>
                 </li>
             @endforeach
         </ol>
@@ -71,6 +69,7 @@
                 <p class="mt-4 text-sm text-amber-800 dark:text-amber-200">Official names or the municipal seal are missing. Open Official card settings above to complete them here.</p>
             @endif
             <label class="mt-6 flex items-start gap-3 text-sm"><input type="checkbox" wire:model="reviewed" class="mt-1"> I reviewed the card preview and confirmed the details for issuance or reprinting.</label>
+            @error('reviewed')<p class="mt-2 text-sm text-red-700 dark:text-red-300" role="alert">{{ $message }}</p>@enderror
         </x-senior-id.panel>
         <footer class="flex flex-wrap justify-between gap-3">
             <button type="button" wire:click="back" class="secondary-button">Back to preparation</button>
@@ -79,7 +78,7 @@
             @else<p class="text-sm text-amber-800">Staff must verify the registration before ID issuance.</p>@endif
         </footer>
     @else
-        <x-senior-id.panel title="Print the ID" description="Front and back are placed side by side. Select up to four records in the masterlist for a full sheet. Cut and join them before lamination. Print at actual size (100%) and turn off fit-to-page.">
+        <x-senior-id.panel title="Print the ID" description="Front and back are placed side by side. Select up to four records in Registrations for a full sheet. Cut and join them before lamination. Print at actual size (100%) and turn off fit-to-page.">
             <form method="POST" action="{{ route('senior-id.print', $senior) }}" target="_blank" class="space-y-6">
                 @csrf
                 <div class="grid gap-6 sm:grid-cols-2">

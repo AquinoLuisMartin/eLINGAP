@@ -15,11 +15,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['role_id', 'employee_id', 'email', 'password_hash', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'is_active'])]
-#[Hidden(['password_hash', 'remember_token', 'credential_version'])]
+#[Fillable(['role_id', 'employee_id', 'email', 'password_hash', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'is_active', 'profile_photo_path'])]
+#[Hidden(['password_hash', 'remember_token', 'credential_version', 'profile_photo_path'])]
 class User extends Authenticatable
 {
-    protected $attributes = ['must_change_password' => false, 'credential_version' => 1];
+    protected $attributes = [
+        'must_change_password' => false,
+        'credential_version' => 1,
+        'middle_name' => null,
+        'name_suffix' => null,
+        'profile_photo_path' => null,
+    ];
 
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -124,5 +130,10 @@ class User extends Authenticatable
             $this->last_name,
             $this->name_suffix,
         ])));
+    }
+
+    protected function initials(): Attribute
+    {
+        return Attribute::get(fn (): string => mb_substr((string) $this->first_name, 0, 1).mb_substr((string) $this->last_name, 0, 1));
     }
 }

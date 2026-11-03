@@ -33,8 +33,7 @@ class DashboardDataTest extends TestCase
             ->assertSee('Account and system overview')
             ->assertSee('No audit activity recorded yet.')
             ->assertDontSee('18,427')
-            ->call('navigate', 'configuration')->assertSee('No configuration recorded')
-            ->call('navigate', 'sms')->assertSee('No broadcasts recorded');
+            ->call('navigate', 'configuration')->assertSee('No configuration recorded');
     }
 
     public function test_overview_uses_registry_enrollment_and_monthly_sms_totals(): void
@@ -143,7 +142,7 @@ class DashboardDataTest extends TestCase
             ->assertSee('Created a program')->assertSee('Failed sign-in attempt')
             ->assertDontSee('private-test-payload')->assertDontSee('private-test-employee_id');
 
-        $this->assertSame(3, $component->get('filteredLogs')->total());
+        $this->assertSame(2, $component->get('filteredLogs')->total());
         $component->set('logCategory', 'Login Events');
         $this->assertSame(1, $component->get('filteredLogs')->total());
         $component->set('search', 'missing')->assertSee('No matching system events');
@@ -206,7 +205,7 @@ class DashboardDataTest extends TestCase
         $component->call('previousPage', 'logsPage')->assertSee('Page 1 of 2');
     }
 
-    public function test_broadcasts_and_configuration_show_only_recorded_safe_data(): void
+    public function test_configuration_shows_safe_data_without_exposing_broadcasts(): void
     {
         $admin = User::factory()->admin()->create();
         $blast = SmsBlast::create(['created_by' => $admin->id, 'recipient_count' => 2, 'message' => 'Test broadcast']);
@@ -219,10 +218,9 @@ class DashboardDataTest extends TestCase
 
         $component = Livewire::actingAs($admin)->test(Dashboard::class)
             ->assertSee('Test Office')->assertDontSee('private-test-setting')
-            ->call('navigate', 'sms')->assertSeeHtml('href="'.route('sms.blasts.show', $blast).'"');
+            ->assertDontSeeHtml('href="'.route('sms.blasts.show', $blast).'"');
 
-        $this->assertSame(1, $component->get('broadcasts')->first()->sent_count);
-        $this->assertSame(1, $component->get('broadcasts')->first()->failed_count);
+        $this->assertDatabaseHas('sms_blasts', ['id' => $blast->id]);
         $component->call('navigate', 'configuration')->assertSee('Test Office')->assertDontSee('private-test-setting');
     }
 

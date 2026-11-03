@@ -14,7 +14,6 @@ use App\Models\User;
 use App\Services\Benefits\BenefitSms;
 use App\Services\SeniorCitizens\IdCardAddress;
 use App\Services\SeniorCitizens\IdCardLayout;
-use App\Services\SeniorCitizens\IdCredential;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -35,7 +34,7 @@ class OfficeConfigurationTest extends TestCase
     public function test_public_pages_have_empty_states_instead_of_fixed_office_information(string $path): void
     {
         $this->get($path)->assertOk()->assertSee('Office of the Senior Citizen Affairs')
-            ->assertSee('Address not configured')->assertSee('Contact number not configured')
+            ->assertSee('Address not configured')->assertDontSee('Contact number not configured')
             ->assertSee('Office hours not configured')->assertDontSee('Santa Maria')
             ->assertDontSee('+63 44 288 2604')->assertDontSee('google.com/maps/search')
             ->assertDontSee('Saturday &amp; Sunday', false);
@@ -179,7 +178,7 @@ class OfficeConfigurationTest extends TestCase
             ->patch(route('administration.configuration.update'), ['settings' => ['support_phone' => '']])->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('system_configurations', ['key' => 'support_phone', 'value' => null]);
-        $this->get('/')->assertSee('Contact number not configured')->assertDontSee('Synthetic contact');
+        $this->get('/')->assertDontSee('Contact number not configured')->assertDontSee('Synthetic contact');
     }
 
     public function test_program_forms_use_the_stored_office_instead_of_a_fixed_agency(): void
@@ -192,7 +191,7 @@ class OfficeConfigurationTest extends TestCase
     public function test_program_forms_do_not_invent_an_agency_or_create_a_fixed_catalog_when_unconfigured(): void
     {
         Livewire::actingAs(User::factory()->create())->test(Programs::class)
-            ->assertSet('form.agency', '')->assertSee('No program definitions recorded.')
+            ->assertSet('form.agency', '')->assertSee('No programs recorded')
             ->assertDontSee('Initialize approved programs');
         Livewire::test(Workspace::class)->assertSet('newProgram.agency', '');
 
@@ -276,31 +275,6 @@ class OfficeConfigurationTest extends TestCase
         $this->assertStringContainsString('SYNTHETIC MUNICIPALITY', view('components.senior-id.front', ['card' => $card])->render());
         $this->assertSame('Synthetic street, Synthetic barangay, Synthetic town, Synthetic province',
             app(IdCardAddress::class)->format('Synthetic street, Synthetic town, Synthetic province', 'Synthetic barangay')['text']);
-    }
-
-    public function test_missing_locality_prevents_printing_an_issued_id(): void
-    {
-        $this->actingAs(User::factory()->create());
-        $senior = $this->senior();
-        app(IdCredential::class)->createForIssued($senior);
-
-        $this->post(route('senior-id.print', $senior), ['paper' => 'a4', 'purpose' => 'REPRINT'])
-            ->assertSessionHasErrors('configuration');
-
-        $this->assertDatabaseMissing('audit_logs', ['action' => 'senior_citizen.id_print_generated']);
-    }
-
-    public function test_missing_office_names_prevent_printing_even_when_locality_is_configured(): void
-    {
-        $this->settings(['municipality' => 'Synthetic town', 'province' => 'Synthetic province']);
-        $this->actingAs(User::factory()->create());
-        $senior = $this->senior();
-        app(IdCredential::class)->createForIssued($senior);
-
-        $this->post(route('senior-id.print', $senior), ['paper' => 'a4', 'purpose' => 'REPRINT'])
-            ->assertSessionHasErrors(['configuration' => 'Configure the office and organization names in System Configuration before printing official documents.']);
-
-        $this->assertDatabaseMissing('audit_logs', ['action' => 'senior_citizen.id_print_generated']);
     }
 
     private function settings(array $values): void

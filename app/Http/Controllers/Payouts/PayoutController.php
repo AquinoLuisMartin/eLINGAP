@@ -7,10 +7,8 @@ use App\Enums\SeniorCitizenStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Payouts\UpdatePayoutStatusRequest;
 use App\Models\AuditLog;
-use App\Models\Barangay;
 use App\Models\Beneficiary;
 use App\Models\Payout;
-use App\Models\Program;
 use App\Models\SeniorCitizen;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,29 +22,14 @@ class PayoutController extends Controller
     {
         Gate::authorize('viewAny', Payout::class);
 
-        $filters = $request->validate([
+        $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
-            'status' => ['nullable', 'in:PENDING,RELEASED,FAILED,VOIDED'],
+            'status' => ['nullable', 'in:PENDING,UNPAID,UNCLAIMED,CLAIMED,RELEASED,FAILED,VOIDED'],
             'program_id' => ['nullable', 'integer', 'exists:programs,id'],
             'barangay_id' => ['nullable', 'integer', 'exists:barangays,id'],
         ]);
-        $query = Payout::query()->with([
-            'schedule:id,program_id', 'schedule.program:id,name',
-            'seniorCitizen:id,barangay_id,osca_id_number,first_name,middle_name,last_name,name_suffix', 'seniorCitizen.barangay:id,name',
-        ])
-            ->when($filters['search'] ?? null, fn ($query, $search) => $query->whereHas('seniorCitizen', fn ($senior) => $senior->searchable($search)))
-            ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
-            ->when($filters['program_id'] ?? null, fn ($query, $id) => $query->whereHas('schedule', fn ($schedule) => $schedule->where('program_id', $id)))
-            ->when($filters['barangay_id'] ?? null, fn ($query, $id) => $query->whereHas('seniorCitizen', fn ($senior) => $senior->where('barangay_id', $id)));
 
-        return view('payouts.index', [
-            'payouts' => (clone $query)->select(['id', 'payout_schedule_id', 'senior_citizen_id', 'amount', 'claimant_name', 'status'])
-                ->latest('id')->paginate(15)->withQueryString(),
-            'counts' => (clone $query)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
-            'proxyCount' => (clone $query)->where('status', PayoutStatus::Released->value)->where('claimant_type', 'PROXY')->count(),
-            'programs' => Program::query()->orderBy('name')->get(['id', 'name']),
-            'barangays' => Barangay::query()->orderBy('name')->get(['id', 'name']),
-        ]);
+        return view('payouts.index');
     }
 
     public function show(Payout $payout): View

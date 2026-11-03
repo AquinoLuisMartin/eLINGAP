@@ -32,8 +32,9 @@ class IdApplicationTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $this->get(route('senior-citizens.create'))->assertOk()->assertSeeLivewire(IdApplication::class)->assertSee('New ID Application')->assertSee('Requirements');
-        $this->get(route('registrations.index'))->assertOk()->assertSeeLivewire(Index::class)->assertDontSee('APP-26-1048');
-        $this->get(route('senior-citizens.index'))->assertSeeLivewire(ApplicationLauncher::class)->assertSee('New ID Application');
+        $this->get(route('registrations.index'))->assertOk()->assertSeeLivewire(Index::class)->assertDontSee('APP-26-1048')
+            ->assertSeeLivewire(ApplicationLauncher::class)->assertSee('New ID Application')->assertDontSee('Import records');
+        $this->get(route('senior-citizens.index'))->assertDontSeeLivewire(ApplicationLauncher::class)->assertDontSee('New ID Application')->assertSee('Import records');
         Livewire::test(ApplicationLauncher::class)->call('apply')->assertSet('applicationOpen', true)->assertSeeLivewire(IdApplication::class)
             ->dispatch('registration-cancelled')->assertSet('applicationOpen', false);
     }
@@ -65,7 +66,7 @@ class IdApplicationTest extends TestCase
         $this->assertDatabaseCount('senior_citizens', 0);
     }
 
-    public function test_self_application_creates_one_pending_central_record_without_program_application(): void
+    public function test_self_application_creates_one_verified_central_record_without_program_application(): void
     {
         $staff = User::factory()->create();
         $this->actingAs($staff);
@@ -75,8 +76,8 @@ class IdApplicationTest extends TestCase
         $senior = SeniorCitizen::sole();
         $component->assertRedirect(route('senior-id.show', [$senior, 'from' => 'registry']));
         $this->assertTrue(session('clear-registration-names'));
-        $this->assertSame('PENDING', $senior->status->value);
-        $this->assertNull($senior->verified_at);
+        $this->assertSame('VERIFIED', $senior->status->value);
+        $this->assertNotNull($senior->verified_at);
         $this->assertNull($senior->id_generated_at);
         $this->assertNull($senior->osca_id_number);
         $this->assertSame('+639171234567', $senior->contact_number);
@@ -91,8 +92,7 @@ class IdApplicationTest extends TestCase
 
         $this->get(route('senior-id.show', [$senior, 'from' => 'registry']))
             ->assertOk()
-            ->assertSeeHtml('href="'.route('senior-citizens.create').'"')
-            ->assertSee('New ID Application')
+            ->assertDontSee('New ID Application')
             ->assertSee('Exit to registry');
         $this->get(route('senior-citizens.create'))->assertOk()->assertSeeLivewire(IdApplication::class);
         $this->assertDatabaseCount('senior_citizens', 1);
@@ -102,8 +102,8 @@ class IdApplicationTest extends TestCase
     {
         Storage::fake('local');
         $this->actingAs(User::factory()->create());
-        $component = $this->application()->set('form', [...$this->input(), 'applicant_type' => 'REPRESENTATIVE'])
-            ->call('next')->call('next')->assertSet('step', 2)->assertHasErrors(['form.representative_name', 'form.representative_contact'])
+        $component = $this->application()->set('form', [...$this->input(), 'representative_name' => 'Synthetic Representative'])
+            ->call('next')->call('next')->assertSet('step', 2)->assertHasErrors(['form.representative_relationship', 'form.representative_contact'])
             ->set('form.representative_name', 'Synthetic Representative')->set('form.representative_relationship', 'Child')->set('form.representative_contact', '917-123-4567')
             ->call('next')->assertSet('step', 3)->assertHasNoErrors()
             ->set('informationReviewed', true)->call('submit')->assertHasErrors('authorizationFile')
@@ -129,7 +129,7 @@ class IdApplicationTest extends TestCase
             ->call('next')->call('next')->set('identificationFile', UploadedFile::fake()->createWithContent('id.pdf', "%PDF-1.4\nSynthetic identification"))
             ->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
         $senior = SeniorCitizen::sole();
-        $this->assertSame('PENDING', $senior->status->value);
+        $this->assertSame('VERIFIED', $senior->status->value);
         $this->assertNull($senior->id_generated_at);
         $this->assertSame(1, $senior->documents()->count());
         foreach ($senior->documents()->get() as $document) {
@@ -199,7 +199,7 @@ class IdApplicationTest extends TestCase
         $existing = SeniorCitizen::create([...$input, 'last_name' => 'Existing', 'status' => $status]);
 
         Livewire::test(Index::class)->assertSee($existing->full_name)->assertDontSee($pending->full_name)
-            ->assertDontSee('New ID Application')->assertDontSeeLivewire(IdApplication::class)
+            ->assertSee('New ID Application')->assertDontSeeLivewire(IdApplication::class)
             ->set('stage', 'INACTIVE')->assertSee($existing->full_name)
             ->set('search', 'Pending')->assertDontSee($pending->full_name);
     }
@@ -227,11 +227,10 @@ class IdApplicationTest extends TestCase
         $document = new \DOMDocument;
         $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
         $xpath = new \DOMXPath($document);
-        foreach (['OSCA Staff navigation', 'Records navigation'] as $navigation) {
-            $links = $xpath->query('//nav[@aria-label="'.$navigation.'"]//a[@aria-current="page"]');
-            $this->assertCount(1, $links);
-            $this->assertSame(route($route), $links->item(0)->getAttribute('href'));
-        }
+        $links = $xpath->query('//nav[@aria-label="OSCA Staff navigation"]//a[@aria-current="page"]');
+        $this->assertCount(1, $links);
+        $this->assertSame(route($route), $links->item(0)->getAttribute('href'));
+        $this->assertCount(0, $xpath->query('//nav[@aria-label="Records navigation"]'));
     }
 
     public function test_birth_date_changes_detect_age_and_clear_the_underage_error(): void
@@ -273,7 +272,7 @@ class IdApplicationTest extends TestCase
             ->call('next')->assertSet('step', 2)->call('next')
             ->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
 
-        $this->assertDatabaseHas('senior_citizens', ['birth_date' => $birthDate, 'status' => 'PENDING']);
+        $this->assertDatabaseHas('senior_citizens', ['birth_date' => $birthDate, 'status' => 'VERIFIED']);
     }
 
     public function test_submission_rechecks_age_when_the_birth_date_is_changed_after_the_first_step(): void
@@ -369,11 +368,49 @@ class IdApplicationTest extends TestCase
         $this->assertDatabaseCount('audit_logs', 0);
     }
 
+    public function test_document_checks_are_required_without_an_assessment_selection(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(IdApplication::class)->assertDontSee('Document assessment')
+            ->assertDontSee('Who is applying?')
+            ->assertSee('Birth Certificate / Proof of Age')->assertSee('Valid Government-Issued ID')
+            ->call('next')->assertSet('step', 0)
+            ->assertHasErrors(['form.requirements_checks.identity', 'form.requirements_checks.residency'])
+            ->assertDontSee('Please check all required document requirements before continuing.')
+            ->assertSee('data-error-display="outline" aria-invalid="true"', false)
+            ->assertDontSee('The requirements checks.identity field must be accepted.')
+            ->set('form.requirements_checks.identity', true)->set('form.requirements_checks.residency', true)
+            ->call('next')->assertHasNoErrors()->assertSet('step', 1)
+            ->assertSee('Fields marked', false)
+            ->assertSee('class="field-label-text">First name<!--[if BLOCK]><![endif]--><span class="field-required" aria-hidden="true">*</span>', false)
+            ->assertSee('class="field-label-text">Middle name<!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]--></span>', false);
+    }
+
+    #[TestWith(['MALE', true])]
+    #[TestWith(['FEMALE', true])]
+    #[TestWith(['OTHER', false])]
+    #[TestWith(['', false])]
+    public function test_registration_accepts_only_male_or_female(string $sex, bool $valid): void
+    {
+        $this->actingAs(User::factory()->create());
+        $input = [...$this->input(), 'sex' => $sex];
+        $component = $this->application()->assertDontSee('value="OTHER"', false)->set('form', $input)->call('next');
+
+        if ($valid) {
+            $component->assertHasNoErrors()->assertSet('step', 2);
+        } else {
+            $component->assertHasErrors('form.sex')->assertSet('step', 1);
+            $this->post(route('senior-citizens.store'), $input)->assertSessionHasErrors('sex');
+        }
+        $this->assertDatabaseCount('senior_citizens', 0);
+    }
+
     private function application(): Testable
     {
         return Livewire::test(IdApplication::class)
-            ->set('form.requirements_status', 'REVIEW')
-            ->set('form.review_reason', 'Synthetic document needs checking')
+            ->set('form.requirements_checks.identity', true)
+            ->set('form.requirements_checks.residency', true)
             ->call('next')->assertHasNoErrors()->assertSet('step', 1);
     }
 
@@ -393,6 +430,6 @@ class IdApplicationTest extends TestCase
     {
         $barangay = Barangay::create(['name' => 'Synthetic Barangay', 'code' => 'SYN']);
 
-        return ['requirements_status' => 'REVIEW', 'requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'review_reason' => 'Synthetic document needs checking', 'first_name' => 'Synthetic', 'middle_name' => '', 'last_name' => 'Applicant', 'name_suffix' => '', 'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'civil_status' => '', 'barangay_id' => $barangay->id, 'address' => 'Synthetic address', 'contact_number' => '09171234567', 'applicant_type' => 'SELF', 'representative_name' => '', 'representative_relationship' => '', 'representative_contact' => ''];
+        return ['requirements_status' => 'CHECKED', 'requirements_checks' => ['identity' => true, 'residency' => true, 'authorization' => true], 'review_reason' => '', 'first_name' => 'Synthetic', 'middle_name' => '', 'last_name' => 'Applicant', 'name_suffix' => '', 'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'civil_status' => '', 'barangay_id' => $barangay->id, 'address' => 'Synthetic address', 'contact_number' => '09171234567', 'applicant_type' => 'SELF', 'representative_name' => '', 'representative_relationship' => '', 'representative_contact' => ''];
     }
 }

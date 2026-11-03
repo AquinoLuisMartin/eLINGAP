@@ -38,8 +38,6 @@ class DashboardTest extends TestCase
             ->assertSet('active', 'records')
             ->call('navigate', 'programs')
             ->assertSet('active', 'programs')
-            ->call('navigate', 'sms')
-            ->assertSet('active', 'sms')
             ->call('navigate', 'users')
             ->assertSet('active', 'users')
             ->call('navigate', 'system-logs')
@@ -101,12 +99,18 @@ class DashboardTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['user_id' => $this->adminUser->id, 'action' => 'user.access_changed', 'auditable_id' => $user->id]);
     }
 
-    public function test_dispatcher_links_to_the_validated_broadcast_workflow(): void
+    public function test_sms_is_removed_from_admin_navigation(): void
     {
         Livewire::actingAs($this->adminUser)->test(Dashboard::class)
-            ->call('navigate', 'sms')
-            ->assertSeeHtml('href="'.route('sms.blasts.create').'"')
-            ->assertDontSee('credits available');
+            ->assertDontSee('SMS Dispatcher')
+            ->assertDontSee('Queued SMS messages')
+            ->assertDontSee('failed SMS messages')
+            ->call('navigate', 'help')->assertDontSee('Create an SMS broadcast')
+            ->call('navigate', 'system-logs')->assertDontSee('SMS Dispatch')
+            ->call('navigate', 'sms')->assertNotFound();
+
+        $this->actingAs($this->adminUser)
+            ->get(route('administration.dashboard', ['tab' => 'sms']))->assertNotFound();
     }
 
     public function test_can_toggle_theme(): void

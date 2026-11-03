@@ -18,7 +18,7 @@ class OfficeSettings
     {
         $values = $this->values();
         if (blank($values['municipality']) || blank($values['province'])) {
-            throw ValidationException::withMessages(['configuration' => 'Configure the municipality and province in System Configuration before recording transfers or printing official documents.']);
+            throw ValidationException::withMessages(['configuration' => 'Configure the municipality and province in System Configuration before recording a transfer.']);
         }
 
         return $values;
@@ -28,7 +28,7 @@ class OfficeSettings
     {
         $values = $this->requireLocality();
         if (blank($values['office_name']) || blank($values['organization_name'])) {
-            throw ValidationException::withMessages(['configuration' => 'Configure the office and organization names in System Configuration before printing official documents.']);
+            throw ValidationException::withMessages(['configuration' => 'Configure the office and organization names in System Configuration before printing a cancellation certificate.']);
         }
 
         return $values;

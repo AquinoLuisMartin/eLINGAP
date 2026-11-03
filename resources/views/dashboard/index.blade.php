@@ -1,10 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<x-staff.page-header title="Staff dashboard" description="Current registry, benefit activity, and records needing attention.">
-    <a href="{{ route('senior-citizens.index', ['status' => 'PENDING']) }}" class="primary-button">Review ID applications</a>
-    <a href="{{ route('benefits.workspace') }}" class="secondary-button">Open benefits</a>
-</x-staff.page-header>
+<x-staff.page-header title="Staff dashboard" description="Current registry, benefit activity, and records needing attention." />
 
 <div class="dashboard-overview">
 <dl class="metric-grid" aria-label="Registry overview">

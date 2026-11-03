@@ -16,7 +16,6 @@ class PublicContent
 
         try {
             $programs = Program::query()->whereIn('status', ['ACTIVE', 'UPCOMING'])
-                ->where(fn ($query) => $query->whereNull('benefit_code')->orWhere('benefit_code', 'not like', 'synthetic-%'))
                 ->orderByRaw("CASE WHEN status = 'ACTIVE' THEN 0 ELSE 1 END")->orderBy('name')
                 ->get(['id', 'name']);
         } catch (QueryException $exception) {

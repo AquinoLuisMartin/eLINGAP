@@ -42,7 +42,7 @@ class Index extends Component
 
     public function render()
     {
-        $query = SeniorCitizen::query()->where('status', '!=', 'PENDING')->with('barangay:id,name')
+        $query = SeniorCitizen::query()->where('status', '!=', 'PENDING')->with(['barangay:id,name', 'milestoneClaims:id,senior_citizen_id,milestone_age'])
             ->when(trim($this->search) !== '', fn ($q) => $q->searchable(mb_substr(trim($this->search), 0, 100), $this->searchBy))
             ->when($this->barangayId !== '', fn ($q) => $q->where('barangay_id', (int) $this->barangayId));
         match ($this->stage) {
@@ -53,7 +53,7 @@ class Index extends Component
         };
 
         return view('livewire.registrations.index', [
-            'registrations' => $query->select(['id', 'barangay_id', 'osca_id_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'applicant_type', 'created_at', 'status', 'id_generated_at'])->latest('id')->paginate(15),
+            'registrations' => $query->select(['id', 'barangay_id', 'osca_id_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'created_at', 'status', 'id_generated_at', 'verified_at'])->latest('id')->paginate(15),
             'barangays' => Barangay::query()->orderBy('name')->get(['id', 'name']),
             'counts' => SeniorCitizen::query()->selectRaw("sum(case when status in ('ARCHIVED', 'DECEASED', 'TRANSFERRED') then 1 else 0 end) as inactive, sum(case when status = 'VERIFIED' and id_generated_at is null then 1 else 0 end) as verified, sum(case when status = 'VERIFIED' and id_generated_at is not null then 1 else 0 end) as issued")->toBase()->first(),
         ]);

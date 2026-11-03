@@ -9,6 +9,7 @@ use App\Models\Program;
 use App\Models\SeniorCitizen;
 use App\Models\User;
 use App\Services\Auth\PasswordRecovery;
+use Database\Seeders\BenefitProgramSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Exceptions;
@@ -76,7 +77,7 @@ class AuditResilienceTest extends TestCase
     {
         $staff = User::factory()->create();
         Route::post('/audit-resilience', function () {
-            Program::create(['name' => 'Synthetic assistance', 'agency' => 'Test agency', 'budget' => 1000]);
+            $this->seed(BenefitProgramSeeder::class);
 
             return redirect('/');
         })->middleware(['web', AuditActivity::class]);
@@ -85,7 +86,7 @@ class AuditResilienceTest extends TestCase
 
         $this->actingAs($staff)->post('/audit-resilience')->assertRedirect('/');
 
-        $this->assertDatabaseHas('programs', ['name' => 'Synthetic assistance']);
+        $this->assertDatabaseHas('programs', ['benefit_code' => 'december-assistance']);
         $this->assertDatabaseCount('audit_logs', 0);
     }
 

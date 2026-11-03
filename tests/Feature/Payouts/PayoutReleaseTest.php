@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Payouts;
 
+use App\Livewire\Payouts\Index;
 use App\Models\Barangay;
 use App\Models\Beneficiary;
 use App\Models\Payout;
@@ -10,7 +11,10 @@ use App\Models\Program;
 use App\Models\Role;
 use App\Models\SeniorCitizen;
 use App\Models\User;
+use Database\Seeders\BenefitProgramSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
 
 class PayoutReleaseTest extends TestCase
@@ -118,6 +122,46 @@ class PayoutReleaseTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['user_id' => $schedule->created_by, 'action' => 'payout.schedule_created', 'auditable_id' => $schedule->id]);
     }
 
+    public function test_payout_filters_update_results_and_reset_without_manual_submission(): void
+    {
+        $this->actingAs($this->user('OSCA_STAFF'));
+        $first = $this->payout();
+        $first->seniorCitizen->update(['osca_id_number' => '26-12345']);
+        $barangay = Barangay::create(['name' => 'Synthetic second area', 'code' => 'SYN2']);
+        $senior = $first->seniorCitizen->replicate();
+        $senior->fill(['barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'osca_id_number' => '26-54321'])->save();
+        $program = Program::where('benefit_code', 'december-assistance')->sole();
+        $program->update(['benefit_code' => null, 'status' => 'ACTIVE']);
+        $schedule = PayoutSchedule::create(['program_id' => $program->id, 'reference_number' => 'SYN-SECOND', 'scheduled_on' => today(), 'amount' => 1000]);
+        Payout::create(['payout_schedule_id' => $schedule->id, 'senior_citizen_id' => $senior->id, 'amount' => 1000, 'status' => 'RELEASED']);
+
+        $this->get(route('payouts.index'))->assertSeeLivewire(Index::class)
+            ->assertSee('OSCA ID No. or name')->assertDontSee('View schedules')->assertDontSee('>Filter</button>', false);
+        foreach (['search' => '26-12345', 'status' => 'PENDING', 'programId' => (string) $first->schedule->program_id, 'barangayId' => (string) $first->seniorCitizen->barangay_id] as $field => $value) {
+            Livewire::test(Index::class)->call('setPage', 2)->set($field, $value)
+                ->assertSet('paginators.page', 1)
+                ->assertViewHas('payouts', fn ($payouts) => $payouts->total() === 1 && $payouts->first()->id === $first->id)
+                ->call('resetFilters')->assertSet('search', '')->assertSet('status', '')
+                ->assertSet('programId', '')->assertSet('barangayId', '')
+                ->assertViewHas('payouts', fn ($payouts) => $payouts->total() === 2);
+        }
+    }
+
+    #[TestWith(['search', 101])]
+    #[TestWith(['status', 'INVALID'])]
+    #[TestWith(['programId', 'invalid'])]
+    #[TestWith(['barangayId', 'invalid'])]
+    public function test_invalid_live_filters_show_validation_errors_and_can_be_reset(string $field, string|int $value): void
+    {
+        $this->actingAs($this->user('OSCA_STAFF'));
+        $payout = $this->payout();
+
+        Livewire::test(Index::class)->set($field, is_int($value) ? str_repeat('x', $value) : $value)
+            ->assertHasErrors($field)
+            ->call('resetFilters')->assertHasNoErrors()
+            ->assertViewHas('payouts', fn ($records) => $records->modelKeys() === [$payout->id]);
+    }
+
     private function user(string $role): User
     {
         $record = Role::firstOrCreate(['name' => $role], ['description' => $role]);
@@ -127,9 +171,11 @@ class PayoutReleaseTest extends TestCase
 
     private function payout(): Payout
     {
+        $this->seed(BenefitProgramSeeder::class);
         $barangay = Barangay::create(['name' => 'Poblacion', 'code' => 'POB']);
         $senior = SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Maria', 'last_name' => 'Santos', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Poblacion', 'status' => 'VERIFIED']);
-        $program = Program::create(['name' => 'Assistance', 'agency' => 'OSCA', 'budget' => 10000, 'status' => 'ACTIVE']);
+        $program = Program::where('benefit_code', 'local-social-pension')->sole();
+        $program->update(['benefit_code' => null, 'status' => 'ACTIVE', 'budget' => 10000]);
         $schedule = PayoutSchedule::create(['program_id' => $program->id, 'reference_number' => 'SCH-TEST-001', 'scheduled_on' => today(), 'amount' => 1000]);
         Beneficiary::create(['program_id' => $program->id, 'senior_citizen_id' => $senior->id, 'enrolled_on' => today(), 'status' => 'ACTIVE']);
 

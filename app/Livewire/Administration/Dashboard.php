@@ -9,7 +9,6 @@ use App\Models\PasswordResetRequest;
 use App\Models\Payout;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
-use App\Models\SmsBlast;
 use App\Models\SystemConfiguration;
 use App\Models\User;
 use App\Rules\NewPassword;
@@ -82,12 +81,11 @@ class Dashboard extends Component
     // Navigate to a dashboard module.
     public function navigate(string $tab): void
     {
-        abort_unless(in_array($tab, ['dashboard', 'records', 'programs', 'sms', 'users', 'system-logs', 'configuration', 'help'], true), 404);
+        abort_unless(in_array($tab, ['dashboard', 'records', 'programs', 'users', 'system-logs', 'configuration', 'help'], true), 404);
         $this->active = $tab;
         $this->resetPage('recordsPage');
         $this->resetPage('logsPage');
         $this->resetPage('programsPage');
-        $this->resetPage('broadcastsPage');
     }
 
     // Toggle color theme mode
@@ -281,25 +279,13 @@ class Dashboard extends Component
             ->latest('id')->paginate(9, pageName: 'programsPage');
     }
 
-    #[Computed]
-    public function broadcasts(): LengthAwarePaginator
-    {
-        return SmsBlast::query()->select(['id', 'barangay_id', 'recipient_count', 'excluded_count', 'created_at'])
-            ->with('barangay:id,name')->withCount([
-                'messages as sent_count' => fn ($query) => $query->where('status', 'SENT'),
-                'messages as queued_count' => fn ($query) => $query->where('status', 'QUEUED'),
-                'messages as failed_count' => fn ($query) => $query->where('status', 'FAILED'),
-            ])->latest('id')->paginate(10, pageName: 'broadcastsPage');
-    }
-
     private function logsQuery(): Builder
     {
         $audit = DB::table('audit_logs')->selectRaw('id, created_at, user_id, ? as category, action as detail, ? as status', ['Audit Trail', 'Recorded']);
         $login = DB::table('login_logs')->selectRaw('id, created_at, case when event = ? then null else user_id end as user_id, ? as category, event as detail, case when success then ? else ? end as status', ['PASSWORD_RESET', 'Login Events', 'Success', 'Failed']);
-        $sms = DB::table('sms_messages')->selectRaw('id, created_at, created_by as user_id, ? as category, status as detail, status', ['SMS Dispatch']);
 
-        return $this->withOperators(DB::query()->fromSub($audit->unionAll($login)->unionAll($sms), 'events')->select('events.*'), 'events.user_id')
-            ->when(in_array($this->logCategory, ['Audit Trail', 'Login Events', 'SMS Dispatch'], true), fn ($query) => $query->where('category', $this->logCategory))
+        return $this->withOperators(DB::query()->fromSub($audit->unionAll($login), 'events')->select('events.*'), 'events.user_id')
+            ->when(in_array($this->logCategory, ['Audit Trail', 'Login Events'], true), fn ($query) => $query->where('category', $this->logCategory))
             ->when(trim($this->search) !== '', fn ($query) => $query->where(fn ($query) => $query
                 ->whereRaw('lower(detail) like ?', ['%'.mb_strtolower(trim($this->search)).'%'])
                 ->orWhereRaw("lower(concat_ws(' ', replace(roles.name, '_', ' '), users.first_name, users.middle_name, users.last_name, users.name_suffix)) like ?", ['%'.mb_strtolower(trim($this->search)).'%'])))

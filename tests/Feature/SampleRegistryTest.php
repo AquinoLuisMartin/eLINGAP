@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Database\Seeders\BarangaySeeder;
+use Database\Seeders\BenefitProgramSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,6 +31,8 @@ class SampleRegistryTest extends TestCase
         DB::transaction(fn () => DB::unprepared($this->sql()));
 
         $this->assertDatabaseCount('senior_citizens', 10001);
+        $this->assertDatabaseCount('programs', 9);
+        $this->assertSame(9, DB::table('applications')->where('application_number', 'like', 'SYN-APP-%')->distinct()->count('program_id'));
         foreach (['applications', 'beneficiaries', 'benefit_entitlements', 'benefit_payments', 'benefit_schedule_recipients'] as $table) {
             $this->assertDatabaseCount($table, 10000);
         }
@@ -69,14 +72,14 @@ class SampleRegistryTest extends TestCase
         }
 
         $this->assertDatabaseCount('senior_citizens', 0);
-        $this->assertDatabaseCount('programs', 0);
+        $this->assertDatabaseCount('programs', 9);
     }
 
     public function test_existing_record_changes_roll_back_all_sample_inserts(): void
     {
         $this->prerequisites();
         DB::unprepared("CREATE FUNCTION sample_test_change() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN UPDATE barangays SET is_active = false WHERE code = 'BAG'; RETURN NEW; END $$;
-            CREATE TRIGGER sample_test_change BEFORE INSERT ON programs FOR EACH ROW EXECUTE FUNCTION sample_test_change()");
+            CREATE TRIGGER sample_test_change BEFORE INSERT ON benefit_schedules FOR EACH ROW EXECUTE FUNCTION sample_test_change()");
 
         try {
             DB::transaction(fn () => DB::unprepared($this->sql()));
@@ -87,7 +90,7 @@ class SampleRegistryTest extends TestCase
 
         $this->assertDatabaseCount('senior_citizens', 0);
         $this->assertDatabaseCount('benefit_payments', 0);
-        $this->assertDatabaseCount('programs', 0);
+        $this->assertDatabaseCount('programs', 9);
         $this->assertDatabaseHas('barangays', ['code' => 'BAG', 'is_active' => true]);
     }
 
@@ -139,12 +142,17 @@ class SampleRegistryTest extends TestCase
 
     public function test_duplicate_dataset_is_rejected_before_inserting(): void
     {
-        DB::table('programs')->insert(['name' => 'SYNTHETIC', 'agency' => 'SYNTHETIC', 'benefit_code' => 'synthetic-registry-2000-2026']);
+        $this->prerequisites();
+        DB::table('senior_citizens')->insert([
+            'barangay_id' => DB::table('barangays')->where('code', 'BAG')->value('id'),
+            'first_name' => 'SYNTHETIC', 'last_name' => 'Existing',
+            'birth_date' => '1930-01-01', 'sex' => 'FEMALE', 'address' => 'SYNTHETIC ADDRESS - NOT A RESIDENCE',
+        ]);
 
         $this->artisan('app:seed-sample-registry', ['--commit' => true])->assertFailed();
 
-        $this->assertDatabaseCount('programs', 1);
-        $this->assertDatabaseCount('senior_citizens', 0);
+        $this->assertDatabaseCount('programs', 9);
+        $this->assertDatabaseCount('senior_citizens', 1);
     }
 
     private function sampleId(int $number): int
@@ -154,7 +162,7 @@ class SampleRegistryTest extends TestCase
 
     private function prerequisites(): void
     {
-        $this->seed([RoleSeeder::class, BarangaySeeder::class]);
+        $this->seed([RoleSeeder::class, BarangaySeeder::class, BenefitProgramSeeder::class]);
         User::factory()->create(['role_id' => DB::table('roles')->where('name', 'ADMIN')->value('id')]);
     }
 

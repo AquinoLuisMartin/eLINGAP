@@ -29,6 +29,34 @@ class IdIssuanceTest extends TestCase
 {
     use RefreshDatabase;
 
+    #[TestWith(['+639170000001', '+639180000002', '0917-000-0001'])]
+    #[TestWith(['09170000001', null, '0917-000-0001'])]
+    #[TestWith([null, '+639180000002', '0918-000-0002'])]
+    public function test_id_preview_displays_the_formatted_contact_below_the_address(?string $contact, ?string $representative, string $expected): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = $this->senior(['contact_number' => $contact, 'representative_contact' => $representative]);
+
+        $response = $this->get(route('senior-id.preview', $senior));
+
+        $response->assertSeeTextInOrder(['Synthetic office', 'MUNICIPALITY OF SANTA MARIA', 'NAME:', 'ADDRESS:', 'Synthetic street', 'Contact No.:', $expected, 'Date of Birth']);
+        $this->assertSame($contact, $senior->fresh()->contact_number);
+    }
+
+    #[TestWith([null, 'MUNICIPALITY OF SANTA MARIA'])]
+    #[TestWith(['', 'MUNICIPALITY OF SANTA MARIA'])]
+    #[TestWith(['Synthetic organization', 'SYNTHETIC ORGANIZATION'])]
+    public function test_id_preview_displays_the_organization_below_the_office_with_a_santa_maria_fallback(?string $organization, string $expected): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = $this->senior();
+        SystemConfiguration::query()->where('key', 'organization_name')->update(['value' => $organization]);
+
+        $response = $this->get(route('senior-id.preview', $senior));
+
+        $response->assertSeeTextInOrder(['Synthetic office', $expected, 'NAME:']);
+    }
+
     public function test_unchanged_id_officials_are_not_logged_again_but_actual_changes_are_recorded(): void
     {
         Storage::fake('local');
@@ -260,6 +288,79 @@ class IdIssuanceTest extends TestCase
         $this->assertSame(1, AuditLog::where('action', 'senior_citizen.wet_signature_selected')->count());
     }
 
+    public function test_id_printing_and_management_are_available_in_registrations_instead_of_masterlist(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = $this->senior(['osca_id_number' => '26-0031', 'id_generated_at' => now()]);
+
+        $this->get(route('registrations.index', ['stage' => 'ISSUED']))
+            ->assertSee('ID printing')->assertSee('Print selected IDs')->assertSee('Manage ID')
+            ->assertSee('name="senior_ids[]" value="'.$senior->id.'"', false)
+            ->assertSee(route('senior-id.show', [$senior, 'from' => 'registrations', 'search' => '', 'search_by' => 'all', 'stage' => 'ISSUED', 'barangay_id' => '', 'page' => 1]));
+        $this->get(route('senior-citizens.index'))->assertDontSee('ID printing')
+            ->assertDontSee('name="senior_ids[]"', false)->assertDontSee('Manage ID');
+
+        $this->actingAs(User::factory()->admin()->create())->get(route('registrations.index'))
+            ->assertDontSee('ID printing')->assertDontSee('name="senior_ids[]"', false)->assertDontSee('Manage ID');
+    }
+
+    #[TestWith(['VERIFIED', false, false])]
+    #[TestWith(['VERIFIED', true, true])]
+    #[TestWith(['ARCHIVED', true, true])]
+    #[TestWith(['DECEASED', true, true])]
+    #[TestWith(['TRANSFERRED', false, true])]
+    public function test_registration_print_selection_is_enabled_only_for_approved_pending_ids(string $status, bool $issued, bool $disabled): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = $this->senior(['status' => $status, 'id_generated_at' => $issued ? now() : null]);
+
+        $response = $this->get(route('registrations.index'))->assertOk();
+        $document = new \DOMDocument;
+        @$document->loadHTML($response->getContent());
+        $checkbox = (new \DOMXPath($document))->query('//input[@name="senior_ids[]" and @value="'.$senior->id.'"]')->item(0);
+
+        $this->assertNotNull($checkbox);
+        $this->assertSame($disabled, $checkbox->hasAttribute('disabled'));
+    }
+
+    public function test_single_print_layout_rejects_multiple_records_and_unknown_layouts(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $first = $this->senior();
+        $second = $this->senior();
+        $input = ['senior_ids' => [$first->id, $second->id], 'paper' => 'a4', 'purpose' => 'FIRST_PRINT'];
+
+        $this->post(route('senior-id.batch-print'), [...$input, 'layout' => 'single'])->assertSessionHasErrors('senior_ids');
+        $this->post(route('senior-id.batch-print'), [...$input, 'layout' => 'unknown'])->assertSessionHasErrors('layout');
+        $this->assertDatabaseCount('senior_citizen_id_credentials', 0);
+    }
+
+    public function test_step_navigation_does_not_issue_an_id_and_clears_review_confirmation(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = $this->senior();
+        $component = Livewire::test(IdManager::class, ['seniorId' => $senior->id]);
+
+        foreach ([3 => 'Print the ID', 1 => 'Physical photo and thumbprint', 2 => 'Review the card'] as $step => $heading) {
+            $component->set('reviewed', true)->call('goToStep', $step)
+                ->assertSet('step', $step)->assertSet('reviewed', false)->assertSee($heading);
+        }
+
+        $this->assertNull($senior->fresh()->id_generated_at);
+        $this->assertDatabaseCount('senior_citizen_id_credentials', 0);
+    }
+
+    #[TestWith([0])]
+    #[TestWith([4])]
+    public function test_step_navigation_rejects_unknown_steps(int $step): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = $this->senior();
+
+        Livewire::test(IdManager::class, ['seniorId' => $senior->id])
+            ->call('goToStep', $step)->assertStatus(422);
+    }
+
     public function test_id_preparation_uses_physical_photo_and_thumbprint_without_signature_pad(): void
     {
         $this->actingAs(User::factory()->create());
@@ -278,13 +379,16 @@ class IdIssuanceTest extends TestCase
         Storage::fake('local');
         $this->actingAs(User::factory()->create());
         Livewire::test(IdOfficialSettings::class)->set('oscaHeadName', 'Synthetic Head')->set('mayorName', 'Synthetic Mayor')
-            ->set('headSignature', $this->image())->set('seal', $this->image())->call('save')->assertHasNoErrors();
+            ->assertSee('OSCA Head name')->assertSee('Municipal Mayor name')->assertDontSee('Office identity')
+            ->assertDontSee('OSCA Head signature (optional)')->assertDontSee('Municipal Mayor signature (optional)')
+            ->set('seal', $this->image())->call('save')->assertHasNoErrors();
         $this->assertDatabaseHas('system_configurations', ['key' => 'osca_head_name', 'value' => 'Synthetic Head']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'senior_id.officials_updated']);
         $values = app(IdOfficials::class)->values();
         Storage::disk('local')->assertExists($values['municipal_seal']);
-        Livewire::test(IdOfficialSettings::class)->set('remove', ['osca_head_signature'])->call('save')->assertHasNoErrors();
-        $this->assertNull(app(IdOfficials::class)->values()['osca_head_signature']);
+        Livewire::test(IdOfficialSettings::class)->set('remove', ['municipal_seal'])->call('save')->assertHasNoErrors();
+        $this->assertNull(app(IdOfficials::class)->values()['municipal_seal']);
+        Livewire::test(IdOfficialSettings::class)->set('remove', ['osca_head_signature'])->call('save')->assertHasErrors('remove.0');
     }
 
     #[TestWith(['short', 792])]
@@ -300,7 +404,7 @@ class IdIssuanceTest extends TestCase
         $this->photo($senior);
         $credential = app(IdCredential::class)->createForIssued($senior);
         $response = $this->post(route('senior-id.print', $senior), ['paper' => $paper, 'purpose' => 'REPLACEMENT'])
-            ->assertOk()->assertHeader('Content-Type', 'application/pdf')->assertHeader('Cache-Control', 'no-store, private');
+            ->assertOk()->assertHeader('Content-Type', 'application/pdf')->assertHeader('Content-Disposition', 'inline; filename="APPLICANT.pdf"')->assertHeader('Cache-Control', 'no-store, private');
         $this->assertStringStartsWith('%PDF-', $response->getContent());
         preg_match('/\/MediaBox\s*\[\s*0(?:\.\d+)?\s+0(?:\.\d+)?\s+([\d.]+)\s+([\d.]+)/', $response->getContent(), $box);
         $this->assertNotEmpty($box);
@@ -394,6 +498,24 @@ class IdIssuanceTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'senior_citizen.id_print_generated', 'auditable_id' => $senior->id]);
     }
 
+    public function test_printing_continues_without_office_identity(): void
+    {
+        if (! function_exists('imagecreatefrompng')) {
+            $this->markTestSkipped('PHP GD is required to print the included PNG seal.');
+        }
+
+        Storage::fake('local');
+        $this->actingAs(User::factory()->create());
+        app(IdOfficials::class)->save(['osca_head_name' => 'Synthetic Head', 'municipal_mayor_name' => 'Synthetic Mayor'], []);
+        $senior = $this->senior(['osca_id_number' => '26-0031', 'id_generated_at' => now()]);
+        SystemConfiguration::query()->whereIn('key', ['municipality', 'province', 'office_name', 'organization_name'])->delete();
+        app(IdCredential::class)->createForIssued($senior);
+
+        $this->post(route('senior-id.print', $senior), ['paper' => 'a4', 'purpose' => 'REPRINT'])
+            ->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertDatabaseHas('audit_logs', ['action' => 'senior_citizen.id_print_generated', 'auditable_id' => $senior->id]);
+    }
+
     #[TestWith([false, false])]
     #[TestWith([true, false])]
     #[TestWith([false, true])]
@@ -416,7 +538,7 @@ class IdIssuanceTest extends TestCase
         $this->assertDatabaseMissing('audit_logs', ['action' => 'senior_citizen.id_print_generated']);
     }
 
-    public function test_pdf_card_and_photo_dimensions_include_the_border(): void
+    public function test_pdf_card_dimensions_include_the_border_and_photo_opening_is_one_inch(): void
     {
         Storage::fake('local');
         $this->actingAs(User::factory()->create());
@@ -448,8 +570,11 @@ class IdIssuanceTest extends TestCase
             }
             if ($node->getAttribute('class') === 'id-photo') {
                 $photos++;
-                $this->assertEqualsWithDelta(72, $box['w'], 0.02);
-                $this->assertEqualsWithDelta(72, $box['h'], 0.02);
+                $opening = $frame->get_content_box();
+                $this->assertEqualsWithDelta(72, $opening['w'], 0.02);
+                $this->assertEqualsWithDelta(72, $opening['h'], 0.02);
+                $this->assertEqualsWithDelta(25.7 * 72 / 25.4, $box['w'], 0.02);
+                $this->assertEqualsWithDelta(25.7 * 72 / 25.4, $box['h'], 0.02);
             }
         }]]);
         $pdf->render();

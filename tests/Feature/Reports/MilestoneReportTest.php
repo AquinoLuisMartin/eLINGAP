@@ -6,6 +6,7 @@ use App\Models\Barangay;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
 use App\Models\User;
+use Database\Seeders\BenefitProgramSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,7 +18,8 @@ class MilestoneReportTest extends TestCase
     {
         $this->travelTo(now()->setDate(2026, 10, 16)->startOfDay());
         $this->actingAs(User::factory()->create());
-        Program::create(['name' => 'Synthetic milestone program', 'agency' => 'Synthetic office', 'status' => 'ACTIVE', 'benefit_rules' => ['milestones' => [85 => 1000, 95 => 2000]]]);
+        $this->seed(BenefitProgramSeeder::class);
+        Program::where('benefit_code', 'national-milestones')->update(['status' => 'ACTIVE', 'benefit_rules' => ['milestones' => [85 => 1000, 95 => 2000]]]);
         $barangay = Barangay::create(['name' => 'Synthetic area', 'code' => 'SYN']);
         foreach (['1941-10-16' => 'Included', '1942-10-16' => 'Excluded'] as $date => $name) {
             SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => $name, 'birth_date' => $date, 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED']);

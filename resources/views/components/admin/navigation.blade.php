@@ -6,7 +6,6 @@
         ['dashboard', 'Dashboard', 'layout-dashboard'],
         ['records', 'Senior Records Registry', 'users'],
         ['programs', 'Benefits & Programs', 'heart-pulse'],
-        ['sms', 'SMS Dispatcher', 'message-square'],
     ] as [$tab, $label, $icon])
         <a wire:key="admin-nav-{{ $tab }}" class="nav-item {{ $active === $tab ? 'is-active' : '' }}" href="{{ route('administration.dashboard', ['tab' => $tab]) }}" title="{{ $label }}" @if($dashboard) wire:click.prevent="navigate('{{ $tab }}')" @endif @if($active === $tab) aria-current="page" @endif>
             <x-admin.icon :name="$icon" size="18" /><span>{{ $label }}</span>

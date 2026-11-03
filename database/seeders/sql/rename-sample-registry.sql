@@ -20,9 +20,9 @@ BEGIN
     SELECT s.id, n.n FROM senior_citizens s
     JOIN applications a ON a.senior_citizen_id = s.id
     JOIN sample_filipino_names n ON a.application_number = 'SYN-APP-' || lpad(n.n::text, 5, '0')
-    JOIN beneficiaries b ON b.senior_citizen_id = s.id
+    JOIN beneficiaries b ON b.senior_citizen_id = s.id AND b.application_id = a.id
     JOIN programs p ON p.id = b.program_id
-    WHERE p.benefit_code = 'synthetic-registry-2000-2026'
+    WHERE p.benefit_code IS NOT NULL
         AND s.address = 'SYNTHETIC ADDRESS - NOT A RESIDENCE';
     ALTER TABLE sample_name_targets ADD PRIMARY KEY (id);
     IF (SELECT count(*) FROM sample_name_targets) <> 10000 THEN

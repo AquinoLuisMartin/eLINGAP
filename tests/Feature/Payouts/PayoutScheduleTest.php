@@ -20,15 +20,15 @@ class PayoutScheduleTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $this->seed(BenefitProgramSeeder::class);
-        Program::create(['name' => 'Synthetic enrolled program', 'agency' => 'OSCA', 'status' => 'ACTIVE']);
-        Program::create(['name' => 'Synthetic inactive program', 'agency' => 'OSCA', 'status' => 'INACTIVE']);
+        Program::where('benefit_code', 'tss')->update(['benefit_code' => null, 'status' => 'ACTIVE']);
+        Program::where('benefit_code', 'october-assistance')->update(['status' => 'INACTIVE']);
 
         $this->get(route('payout-schedules.create'))
             ->assertSee('Annual December Senior Assistance')
             ->assertSee('National Social Pension')
-            ->assertSee('Synthetic enrolled program')
+            ->assertSee('T.S.S. - Tulong sa Senior')
             ->assertSee('Other - enter a new program')
-            ->assertDontSee('Synthetic inactive program');
+            ->assertDontSee('Paglingap kay Lolo at Lola');
     }
 
     public function test_catalog_selection_opens_the_reviewed_schedule_form_inside_payouts(): void
@@ -51,6 +51,26 @@ class PayoutScheduleTest extends TestCase
         $this->assertDatabaseCount('benefit_schedules', 0);
     }
 
+    public function test_hidden_eligibility_fields_keep_program_defaults_for_submission(): void
+    {
+        $this->travelTo(now()->setDate(2026, 10, 29)->setTime(12, 0));
+        $this->actingAs(User::factory()->create());
+        $this->seed(BenefitProgramSeeder::class);
+        $program = Program::where('benefit_code', 'december-assistance')->sole();
+
+        Livewire::test(Workspace::class, ['initialProgramId' => (string) $program->id, 'payoutMode' => true])
+            ->assertDontSee('Program and eligibility')->assertDontSee('Frequency:')
+            ->assertDontSee('wire:model="form.period_key"', false)->assertDontSee('wire:model="form.eligibility_on"', false)
+            ->assertSee('Schedule and funding')->assertSet('form.period_key', '2026')
+            ->assertSet('form.eligibility_on', '2026-10-29')
+            ->set('form.location', 'Synthetic venue')->set('form.scheduled_at', '2026-12-10T12:00')->set('historicalClaimsChecked', true)
+            ->call('createSchedule')->assertHasNoErrors();
+
+        $schedule = BenefitSchedule::sole();
+        $this->assertSame('2026', $schedule->period_key);
+        $this->assertSame('2026-10-29', $schedule->eligibility_on->toDateString());
+    }
+
     public function test_other_can_create_a_new_program_and_schedule_from_the_payout_page(): void
     {
         $this->travelTo(now()->setDate(2026, 12, 10)->setTime(12, 0));
@@ -63,21 +83,21 @@ class PayoutScheduleTest extends TestCase
             ->assertSee('Government level');
 
         Livewire::test(Workspace::class, ['initialProgramId' => 'other', 'payoutMode' => true])
-            ->set('newProgram.name', 'Synthetic payout assistance')
-            ->set('newProgram.agency', 'Synthetic agency')
+            ->set('newProgram.name', 'Localized Social Pension')
+            ->set('newProgram.agency', 'OSCA Santa Maria')
             ->set('form.location', 'Synthetic payout venue')
             ->set('form.amount', '750')
             ->set('historicalClaimsChecked', true)
             ->call('createSchedule')->assertHasNoErrors()
             ->assertSeeLivewire(SchedulePanel::class);
 
-        $program = Program::where('name', 'Synthetic payout assistance')->sole();
+        $program = Program::where('name', 'Localized Social Pension')->sole();
         $schedule = BenefitSchedule::sole();
         $this->assertSame($program->id, $schedule->program_id);
         $this->assertSame($staff->id, $schedule->created_by);
         $this->assertSame('DRAFT', $schedule->status);
         $this->assertDatabaseCount('benefit_payments', 0);
-        $this->get(route('payout-schedules.index'))->assertSee('Synthetic payout assistance')->assertSee($schedule->reference_number);
+        $this->get(route('payout-schedules.index'))->assertSee('Localized Social Pension')->assertSee($schedule->reference_number);
         $this->get(route('payout-schedules.create', ['program_id' => $program->id, 'schedule_id' => $schedule->id]))
             ->assertSee('Review payout schedule')->assertSee($schedule->reference_number)->assertSeeLivewire(SchedulePanel::class);
     }
@@ -85,7 +105,9 @@ class PayoutScheduleTest extends TestCase
     public function test_enrolled_program_retains_the_existing_payout_form(): void
     {
         $this->actingAs(User::factory()->create());
-        $program = Program::create(['name' => 'Synthetic enrolled program', 'agency' => 'OSCA', 'status' => 'ACTIVE']);
+        $this->seed(BenefitProgramSeeder::class);
+        $program = Program::where('benefit_code', 'tss')->sole();
+        $program->update(['benefit_code' => null, 'status' => 'ACTIVE']);
 
         $this->get(route('payout-schedules.create', ['program_id' => $program->id]))
             ->assertSee('Reference number')
@@ -97,8 +119,9 @@ class PayoutScheduleTest extends TestCase
     public function test_payout_selection_rejects_inactive_programs_and_mismatched_schedules(): void
     {
         $this->actingAs(User::factory()->create());
-        $inactive = Program::create(['name' => 'Synthetic inactive program', 'agency' => 'OSCA', 'status' => 'INACTIVE']);
         $this->seed(BenefitProgramSeeder::class);
+        $inactive = Program::where('benefit_code', 'october-assistance')->sole();
+        $inactive->update(['status' => 'INACTIVE']);
         $program = Program::where('benefit_code', 'december-assistance')->sole();
         $other = Program::where('benefit_code', 'lgu-age-90')->sole();
         $schedule = $this->schedule($program);

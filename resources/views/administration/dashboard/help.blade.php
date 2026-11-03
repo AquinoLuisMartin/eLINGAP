@@ -7,6 +7,5 @@
         <a class="task-row" href="{{ route('registrations.index') }}">Review senior registrations</a>
     @endcan
     <a class="task-row" href="{{ route('benefits.workspace') }}">Review benefit reports and payments</a>
-    <a class="task-row" href="{{ route('sms.blasts.create') }}">Create an SMS broadcast</a>
     <a class="task-row" href="{{ route('administration.users.index') }}">Manage user accounts</a>
 </div></div>

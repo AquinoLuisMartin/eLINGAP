@@ -8,6 +8,7 @@ use App\Models\PayoutSchedule;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
 use App\Models\User;
+use Database\Seeders\BenefitProgramSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -19,7 +20,9 @@ class PayoutScheduleBatchTest extends TestCase
     public function test_large_schedules_create_only_eligible_payouts_with_bounded_writes(): void
     {
         $this->actingAs(User::factory()->create());
-        $program = Program::create(['name' => 'Synthetic batch program', 'agency' => 'Synthetic office', 'status' => 'ACTIVE']);
+        $this->seed(BenefitProgramSeeder::class);
+        $program = Program::where('benefit_code', 'local-social-pension')->sole();
+        $program->update(['benefit_code' => null, 'status' => 'ACTIVE']);
         $barangay = Barangay::create(['name' => 'Synthetic area', 'code' => 'BATCH']);
         $rows = [];
         for ($index = 1; $index <= 402; $index++) {

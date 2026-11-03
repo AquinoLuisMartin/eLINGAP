@@ -16,7 +16,7 @@ class EventLogTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_audit_login_and_sms_events_identify_their_own_operator(): void
+    public function test_audit_and_login_events_identify_their_operator_without_sms_events(): void
     {
         $admin = User::factory()->admin()->create(['first_name' => 'Synthetic', 'last_name' => 'Administrator']);
         $staff = User::factory()->create(['first_name' => 'Synthetic', 'middle_name' => 'Middle', 'last_name' => 'Operator', 'name_suffix' => 'Jr.']);
@@ -29,7 +29,7 @@ class EventLogTest extends TestCase
             ->call('navigate', 'system-logs')
             ->assertSee('Accessed: Reports index - OSCA Staff Synthetic Middle Operator Jr.')
             ->assertSee('Signed in - Admin Synthetic Administrator')
-            ->assertSee('SMS delivery: sent - OSCA Staff Synthetic Middle Operator Jr.');
+            ->assertDontSee('SMS delivery: sent - OSCA Staff Synthetic Middle Operator Jr.');
     }
 
     public function test_events_without_an_account_remain_visible_with_an_honest_fallback(): void

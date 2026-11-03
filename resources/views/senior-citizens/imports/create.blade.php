@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="mx-auto max-w-5xl space-y-6">
-    <section class="welcome-row"><div><p class="section-kicker">Senior registration</p><h2 class="text-2xl font-semibold">Import previous records</h2><p class="section-subtitle">Upload a spreadsheet, check the preview, then add records for staff review.</p></div><a href="{{ route('registrations.index') }}" class="secondary-button">Back to registrations</a></section>
+    <section class="welcome-row"><div><p class="section-kicker">Senior registration</p><h2 class="text-2xl font-semibold">Import previous records</h2><p class="section-subtitle">Upload a spreadsheet, check the preview, then add records for staff review.</p></div><a href="{{ route('senior-citizens.index') }}" class="secondary-button">Back to Senior Masterlist</a></section>
     <x-benefit-panel>
         <h3 class="text-lg font-semibold">1. Prepare your file</h3>
         <p class="mt-2 text-sm text-slate-500">CSV (UTF-8), Excel XLSX or XLS. Maximum 5 MB and 500 records per file. Use one worksheet, with the column headers in the first row. Download a template and paste values only.</p>

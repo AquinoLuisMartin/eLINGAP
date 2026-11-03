@@ -7,6 +7,7 @@ use App\Models\Beneficiary;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
 use App\Models\User;
+use Database\Seeders\BenefitProgramSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -18,8 +19,10 @@ class ReadPerformanceTest extends TestCase
     public function test_registry_pagination_keeps_query_count_bounded_as_rows_increase(): void
     {
         $this->actingAs(User::factory()->create());
+        $this->seed(BenefitProgramSeeder::class);
         $barangay = Barangay::create(['name' => 'Synthetic barangay', 'code' => 'SYN']);
-        $program = Program::create(['name' => 'Synthetic program', 'agency' => 'Test agency', 'budget' => 1000, 'status' => 'ACTIVE']);
+        $program = Program::where('benefit_code', 'december-assistance')->sole();
+        $program->update(['status' => 'ACTIVE', 'budget' => 1000]);
         $this->senior($barangay, 1, $program);
         DB::connection()->enableQueryLog();
         DB::connection()->flushQueryLog();

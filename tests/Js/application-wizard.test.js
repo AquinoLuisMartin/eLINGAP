@@ -19,7 +19,7 @@ function wizard() {
     form.querySelector = selector => elements.get(selector);
     form.elements = {
         senior_citizen_id: { selectedOptions: [{ textContent: 'Synthetic applicant' }] },
-        program_id: { selectedOptions: [{ textContent: 'Synthetic assistance' }] },
+        program_id: { selectedOptions: [{ textContent: 'Annual December Senior Assistance' }] },
         applied_on: { value: '2026-10-19' },
     };
     initApplicationWizard(form);
@@ -37,7 +37,7 @@ test('Enter advances through the wizard and only submits after review', () => {
     assert.equal(page.submit(), false);
     assert.equal(page.steps[2].hidden, false);
     assert.equal(page.submit(), true);
-    assert.match(page.elements.get('#application-review').textContent, /Synthetic assistance/);
+    assert.match(page.elements.get('#application-review').textContent, /Annual December Senior Assistance/);
 });
 
 test('an invalid visible step stays open instead of advancing', () => {

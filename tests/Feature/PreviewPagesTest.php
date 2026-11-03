@@ -13,7 +13,6 @@ class PreviewPagesTest extends TestCase
     #[TestWith(['/masterlist', 'senior-citizens.index'])]
     #[TestWith(['/staff-preview', 'dashboard'])]
     #[TestWith(['/registrations-preview', 'registrations.index'])]
-    #[TestWith(['/messaging', 'sms.blasts.index'])]
     public function test_legacy_previews_redirect_to_working_pages(string $path, string $route): void
     {
         $this->get($path)->assertRedirect(route($route));
@@ -23,6 +22,7 @@ class PreviewPagesTest extends TestCase
     #[TestWith(['/payouts'])]
     #[TestWith(['/reports'])]
     #[TestWith(['/registrations'])]
+    #[TestWith(['/messaging'])]
     public function test_working_pages_require_authentication(string $path): void
     {
         $this->get($path)->assertRedirect(route('login'));

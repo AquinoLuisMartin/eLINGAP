@@ -5,8 +5,8 @@
     <form wire:submit="save" class="space-y-6">
         <x-senior-id.panel title="Authorized signatories">
             <div class="grid gap-8 md:grid-cols-2">
-                <div class="space-y-5"><label for="head-name" class="block text-sm">OSCA Head name<input id="head-name" wire:model="oscaHeadName" maxlength="150" required class="mt-2 block w-full"></label><x-senior-id.image-upload property="headSignature" label="OSCA Head signature (optional)" />@if($images['osca_head_signature'])<img src="{{ $images['osca_head_signature'] }}" class="max-h-20 max-w-full bg-white" alt="Current OSCA Head signature"><label class="flex gap-2 text-sm"><input type="checkbox" wire:model="remove" value="osca_head_signature"> Remove current signature</label>@endif</div>
-                <div class="space-y-5"><label for="mayor-name" class="block text-sm">Municipal Mayor name<input id="mayor-name" wire:model="mayorName" maxlength="150" required class="mt-2 block w-full"></label><x-senior-id.image-upload property="mayorSignature" label="Municipal Mayor signature (optional)" />@if($images['municipal_mayor_signature'])<img src="{{ $images['municipal_mayor_signature'] }}" class="max-h-20 max-w-full bg-white" alt="Current Mayor signature"><label class="flex gap-2 text-sm"><input type="checkbox" wire:model="remove" value="municipal_mayor_signature"> Remove current signature</label>@endif</div>
+                <label for="head-name" class="block text-sm">OSCA Head name<input id="head-name" wire:model="oscaHeadName" maxlength="150" required class="mt-2 block w-full"></label>
+                <label for="mayor-name" class="block text-sm">Municipal Mayor name<input id="mayor-name" wire:model="mayorName" maxlength="150" required class="mt-2 block w-full"></label>
             </div>
         </x-senior-id.panel>
         <x-senior-id.panel title="Municipal seal" description="The bundled LGU seal is included by default. Upload an official replacement if needed.">

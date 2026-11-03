@@ -1,8 +1,8 @@
-<section class="page-intro"><div><p class="section-kicker">Administration</p><h2>System Logs</h2><p class="section-subtitle">Recorded audit, authentication, and SMS events.</p></div></section>
+<section class="page-intro"><div><p class="section-kicker">Administration</p><h2>System Logs</h2><p class="section-subtitle">Recorded audit and authentication events.</p></div></section>
 <div class="panel table-panel" wire:loading.class="data-refreshing" wire:target="search,logCategory">
     <div class="logs-summary"><div><strong>{{ number_format($this->filteredLogs->total()) }}</strong><span>matching events</span></div></div>
     <div class="table-tools"><div class="filter-pills">
-        @foreach (['All Logs', 'Audit Trail', 'Login Events', 'SMS Dispatch'] as $category)
+        @foreach (['All Logs', 'Audit Trail', 'Login Events'] as $category)
             <button wire:key="log-category-{{ $loop->index }}" type="button" class="{{ $logCategory === $category ? 'selected' : '' }}" wire:click="$set('logCategory', '{{ $category }}')">{{ $category }}</button>
         @endforeach
     </div></div>

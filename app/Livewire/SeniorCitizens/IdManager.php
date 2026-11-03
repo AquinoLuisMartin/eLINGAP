@@ -59,19 +59,23 @@ class IdManager extends Component
         }
     }
 
-    public function next(): void
+    public function goToStep(int $step): void
     {
+        abort_unless(in_array($step, [1, 2, 3], true), 422);
         $this->senior();
-        $this->step = 2;
+        $this->step = $step;
         $this->reviewed = false;
         $this->resetValidation();
     }
 
+    public function next(): void
+    {
+        $this->goToStep(2);
+    }
+
     public function back(): void
     {
-        $this->step = max(1, $this->step - 1);
-        $this->reviewed = false;
-        $this->resetValidation();
+        $this->goToStep(max(1, $this->step - 1));
     }
 
     public function issue(SeniorEligibilityRecord $records): void

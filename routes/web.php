@@ -9,6 +9,7 @@ use App\Http\Controllers\Applications\ApplicationController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\Auth\ProfilePhotoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Payouts\PayoutController;
 use App\Http\Controllers\Payouts\PayoutScheduleController;
@@ -47,7 +48,6 @@ Route::middleware(EnsurePreviewIsLocal::class)->group(function () {
         'registrations-preview' => ['registrations.index', 'registrations.preview'],
         'reports-preview' => ['reports.index', 'reports.preview'],
         'payouts-preview' => ['payouts.index', 'payouts.preview'],
-        'messaging' => ['sms.blasts.index', 'messaging.preview'],
     ] as $path => [$destination, $name]) {
         Route::get($path, fn () => redirect()->route($destination))->name($name);
     }
@@ -65,6 +65,9 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'auth.session', 'active', EnsureCurrentCredentials::class, AuditActivity::class])->group(function () {
     Route::get('change-password', [ChangePasswordController::class, 'edit'])->name('password.change');
     Route::post('change-password', [ChangePasswordController::class, 'update'])->middleware('throttle:5,1,password-change')->name('password.change.update');
+    Route::get('profile-photo', [ProfilePhotoController::class, 'show'])->name('profile-photo.show');
+    Route::post('profile-photo', [ProfilePhotoController::class, 'update'])->middleware('throttle:10,1,profile-photo')->name('profile-photo.update');
+    Route::delete('profile-photo', [ProfilePhotoController::class, 'destroy'])->middleware('throttle:10,1,profile-photo')->name('profile-photo.destroy');
     Route::view('registrations', 'registrations.index')->name('registrations.index');
     Route::get('registrations/import', [SeniorImportController::class, 'create'])->name('registrations.import.create');
     Route::get('registrations/import/template/{format}', [SeniorImportController::class, 'template'])->name('registrations.import.template');
@@ -111,7 +114,8 @@ Route::middleware(['auth', 'auth.session', 'active', EnsureCurrentCredentials::c
     Route::get('sms/messages/create', [SmsMessageController::class, 'create'])->name('sms.messages.create');
     Route::post('sms/messages', [SmsMessageController::class, 'store'])->middleware('throttle:20,1,sms-send')->name('sms.messages.store');
     Route::get('sms/blasts', [SmsBlastController::class, 'index'])->name('sms.blasts.index');
-    Route::get('sms/blasts/create', [SmsBlastController::class, 'create'])->name('sms.blasts.create');
+    Route::get('messaging', [SmsBlastController::class, 'create'])->name('sms.blasts.create');
+    Route::get('sms/blasts/create', [SmsBlastController::class, 'create']);
     Route::get('sms/blasts/{blast}', [SmsBlastController::class, 'show'])->name('sms.blasts.show');
     Route::post('sms/blasts', [SmsBlastController::class, 'store'])->middleware('throttle:2,1,sms-broadcast')->name('sms.blasts.store');
     Route::post('sms/messages/{message}/retry', [SmsBlastController::class, 'retry'])->middleware('throttle:20,1,sms-retry')->name('sms.messages.retry');

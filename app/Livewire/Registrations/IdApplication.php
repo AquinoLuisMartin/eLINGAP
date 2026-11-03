@@ -33,7 +33,7 @@ class IdApplication extends Component
     #[Locked]
     public array $returnContext = ['from' => 'registry'];
 
-    public array $form = ['requirements_status' => '', 'requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'review_reason' => '', 'first_name' => '', 'middle_name' => '', 'last_name' => '', 'name_suffix' => '', 'birth_date' => '', 'sex' => '', 'civil_status' => '', 'barangay_id' => '', 'address' => '', 'contact_number' => '', 'applicant_type' => 'SELF', 'representative_name' => '', 'representative_relationship' => '', 'representative_contact' => ''];
+    public array $form = ['requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'first_name' => '', 'middle_name' => '', 'last_name' => '', 'name_suffix' => '', 'birth_date' => '', 'sex' => '', 'civil_status' => '', 'barangay_id' => '', 'address' => '', 'contact_number' => '', 'representative_name' => '', 'representative_relationship' => '', 'representative_contact' => ''];
 
     public $authorizationFile;
 
@@ -64,7 +64,7 @@ class IdApplication extends Component
 
     public function updatedRepresentativeContact(bool $enabled): void
     {
-        if (! $enabled && $this->form['applicant_type'] === 'SELF') {
+        if (! $enabled) {
             foreach (['representative_name', 'representative_relationship', 'representative_contact'] as $field) {
                 $this->form[$field] = '';
             }
@@ -86,12 +86,12 @@ class IdApplication extends Component
 
     public function needsRepresentative(): bool
     {
-        return $this->form['applicant_type'] === 'REPRESENTATIVE' || filled($this->form['representative_contact']) || filled($this->form['representative_name']);
+        return filled($this->form['representative_contact']) || filled($this->form['representative_name']);
     }
 
     private function input(): array
     {
-        return SeniorRegistrationInput::normalize([...$this->form, 'authorization_file' => $this->authorizationFile, 'identification_file' => $this->identificationFile]);
+        return SeniorRegistrationInput::normalize([...$this->form, 'applicant_type' => 'SELF', 'requirements_status' => 'CHECKED', 'review_reason' => '', 'authorization_file' => $this->authorizationFile, 'identification_file' => $this->identificationFile]);
     }
 
     private function validateInput(?array $fields = null): array
@@ -120,9 +120,9 @@ class IdApplication extends Component
     {
         Gate::authorize('create', SeniorCitizen::class);
         $fields = match ($this->step) {
-            0 => ['requirements_status', 'requirements_checks', 'requirements_checks.identity', 'requirements_checks.residency', 'requirements_checks.authorization', 'review_reason'],
+            0 => ['requirements_checks', 'requirements_checks.identity', 'requirements_checks.residency', 'requirements_checks.authorization'],
             1 => self::PERSONAL_FIELDS,
-            2 => ['barangay_id', 'address', 'contact_number', 'applicant_type', 'representative_name', 'representative_relationship', 'representative_contact'],
+            2 => ['barangay_id', 'address', 'contact_number', 'representative_name', 'representative_relationship', 'representative_contact'],
             default => [],
         };
         if ($this->step < 3) {
@@ -162,7 +162,7 @@ class IdApplication extends Component
         } catch (ValidationException $exception) {
             $keys = array_keys($exception->errors());
             $this->step = match (true) {
-                collect($keys)->contains(fn ($key) => str_starts_with($key, 'form.requirements_') || $key === 'form.review_reason') => 0,
+                collect($keys)->contains(fn ($key) => str_starts_with($key, 'form.requirements_')) => 0,
                 collect($keys)->contains(fn ($key) => in_array($key, array_map(fn ($field) => 'form.'.$field, self::PERSONAL_FIELDS))) => 1,
                 collect($keys)->contains(fn ($key) => str_starts_with($key, 'form.')) => 2,
                 default => 3,
@@ -172,7 +172,7 @@ class IdApplication extends Component
         $senior = $registration->create($data);
         $this->registeredSeniorId = $senior->id;
         session()->flash('clear-registration-names', true);
-        session()->flash('status', $senior->verified_at ? 'Requirements checked and registration verified. Prepare the ID.' : 'Registration saved for document review.');
+        session()->flash('status', 'Requirements checked and registration verified. Prepare the ID.');
         $this->redirectRoute('senior-id.show', [$senior, ...$this->returnContext]);
     }
 

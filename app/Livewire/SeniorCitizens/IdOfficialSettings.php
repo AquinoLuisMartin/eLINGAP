@@ -18,10 +18,6 @@ class IdOfficialSettings extends Component
 
     public string $mayorName = '';
 
-    public $headSignature;
-
-    public $mayorSignature;
-
     public $seal;
 
     public array $remove = [];
@@ -48,15 +44,13 @@ class IdOfficialSettings extends Component
     {
         $this->validate([
             'oscaHeadName' => ['required', 'string', 'max:150'], 'mayorName' => ['required', 'string', 'max:150'],
-            'headSignature' => ['nullable', 'image', 'mimes:jpeg,png', 'max:2048'],
-            'mayorSignature' => ['nullable', 'image', 'mimes:jpeg,png', 'max:2048'],
             'seal' => ['nullable', 'image', 'mimes:jpeg,png', 'max:2048'],
-            'remove' => ['array'], 'remove.*' => ['in:osca_head_signature,municipal_mayor_signature,municipal_seal'],
+            'remove' => ['array'], 'remove.*' => ['in:municipal_seal'],
         ]);
         $officials->save(['osca_head_name' => trim($this->oscaHeadName), 'municipal_mayor_name' => trim($this->mayorName)], [
-            'osca_head_signature' => $this->headSignature, 'municipal_mayor_signature' => $this->mayorSignature, 'municipal_seal' => $this->seal,
+            'municipal_seal' => $this->seal,
         ], $this->remove);
-        $this->reset('headSignature', 'mayorSignature', 'seal', 'remove');
+        $this->reset('seal', 'remove');
         $this->notice = 'Officials and card assets saved. Future prints will use these settings.';
         $this->dispatch('id-officials-updated');
     }
@@ -65,9 +59,7 @@ class IdOfficialSettings extends Component
     {
         $values = $officials->values();
 
-        $images = collect(['osca_head_signature', 'municipal_mayor_signature'])
-            ->mapWithKeys(fn ($key) => [$key => $assets->pathDataUri($values[$key] ?? null)])->all();
-        $images['municipal_seal'] = $assets->municipalSealDataUri($values['municipal_seal'] ?? null);
+        $images = ['municipal_seal' => $assets->municipalSealDataUri($values['municipal_seal'] ?? null)];
 
         return view('livewire.senior-citizens.id-official-settings', [
             'images' => $images, 'hasCustomSeal' => ! empty($values['municipal_seal']),

@@ -3,7 +3,7 @@
 @section('content')
     <x-workspace-navigation section="messaging" />
     <x-staff.page-header title="New SMS broadcast" description="Select an audience, review your message, then confirm it for delivery.">
-        <a href="{{ route('sms.blasts.index') }}" class="secondary-button">Back to messaging</a>
+        <a href="{{ route('sms.blasts.index') }}" class="secondary-button">View SMS History</a>
     </x-staff.page-header>
 
     <div class="grid items-start gap-5 xl:grid-cols-12">

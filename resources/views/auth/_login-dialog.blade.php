@@ -14,9 +14,9 @@
         </header>
 
         <h2 id="login-modal-title" class="text-center text-2xl font-semibold tracking-tight text-osca-ink">Sign in to eLINGAP</h2>
-        <p id="login-modal-description" class="mt-2 text-center text-sm text-osca-body">Access your OSCA staff workspace.</p>
+        <p id="login-modal-description" class="mt-2 text-center text-sm text-osca-body">Access your OSCA workspace.</p>
 
-        <form id="login-form" class="mt-6 space-y-4" action="{{ route('login') }}" method="post">
+        <form id="login-form" class="mt-6 space-y-4" action="{{ route('login') }}" method="post" data-validation-errors="{{ json_encode($errors->messages()) }}">
             @csrf
             @if ($errors->any())
                 <p id="login-error" class="rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-700" role="alert">{{ $errors->first() }}</p>
@@ -40,13 +40,6 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm">
-                <label class="inline-flex min-h-11 cursor-pointer items-center gap-2 text-osca-body">
-                    <input type="checkbox" name="remember" value="1" class="size-4 rounded border-osca-border accent-osca-primary" @checked(old('remember'))>
-                    <span>Remember me</span>
-                </label>
-            </div>
-
             <button id="login-submit" type="submit" class="flex min-h-11 w-full items-center justify-center rounded-lg bg-osca-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-osca-primary-dark disabled:cursor-wait disabled:opacity-70">
                 <span data-login-label>Sign in</span>
                 <span data-login-loading role="status" class="hidden items-center justify-center gap-2">
@@ -56,6 +49,6 @@
             </button>
         </form>
 
-        <p class="mt-6 text-center text-sm leading-relaxed text-osca-body">Need access? Contact the OSCA office or your barangay coordinator.</p>
+        <p class="mt-6 text-center text-sm leading-relaxed text-osca-body">Need access? Contact the OSCA Admin office.</p>
     </section>
 </div>

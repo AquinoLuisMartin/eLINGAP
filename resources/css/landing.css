@@ -7,6 +7,16 @@
         line-height: 1.65;
     }
 
+    .landing-page .public-map-background {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, black 8%, black 72%, transparent);
+        mask-image: linear-gradient(to bottom, transparent, black 8%, black 72%, transparent);
+    }
+
+    .landing-page .public-map-image {
+        -webkit-mask-image: radial-gradient(ellipse at 50% 35%, black 20%, transparent 68%);
+        mask-image: radial-gradient(ellipse at 50% 35%, black 20%, transparent 68%);
+    }
+
     .landing-page .public-card {
         min-width: 0;
         border: 1px solid var(--color-osca-border);

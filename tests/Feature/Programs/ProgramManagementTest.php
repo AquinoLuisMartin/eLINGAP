@@ -44,7 +44,7 @@ class ProgramManagementTest extends TestCase
         Exceptions::fake([RuntimeException::class]);
 
         $this->actingAs(User::factory()->admin()->create())->post(route('administration.programs.store'), [
-            'name' => 'Synthetic program', 'agency' => 'Synthetic agency', 'budget' => 1000,
+            'name' => 'Annual December Senior Assistance', 'agency' => 'OSCA Santa Maria', 'budget' => 1000,
         ])->assertServerError();
 
         $this->assertDatabaseCount('programs', 0);

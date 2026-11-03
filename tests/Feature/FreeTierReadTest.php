@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Benefits\EntitlementReport;
 use App\Livewire\Benefits\SchedulePanel;
+use App\Livewire\Payouts\Index as PayoutIndex;
 use App\Models\Barangay;
 use App\Models\BenefitEntitlement;
 use App\Models\BenefitPayment;
@@ -15,6 +16,7 @@ use App\Models\SeniorCitizen;
 use App\Models\SmsBlast;
 use App\Models\SmsMessage;
 use App\Models\User;
+use Database\Seeders\BenefitProgramSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -48,16 +50,19 @@ class FreeTierReadTest extends TestCase
     #[TestWith([true])]
     public function test_payout_lists_keep_names_and_links_with_a_small_database_payload(bool $schedulePage): void
     {
+        $this->seed(BenefitProgramSeeder::class);
         $staff = User::factory()->create();
         $senior = $this->senior();
-        $program = Program::create(['name' => 'Synthetic program', 'agency' => 'Synthetic office', 'status' => 'ACTIVE', 'benefit_rules' => ['notes' => str_repeat('x', 32000)]]);
+        $program = Program::where('benefit_code', 'december-assistance')->sole();
+        $program->update(['status' => 'ACTIVE', 'benefit_rules' => ['cadence' => 'ANNUAL', 'notes' => str_repeat('x', 32000)]]);
         $schedule = PayoutSchedule::create(['program_id' => $program->id, 'reference_number' => 'SYN-PAYOUT', 'scheduled_on' => '2026-10-25', 'amount' => 1000, 'status' => 'SCHEDULED']);
         $payout = Payout::create(['payout_schedule_id' => $schedule->id, 'senior_citizen_id' => $senior->id, 'amount' => 1000, 'status' => 'PENDING']);
 
         $response = $this->actingAs($staff)->get($schedulePage ? route('payout-schedules.show', $schedule) : route('payouts.index'));
 
-        $response->assertSee('Synthetic Middle Applicant Jr.')->assertSee('Synthetic program')->assertSee(route('payouts.show', $payout));
-        $this->assertLessThan(4096, strlen(json_encode($response->viewData('payouts')->items(), JSON_THROW_ON_ERROR)));
+        $response->assertSee('Synthetic Middle Applicant Jr.')->assertSee('Annual December Senior Assistance')->assertSee(route('payouts.show', $payout));
+        $payouts = $schedulePage ? $response->viewData('payouts') : Livewire::test(PayoutIndex::class)->viewData('payouts');
+        $this->assertLessThan(4096, strlen(json_encode($payouts->items(), JSON_THROW_ON_ERROR)));
     }
 
     public function test_schedule_directory_does_not_transfer_rule_snapshots_for_each_row(): void
@@ -67,7 +72,7 @@ class FreeTierReadTest extends TestCase
 
         $response = $this->actingAs($staff)->get(route('payout-schedules.index'));
 
-        $response->assertSee('SYN-BENEFIT')->assertSee('Synthetic program')->assertSee('Synthetic venue')
+        $response->assertSee('SYN-BENEFIT')->assertSee('Annual December Senior Assistance')->assertSee('Synthetic venue')
             ->assertSee(route('payout-schedules.create', ['program_id' => $schedule->program_id, 'schedule_id' => $schedule->id]));
         $this->assertLessThan(4096, strlen(json_encode($response->viewData('benefitSchedules')->items(), JSON_THROW_ON_ERROR)));
     }
@@ -97,7 +102,7 @@ class FreeTierReadTest extends TestCase
 
         $component = Livewire::test($componentClass, $componentClass === SchedulePanel::class ? ['scheduleId' => $schedule->id] : []);
 
-        $component->assertSee('Synthetic Middle Applicant Jr.')->assertSee('Synthetic program')
+        $component->assertSee('Synthetic Middle Applicant Jr.')->assertSee('Annual December Senior Assistance')
             ->assertSee('Synthetic barangay')->assertSee('SYN-PAY-REVERSED')->assertSee('SYN-PAY-CURRENT');
         $this->assertLessThan(8192, strlen(json_encode($component->viewData('entries')->items(), JSON_THROW_ON_ERROR)));
         if ($componentClass === SchedulePanel::class) {
@@ -143,9 +148,11 @@ class FreeTierReadTest extends TestCase
 
     private function benefitSchedule(User $staff): BenefitSchedule
     {
-        $program = Program::create([
-            'name' => 'Synthetic program', 'agency' => 'Synthetic office', 'status' => 'ACTIVE',
-            'government_level' => 'LGU', 'benefit_rules' => ['notes' => str_repeat('x', 32000)],
+        $this->seed(BenefitProgramSeeder::class);
+        $program = Program::where('benefit_code', 'december-assistance')->sole();
+        $program->update([
+            'status' => 'ACTIVE',
+            'benefit_rules' => ['cadence' => 'ANNUAL', 'notes' => str_repeat('x', 32000)],
         ]);
 
         return BenefitSchedule::create([

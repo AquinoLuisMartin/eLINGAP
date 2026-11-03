@@ -75,7 +75,7 @@ class SeniorRegistrationInput
             'first_name' => ['required', 'string', 'max:100'], 'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'], 'name_suffix' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.today()->subYears(60)->toDateString()],
-            'sex' => ['required', 'string', 'in:MALE,FEMALE,OTHER'], 'civil_status' => ['nullable', 'string', 'in:SINGLE,MARRIED,WIDOWED'],
+            'sex' => ['required', 'string', 'in:MALE,FEMALE'], 'civil_status' => ['nullable', 'string', 'in:SINGLE,MARRIED,WIDOWED'],
             'address' => ['required', 'string', 'max:1000'],
             'osca_id_number' => ['missing'],
             'photo' => ['prohibited'],
@@ -122,6 +122,8 @@ class SeniorRegistrationInput
     public static function messages(): array
     {
         return [
+            'requirements_checks.*.accepted' => 'Please check all required document requirements before continuing.',
+            'requirements_checks.*.required' => 'Please check all required document requirements before continuing.',
             'photo.max' => 'The photo field must not be greater than 2MB.',
             'birth_date.before_or_equal' => 'The applicant must be at least 60 years old on the application date.',
             'contact_number.regex' => 'Enter a valid Philippine mobile number: 10 digits starting with 9 after +63.',

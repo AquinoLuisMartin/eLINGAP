@@ -3,10 +3,7 @@
     @if ($this->summary['pending'] > 0)
         <div class="drawer-alert warning"><div><strong>{{ number_format($this->summary['pending']) }} pending verifications</strong><p>Senior records awaiting review.</p><button type="button" class="drawer-link" @click="notificationsOpen = false; $wire.set('recordFilter', 'PENDING'); $wire.navigate('records')">Review queue</button></div></div>
     @endif
-    @if ($this->summary['sms_failed'] > 0)
-        <div class="drawer-alert warning"><div><strong>{{ number_format($this->summary['sms_failed']) }} failed SMS messages</strong><p>Review sending results before retrying.</p><a class="drawer-link" href="{{ route('sms.messages.index', ['status' => 'FAILED']) }}">Review messages</a></div></div>
-    @endif
-    @if ($this->summary['pending'] === 0 && $this->summary['sms_failed'] === 0)
-        <p class="chart-note">No pending verifications or failed SMS messages.</p>
+    @if ($this->summary['pending'] === 0)
+        <p class="chart-note">No pending verifications.</p>
     @endif
 </aside></div>

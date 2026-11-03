@@ -3,16 +3,27 @@
 .field-label:has(> .ui-select),
 .admin-content form > div:has(> .ui-select) { display: flex; min-width: 0; flex-direction: column; gap: 7px; }
 .field-label > .ui-select { margin-top: 0; }
+.staff-shell .admin-content .schedule-form .field-label { display: flex; min-width: 0; flex-direction: column; gap: 6px; }
+.staff-shell .admin-content .schedule-form .field-label > :is(input, textarea, .ui-select, .field-helper) { margin: 0; }
 .field-helper { color: var(--muted, #64748b); font-size: 13px; line-height: 1.5; }
+.field-label-text { display: flex; align-items: baseline; gap: 0.25rem; width: fit-content; max-width: 100%; }
 .field-error, .field-required { color: #b91c1c; }
-.field-error { display: block; margin-top: 4px; font-size: 14px; line-height: 1.5; }
-.ui-feedback { margin-bottom: 16px; padding: 12px 16px; border: 1px solid; border-radius: 8px; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.staff-shell .field-error, .staff-shell .ui-feedback-error { color: #b91c1c; }
+.field-error { display: block; margin-top: 4px; font-size: 12px; line-height: 1.5; }
+.field-required { margin-inline-start: 0; line-height: 1; }
+:is(input, select, textarea)[aria-invalid="true"], .ui-select:has(select[aria-invalid="true"]) .ui-select-trigger {
+    border-color: #ef4444 !important;
+    outline-color: #ef4444;
+}
+input[type="checkbox"][aria-invalid="true"], input[type="radio"][aria-invalid="true"] { outline: 1px solid #ef4444; outline-offset: 2px; }
+.ui-feedback { grid-column: 1 / -1; margin-bottom: 16px; padding: 12px 16px; border: 1px solid; border-radius: 8px; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
 .ui-feedback-success { border-color: #a7f3d0; color: #065f46; background: #ecfdf5; }
 .ui-feedback-error { border-color: #fecaca; color: #991b1b; background: #fef2f2; }
 .ui-feedback ul { margin: 0; padding-left: 20px; list-style: disc; }
 .theme-dark .ui-feedback-success { border-color: #065f46; color: #a7f3d0; background: #022c22; }
 .theme-dark .ui-feedback-error { border-color: #991b1b; color: #fecaca; background: #450a0a; }
 .theme-dark :where(.field-error, .field-required) { color: #fca5a5; }
+.staff-shell.theme-dark .field-error, .staff-shell.theme-dark .ui-feedback-error { color: #fca5a5; }
 .admin-content :where(.primary-button, .secondary-button, .danger-button) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border-radius: 8px; font: inherit; font-size: 14px; line-height: 1.5; }
 .admin-content :where(.primary-button, .secondary-button, .danger-button, .text-button):disabled,
 [data-ui-busy] { opacity: .6; cursor: wait; }

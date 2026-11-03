@@ -900,10 +900,10 @@ class BenefitWorkflowTest extends TestCase
         $component = Livewire::test(Programs::class)->call('edit', $program->id)->set('historicalClaimsChecked', true)->call('save')->assertHasNoErrors();
         $component->call('edit', $program->id)->set('historicalClaimsChecked', true)->call('save')->assertHasNoErrors();
         $this->assertSame(1, AuditLog::where('action', 'benefit.program_configured')->count());
-        $component->call('edit', $program->id)->set('form.name', 'Synthetic revised program')->set('historicalClaimsChecked', true)->call('save')->assertHasNoErrors();
+        $component->call('edit', $program->id)->set('form.name', 'Localized Social Pension')->set('historicalClaimsChecked', true)->call('save')->assertHasNoErrors();
 
         $this->assertSame(2, AuditLog::where('action', 'benefit.program_configured')->count());
-        $this->assertSame('Synthetic revised program', $program->fresh()->name);
+        $this->assertSame('Localized Social Pension', $program->fresh()->name);
     }
 
     public function test_program_editor_cancellation_clears_edits_and_errors_without_saving(): void

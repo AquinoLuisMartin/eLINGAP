@@ -8,7 +8,9 @@ use App\Services\Benefits\BenefitAudit;
 use App\Services\SeniorCitizens\IdCardLayout;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -35,7 +37,7 @@ class SeniorCitizenIdController extends Controller
         $pdf = $layout->pdf($layout->data($seniorCitizen), $data['paper']);
         BenefitAudit::record('senior_citizen.id_print_generated', $seniorCitizen, [...$data, 'generated_at' => now()->toIso8601String()]);
 
-        return response($pdf, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="senior-id.pdf"', 'Cache-Control' => 'private, no-store']);
+        return response($pdf, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="'.$this->filename($seniorCitizen->last_name).'"', 'Cache-Control' => 'private, no-store']);
     }
 
     public function officials(): View
@@ -53,18 +55,31 @@ class SeniorCitizenIdController extends Controller
             'senior_ids.*' => ['required', 'integer', 'distinct', 'exists:senior_citizens,id'],
             'paper' => ['required', Rule::in(array_keys(IdCardLayout::PAPERS))],
             'purpose' => ['required', Rule::in(['FIRST_PRINT', 'REPRINT', 'REPLACEMENT'])],
+            'layout' => ['sometimes', 'required', 'in:single,batch'],
         ]);
+        if (($data['layout'] ?? 'batch') === 'single' && count($data['senior_ids']) !== 1) {
+            throw ValidationException::withMessages(['senior_ids' => 'Select exactly one ID for the Single ID layout.']);
+        }
         $seniors = SeniorCitizen::query()->whereIn('id', $data['senior_ids'])->orderBy('id')->get();
         $cards = $seniors->map(function ($senior) use ($layout) {
             Gate::authorize('manageId', $senior);
 
             return $layout->data($senior);
         })->all();
-        $pdf = $layout->sheetPdf($cards, $data['paper']);
+        $pdf = $layout->sheetPdf($cards, $data['paper'], $data['layout'] ?? 'batch');
         foreach ($seniors as $senior) {
             BenefitAudit::record('senior_citizen.id_print_generated', $senior, ['paper' => $data['paper'], 'purpose' => $data['purpose'], 'batch_size' => count($cards), 'generated_at' => now()->toIso8601String()]);
         }
 
-        return response($pdf, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="senior-ids.pdf"', 'Cache-Control' => 'private, no-store']);
+        $filename = $seniors->count() === 1 ? $this->filename($seniors->first()->last_name) : 'senior-ids.pdf';
+
+        return response($pdf, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="'.$filename.'"', 'Cache-Control' => 'private, no-store']);
+    }
+
+    private function filename(?string $lastName): string
+    {
+        $name = preg_replace('/[^A-Z0-9_-]+/', '_', Str::upper(Str::ascii(trim((string) $lastName))));
+
+        return (trim((string) $name, '_-') ?: 'SENIOR-ID').'.pdf';
     }
 }

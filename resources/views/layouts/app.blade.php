@@ -26,23 +26,16 @@
     @php($user = auth()->user()->loadMissing('role'))
     @php($isAdmin = $user->isAdmin())
     @php($portalLabel = $isAdmin ? 'System Administration' : 'OSCA Staff Portal')
-    @php($recordsSection = request()->routeIs('registrations.*') || request('from') === 'registrations' ? 'registrations' : 'registry')
+    @php($recordsSection = request()->routeIs('registrations.import.*') ? 'registry' : (request()->routeIs('registrations.*') || request('from') === 'registrations' ? 'registrations' : 'registry'))
     @php($lastLoginAt = array_key_exists('last_login_at', $user->getAttributes()) ? $user->last_login_at : null)
     <div class="admin-shell staff-shell {{ $isAdmin ? '' : 'osca-workspace' }}" x-data="{
         sidebarOpen: false,
         sidebarTrigger: null,
         adminOpen: true,
-        profileOpen: false,
+        profileOpen: @js($errors->has('photo')),
         profileTrigger: null,
-        theme: document.documentElement.classList.contains('theme-dark') ? 'dark' : 'light',
-        toggleTheme() {
-            this.theme = this.theme === 'light' ? 'dark' : 'light';
-            try { localStorage.setItem('elingap-theme', this.theme); } catch {}
-            document.documentElement.classList.toggle('theme-dark', this.theme === 'dark');
-            document.documentElement.classList.toggle('theme-light', this.theme === 'light');
-            document.documentElement.style.colorScheme = this.theme;
-        }
-    }" :class="theme === 'dark' ? 'theme-dark' : 'theme-light'" @keydown.escape.window="if (profileOpen) profileTrigger?.focus(); else if (sidebarOpen) sidebarTrigger?.focus(); profileOpen = false; sidebarOpen = false" @resize.window="sidebarOpen = false">
+        ...workspaceTheme(),
+    }" :class="theme === 'dark' ? 'theme-dark' : 'theme-light'" @storage.window="syncTheme($event)" @keydown.escape.window="if (profileOpen) profileTrigger?.focus(); else if (sidebarOpen) sidebarTrigger?.focus(); profileOpen = false; sidebarOpen = false" @resize.window="sidebarOpen = false">
         <aside id="osca-navigation" class="admin-sidebar" x-trap.inert.noscroll="sidebarOpen && window.matchMedia('(max-width: 760px)').matches" :class="{ 'is-expanded': sidebarOpen }" @mouseenter="if (window.matchMedia('(min-width: 761px)').matches) sidebarOpen = true" @mouseleave="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains(document.activeElement)) sidebarOpen = false" @focusin="sidebarOpen = true" @focusout="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains($event.relatedTarget) && !$el.matches(':hover')) sidebarOpen = false">
             <div class="sidebar-brand">
                 <div class="brand-mark">
@@ -67,10 +60,10 @@
                 <p class="nav-label">Workspace</p>
                 @foreach ([
                     ['Dashboard', 'dashboard', 'layout-dashboard', 'dashboard'],
-                    ['Senior Registry', 'senior-citizens.index', 'users', 'senior-citizens.*'],
+                    ['Senior Masterlist', 'senior-citizens.index', 'users', 'senior-citizens.*'],
                     ['Registrations', 'registrations.index', 'clipboard-list', 'registrations.*'],
                     ['Payouts', 'payouts.index', 'archive', 'payouts.*'],
-                    ['Messaging', 'sms.blasts.index', 'message-square', 'sms.*'],
+                    ['Messaging', 'sms.blasts.create', 'message-square', 'sms.*'],
                     ['Reports', 'reports.index', 'bar-chart-3', 'reports.*'],
                     ['Benefits Workspace', 'benefits.workspace', 'heart-pulse', 'benefits.*'],
                 ] as [$label, $route, $icon, $pattern])
@@ -91,54 +84,11 @@
 
             </nav>
             @endif
-
-            <button class="sidebar-footer" type="button" @click="profileTrigger = $event.currentTarget; profileOpen = !profileOpen" aria-controls="osca-account-panel" :aria-expanded="profileOpen">
-                <span class="profile-avatar">{{ mb_substr($user->first_name, 0, 1).mb_substr($user->last_name, 0, 1) }}</span>
-                <span class="profile-copy">
-                    <strong>{{ $user->first_name }} - {{ $user->role->name->label() }}</strong>
-                    <small>{{ $portalLabel }}</small>
-                </span>
-                <span class="icon-button sidebar-logout" aria-label="Open account menu" title="Open account menu">
-                    <x-admin.icon name="chevron-right" size="17" />
-                </span>
-            </button>
         </aside>
 
         <button type="button" class="sidebar-backdrop" x-show="sidebarOpen" x-cloak @click="sidebarOpen = false; sidebarTrigger?.focus()" aria-label="Close navigation"></button>
 
         <div class="profile-menu-backdrop" x-show="profileOpen" x-transition.opacity @click="profileOpen = false" style="display: none;"></div>
-        <aside id="osca-account-panel" class="profile-menu" x-trap.inert.noscroll="profileOpen" aria-label="Account details" x-show="profileOpen" x-transition @click.stop @click.outside="profileOpen = false" style="display: none;">
-            <div class="profile-menu-header">
-                <div class="profile-menu-avatar">{{ mb_substr($user->first_name, 0, 1).mb_substr($user->last_name, 0, 1) }}</div>
-                <div>
-                    <strong>{{ $user->first_name }} {{ $user->last_name }}</strong>
-                    <span class="role-badge">{{ $user->role->name->label() }}</span>
-                    <small>{{ $user->employee_id }}</small>
-                </div>
-            </div>
-            <div class="profile-details">
-                <div>
-                    <a href="{{ route('password.change') }}" class="text-button">Change password</a>
-                    <small>Assigned Office</small>
-                    <strong>{{ $officeDetails['office_name'] ?? 'Office of the Senior Citizen Affairs' }}</strong>
-                </div>
-                <div>
-                    <small>Last Active / Login</small>
-                    <strong>{{ $lastLoginAt?->format('M j, Y g:i A') ?? 'Never' }}</strong>
-                </div>
-                <div class="account-status">
-                    <small>Account Status</small>
-                    <span><i></i> {{ $user->is_active ? 'Active' : 'Suspended' }}</span>
-                </div>
-            </div>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="profile-logout">
-                    <x-admin.icon name="log-out" size="16" />
-                    <span>Log out</span>
-                </button>
-            </form>
-        </aside>
 
         <div class="admin-main">
             <header class="admin-header">
@@ -146,38 +96,22 @@
                     <button type="button" class="icon-button mobile-menu-button" @click="sidebarTrigger = $event.currentTarget; sidebarOpen = !sidebarOpen; if (sidebarOpen) $nextTick(() => document.querySelector('#osca-navigation a')?.focus())" aria-label="Toggle navigation" aria-controls="osca-navigation" :aria-expanded="sidebarOpen">
                         <x-admin.icon name="menu" size="20" />
                     </button>
-                    <div>
-                        <span class="eyebrow">{{ $portalLabel }}</span>
-                        <h1>{{ match (true) {
-                            request()->routeIs('administration.users.*') => 'User Accounts',
-                            request()->routeIs('senior-id.*') => 'Senior Citizen IDs',
-                            request()->routeIs('senior-citizens.*') => request('from') === 'registrations' ? 'Registrations' : 'Senior Registry',
-                            request()->routeIs('registrations.*') => 'Registrations',
-                            request()->routeIs('applications.*') => 'Historical Applications',
-                            request()->routeIs('payouts.*', 'payout-schedules.*') => 'Payouts',
-                            request()->routeIs('sms.*') => 'Messaging',
-                            request()->routeIs('reports.*') => 'Reports',
-                            request()->routeIs('programs.*') => 'Benefits & Programs',
-                            request()->routeIs('benefits.*') => 'Benefits Workspace',
-                            default => 'Dashboard',
-                        } }}</h1>
-                    </div>
+                    <span class="eyebrow">{{ $portalLabel }}</span>
                 </div>
                 <div class="header-actions">
                     <span class="header-date"><x-admin.icon name="calendar-days" size="16" />{{ now()->format('l, F j, Y') }}</span>
-                    <button type="button" class="theme-toggle icon-button" @click="toggleTheme()" :aria-label="theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'" :aria-pressed="theme === 'dark'">
-                        <span x-show="theme === 'light'"><x-admin.icon name="moon" size="18" /></span>
-                        <span x-show="theme === 'dark'" x-cloak><x-admin.icon name="sun" size="18" /></span>
-                    </button>
-                    <button type="button" class="profile-avatar" @click="profileTrigger = $event.currentTarget; profileOpen = !profileOpen" aria-label="Open account menu" aria-controls="osca-account-panel" :aria-expanded="profileOpen">{{ mb_substr($user->first_name, 0, 1).mb_substr($user->last_name, 0, 1) }}</button>
+                    <x-theme-toggle />
+                    <div class="header-account" @click.outside="profileOpen = false">
+                        <button type="button" class="profile-avatar" @click="profileTrigger = $event.currentTarget; profileOpen = !profileOpen" aria-label="Open account menu" aria-controls="osca-account-panel" :aria-expanded="profileOpen"><x-profile-photo :user="$user" /></button>
+                        <aside id="osca-account-panel" class="profile-menu" x-trap.inert.noscroll="profileOpen" aria-label="Account details" x-show="profileOpen" x-transition @click.stop style="display: none;">
+                            <x-account-menu :user="$user" :office="$officeDetails['office_name'] ?? 'Office of the Senior Citizen Affairs'" :last-login="$lastLoginAt" />
+                    </aside>
+                    </div>
                 </div>
             </header>
 
             <main id="main-content" class="admin-content" tabindex="-1">
                 @include('components.alert')
-                @if (request()->routeIs('senior-citizens.*', 'senior-id.*', 'registrations.*'))
-                    <x-workspace-navigation section="records" />
-                @endif
                 @yield('content')
             </main>
         </div>

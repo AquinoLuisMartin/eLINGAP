@@ -6,6 +6,7 @@ use App\Models\Barangay;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
 use App\Models\User;
+use Database\Seeders\BenefitProgramSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -41,10 +42,12 @@ class StaffDashboardDataTest extends TestCase
     {
         $this->travelTo(now()->setDate(2026, 10, 16)->startOfDay());
         $this->actingAs(User::factory()->create());
+        $this->seed(BenefitProgramSeeder::class);
         $barangay = Barangay::create(['name' => 'Synthetic area', 'code' => 'SYN']);
         $this->senior($barangay, 1, '1942-01-01');
         $this->senior($barangay, 2, '1947-01-01');
-        $program = Program::create(['name' => 'Synthetic milestone program', 'agency' => 'Test agency', 'status' => 'ACTIVE', 'benefit_rules' => ['cadence' => 'MILESTONE', 'milestones' => [85 => 1000]]]);
+        $program = Program::where('benefit_code', 'national-milestones')->sole();
+        $program->update(['status' => 'ACTIVE', 'benefit_rules' => ['cadence' => 'MILESTONE', 'milestones' => [85 => 1000]]]);
 
         $response = $this->get(route('dashboard'))->assertOk()->assertSee('Ages 85');
 

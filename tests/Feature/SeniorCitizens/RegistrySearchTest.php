@@ -76,6 +76,30 @@ class RegistrySearchTest extends TestCase
         Livewire::test(Index::class)->set('searchBy', $field)->assertHasErrors('searchBy');
     }
 
+    public function test_registration_pagination_preserves_stage_and_updates_the_displayed_records(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $barangay = Barangay::create(['name' => 'Synthetic Barangay', 'code' => 'SYN']);
+        $first = null;
+        foreach (range(1, 16) as $number) {
+            $senior = SeniorCitizen::create([
+                'barangay_id' => $barangay->id, 'first_name' => 'Synthetic '.$number, 'last_name' => 'Citizen',
+                'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'address' => 'Synthetic Street', 'status' => 'VERIFIED',
+            ]);
+            $first ??= $senior;
+        }
+
+        Livewire::test(Index::class)->set('stage', 'VERIFIED')
+            ->assertSeeHtml('aria-label="Registrations pagination"')
+            ->assertSeeHtml('aria-current="page" aria-label="Page 1"')
+            ->assertViewHas('registrations', fn ($rows) => $rows->count() === 15 && $rows->total() === 16)
+            ->call('nextPage')->assertSet('stage', 'VERIFIED')->assertSet('paginators.page', 2)
+            ->assertSeeHtml('aria-current="page" aria-label="Page 2"')
+            ->assertViewHas('registrations', fn ($rows) => $rows->modelKeys() === [$first->id])
+            ->call('previousPage')->assertSet('paginators.page', 1)
+            ->assertViewHas('registrations', fn ($rows) => $rows->count() === 15 && $rows->total() === 16);
+    }
+
     public function test_registration_search_mode_resets_pagination_and_survives_record_navigation(): void
     {
         $this->actingAs(User::factory()->create());

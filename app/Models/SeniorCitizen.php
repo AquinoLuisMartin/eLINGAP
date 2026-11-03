@@ -14,6 +14,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['barangay_id', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'sex', 'civil_status', 'address', 'contact_number', 'osca_id_number', 'status', 'verified_at', 'verified_by', 'died_on', 'death_declared_at', 'death_declared_by', 'applicant_type', 'representative_name', 'representative_relationship', 'representative_contact', 'requirements_checks', 'review_reason'])]
 class SeniorCitizen extends Model
 {
+    public function milestoneClaims(): HasMany
+    {
+        return $this->benefitEntitlements()->whereIn('milestone_age', [80, 85, 90, 95, 100])->where('status', 'CLAIMED');
+    }
+
+    public function milestoneIndicator(): ?array
+    {
+        if (! $this->birth_date || in_array($this->status->value, ['DECEASED', 'TRANSFERRED'], true)) {
+            return null;
+        }
+        $age = collect([100, 95, 90, 85, 80])->first(fn ($age) => $this->birth_date->copy()->addYears($age)->lte(today()));
+
+        return $age ? ['age' => $age, 'claimed' => $this->milestoneClaims->contains('milestone_age', $age)] : null;
+    }
+
     public function benefitEntitlements(): HasMany
     {
         return $this->hasMany(BenefitEntitlement::class);

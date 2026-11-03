@@ -35,7 +35,8 @@ class SeniorImportTest extends TestCase
     {
         $staff = User::factory()->create();
         $this->actingAs($staff);
-        $this->get(route('registrations.index'))->assertSee('Import records');
+        $this->get(route('registrations.index'))->assertDontSee('Import records');
+        $this->get(route('senior-citizens.index'))->assertSee('Import records');
         $this->get(route('registrations.import.create'))->assertSee('Import previous records');
         $row = [...$this->row(), 'representative_name' => 'Synthetic Representative', 'representative_relationship' => 'Child', 'representative_contact' => '967-234-8976'];
         $token = $this->preview([$row], $format);
