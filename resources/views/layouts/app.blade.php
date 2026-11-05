@@ -110,7 +110,7 @@
                 </div>
             </header>
 
-            <main id="main-content" @class(['admin-content', 'admin-content-wide' => request()->routeIs('senior-id.show', 'sms.messages.index')]) tabindex="-1">
+            <main id="main-content" @class(['admin-content', 'admin-content-wide' => request()->routeIs('senior-id.show', 'sms.messages.index', 'sms.blasts.show')]) tabindex="-1">
                 @include('components.alert')
                 @yield('content')
             </main>

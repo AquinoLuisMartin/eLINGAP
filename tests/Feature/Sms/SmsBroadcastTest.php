@@ -31,7 +31,12 @@ class SmsBroadcastTest extends TestCase
         $blast = SmsBlast::firstOrFail();
         $this->assertSame(1, $blast->recipient_count);
         $this->assertSame(2, $blast->excluded_count);
-        $this->get(route('sms.blasts.show', $blast))->assertOk()->assertSee('Reminder');
+        $blast->messages()->sole()->update(['status' => 'SENT']);
+        $response = $this->get(route('sms.blasts.show', $blast))->assertOk()->assertSee('Reminder')->assertSee('Sent');
+        $document = new \DOMDocument;
+        $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new \DOMXPath($document);
+        $this->assertCount(0, $xpath->query('//table/tbody/tr/td[last()]//button'));
         $this->get(route('sms.blasts.index'))->assertSeeHtml('class="secondary-button" href="'.route('sms.blasts.show', $blast).'">Details</a>');
         $this->assertDatabaseHas('sms_messages', ['recipient_number' => '+639171234567']);
         Queue::assertPushed(SendSmsJob::class, 1);

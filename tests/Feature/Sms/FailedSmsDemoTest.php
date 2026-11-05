@@ -40,7 +40,7 @@ class FailedSmsDemoTest extends TestCase
         } finally {
             Model::preventAccessingMissingAttributes($previous);
         }
-        foreach (['OSCA ID', 'Senior Name', 'Mobile Number', 'Failure Reason', 'Status', 'Action',
+        foreach (['OSCA ID', 'Name', 'Mobile number', 'Message', 'Queued', 'Failure Reason', 'Status', 'Action',
             'Invalid number format', 'Carrier network timeout', 'Inbox full', 'SMS Gateway error',
             'MOCK-ID-1', 'SYNTHETIC BENEFICIARY', '09XX XXX 0001', 'Failed', 'Resend'] as $text) {
             $response->assertSee($text);
@@ -50,9 +50,11 @@ class FailedSmsDemoTest extends TestCase
         $document = new \DOMDocument;
         $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
         $xpath = new \DOMXPath($document);
-        $this->assertCount(5, $xpath->query('//table/thead/tr/th'));
+        $this->assertSame(['OSCA ID', 'Name', 'Mobile number', 'Message', 'Queued', 'Status', 'Action'],
+            array_map(fn ($header) => trim($header->textContent), iterator_to_array($xpath->query('//table/thead/tr/th'))));
         $this->assertCount(0, $xpath->query('//table/thead/tr/th[contains(., "Failure")]'));
         $this->assertCount(4, $xpath->query('//button[@data-retry]'));
+        $this->assertCount(0, $xpath->query('//table//button[normalize-space(.)="Details"]'));
         $this->assertCount(0, $xpath->query('//table//form'));
         $details = json_decode($xpath->query('//button[@data-retry]')->item(0)->getAttribute('data-retry'), true, 512, JSON_THROW_ON_ERROR);
         $this->assertSame('MOCK-ID-4', $details['oscaId']);
