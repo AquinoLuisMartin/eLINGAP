@@ -88,16 +88,28 @@ class SmsBlastController extends Controller
         return view('sms.blasts.show', [
             'blast' => $blast->load(['creator:id,first_name,last_name', 'barangay:id,name']),
             'messages' => $blast->messages()->select(['id', 'senior_citizen_id', 'recipient_number', 'status', 'failure_reason'])
-                ->with('seniorCitizen:id,first_name,middle_name,last_name,name_suffix')->latest('id')->paginate(20),
+                ->with('seniorCitizen:id,osca_id_number,first_name,middle_name,last_name,name_suffix')->latest('id')->paginate(20),
         ]);
     }
 
     public function retry(Request $request, SmsMessage $message): RedirectResponse
     {
         Gate::authorize('create', SmsMessage::class);
-        DB::transaction(function () use ($request, $message): void {
+        $mockResent = DB::transaction(function () use ($request, $message): bool {
             $locked = SmsMessage::query()->with('seniorCitizen')->lockForUpdate()->findOrFail($message->id);
             abort_unless($locked->status === SmsStatus::Failed, 409, 'Only failed messages can be retried.');
+            if (str_starts_with($locked->provider_message_id ?? '', 'MOCK-')
+                && ($locked->deliveryLogs()->latest('id')->first()?->response_payload['mock'] ?? false) === true) {
+                abort_if(app()->isProduction(), 422, 'Mock SMS cannot be resent in production.');
+                $locked->update(['status' => SmsStatus::Sent, 'failure_reason' => null, 'sent_at' => now()]);
+                $locked->deliveryLogs()->create([
+                    'status' => SmsStatus::Sent, 'provider_message_id' => $locked->provider_message_id,
+                    'response_payload' => ['mock' => true, 'status' => 'simulated resend', 'sms_sent' => false], 'recorded_at' => now(),
+                ]);
+                AuditLog::create(['user_id' => $request->user()->id, 'action' => 'sms.mock_resent', 'auditable_type' => SmsMessage::class, 'auditable_id' => $locked->id]);
+
+                return true;
+            }
             if ($locked->senior_citizen_id) {
                 abort_unless($locked->seniorCitizen?->status?->value === 'VERIFIED', 422, 'Recipient is no longer eligible.');
                 $number = $locked->seniorCitizen->smsContact();
@@ -116,9 +128,11 @@ class SmsBlastController extends Controller
             $locked->save();
             AuditLog::create(['user_id' => $request->user()->id, 'action' => 'sms.retried', 'auditable_type' => SmsMessage::class, 'auditable_id' => $locked->id, 'ip_address' => $request->ip()]);
             SendSmsJob::dispatch($locked->id)->onConnection('database-atomic')->beforeCommit();
+
+            return false;
         });
 
-        return back()->with('status', 'Failed SMS queued for retry.');
+        return back()->with('status', $mockResent ? 'Mock resend completed. No SMS was sent.' : 'Failed SMS queued for retry.');
     }
 
     private function recipients(?int $barangayId)
