@@ -36,6 +36,11 @@ class SmsBroadcastTest extends TestCase
         $document = new \DOMDocument;
         $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
         $xpath = new \DOMXPath($document);
+        $response->assertSee('Broadcast details')->assertDontSee('Back to broadcasts')->assertDontSee('Broadcast #'.$blast->id);
+        $this->assertCount(0, $xpath->query('//strong[normalize-space(.)="Message:"]'));
+        $back = $xpath->query('//header/a[normalize-space(.)="← Back"]');
+        $this->assertCount(1, $back);
+        $this->assertSame(route('sms.blasts.index'), $back->item(0)->getAttribute('href'));
         $this->assertCount(0, $xpath->query('//table/tbody/tr/td[last()]//button'));
         $this->get(route('sms.blasts.index'))->assertSeeHtml('class="secondary-button" href="'.route('sms.blasts.show', $blast).'">Details</a>');
         $this->assertDatabaseHas('sms_messages', ['recipient_number' => '+639171234567']);

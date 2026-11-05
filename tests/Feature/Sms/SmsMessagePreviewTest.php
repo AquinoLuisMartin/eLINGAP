@@ -6,6 +6,7 @@ use App\Models\Barangay;
 use App\Models\SeniorCitizen;
 use App\Models\SmsMessage;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,7 +19,7 @@ class SmsMessagePreviewTest extends TestCase
         $barangay = Barangay::create(['code' => 'SMS-PREVIEW', 'name' => 'Synthetic barangay']);
         $senior = SeniorCitizen::create([
             'barangay_id' => $barangay->id, 'first_name' => 'SYNTHETIC', 'last_name' => 'RECIPIENT',
-            'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'address' => 'Synthetic address', 'status' => 'VERIFIED',
+            'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'address' => 'Synthetic address', 'status' => 'VERIFIED', 'osca_id_number' => 'PREVIEW-001',
         ]);
         $body = str_repeat('Synthetic message details. ', 30)."\nPlease bring your ID.";
         SmsMessage::create([
@@ -26,7 +27,14 @@ class SmsMessagePreviewTest extends TestCase
             'status' => 'SENT', 'queued_at' => '2026-11-05 08:00:00', 'sent_at' => '2026-11-05 08:01:00',
         ]);
 
-        $response = $this->actingAs(User::factory()->create())->get(route('sms.messages.index'));
+        $this->actingAs(User::factory()->create());
+        $previous = Model::preventsAccessingMissingAttributes();
+        Model::preventAccessingMissingAttributes();
+        try {
+            $response = $this->get(route('sms.messages.index'));
+        } finally {
+            Model::preventAccessingMissingAttributes($previous);
+        }
 
         $document = new \DOMDocument;
         $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
@@ -35,6 +43,7 @@ class SmsMessagePreviewTest extends TestCase
         $this->assertCount(1, $buttons);
         $this->assertSame([
             'id' => SmsMessage::sole()->id,
+            'oscaId' => 'PREVIEW-001',
             'recipient' => 'SYNTHETIC RECIPIENT', 'mobile' => '09XX XXX 0001', 'body' => $body,
             'queued' => '2026-11-05 08:00', 'sent' => '2026-11-05 08:01', 'status' => 'Sent',
             'failureReason' => null,
@@ -78,7 +87,8 @@ class SmsMessagePreviewTest extends TestCase
         $xpath = new \DOMXPath($document);
         $details = json_decode($xpath->query('//button[@data-message]')->item(0)->getAttribute('data-message'), true, 512, JSON_THROW_ON_ERROR);
         $this->assertSame($reason, $details['failureReason']);
-        $this->assertCount(5, $xpath->query('//table/thead/tr/th'));
+        $this->assertSame(['OSCA ID', 'Name', 'Mobile number', 'Message', 'Queued', 'Status', 'Action'],
+            array_map(fn ($header) => trim($header->textContent), iterator_to_array($xpath->query('//table/thead/tr/th'))));
         $this->assertCount(0, $xpath->query('//table/thead/tr/th[contains(., "Failure")]'));
         $this->assertCount(1, $xpath->query('//button[@data-retry]'));
     }
