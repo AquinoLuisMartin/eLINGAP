@@ -78,10 +78,11 @@ test('valid templates stay in component state, populate the message, and can be 
     state.templateBody = '  Confirmed local message  ';
 
     state.saveTemplate();
-    state.chooseTemplate(selection('local-1', state.localTemplates[0].body));
+    const id = state.localTemplates[0].id;
+    state.chooseTemplate(selection(id, state.localTemplates[0].body));
 
-    assert.deepEqual(state.localTemplates, [{ id: 'local-1', title: 'Office notice', body: 'Confirmed local message' }]);
-    assert.equal(state.selectedTemplate, 'local-1');
+    assert.deepEqual(state.localTemplates, [{ id, title: 'Office notice', body: 'Confirmed local message', active: true }]);
+    assert.equal(state.selectedTemplate, id);
     assert.equal(state.broadcastBody, 'Confirmed local message');
     assert.equal(closed(), 1);
     assert.equal(updates(), 2);

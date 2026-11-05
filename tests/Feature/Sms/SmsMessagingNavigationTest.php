@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Sms;
 
+use App\Models\SmsTemplate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -52,7 +53,7 @@ class SmsMessagingNavigationTest extends TestCase
 
         $response = $this->get(route('sms.blasts.create'));
 
-        $response->assertSee('-- Select a template or create new --')->assertSee('+ Create new template...')
+        $response->assertDontSee('-- Select a template or create new --')->assertDontSee('Update audience')->assertSee('+ Create new template...')
             ->assertSee('Template Title')->assertSee('Message Body')->assertSee('(Insert Venue/Place)')
             ->assertSee('(Insert Date)')->assertSee('(Insert Time)')->assertSee('Benefit / Pension Program')
             ->assertSee('SSS Pension')->assertSee('GSIS Pension')->assertSee('LGU Social Pension')->assertSee('Centenarian Cash Gift');
@@ -61,9 +62,32 @@ class SmsMessagingNavigationTest extends TestCase
         $xpath = new \DOMXPath($document);
         $program = $xpath->query('//select[@id="broadcast-program"]')->item(0);
         $this->assertSame('', $program->getAttribute('name'));
+        $textarea = $xpath->query('//textarea[@id="broadcast-message"]')->item(0);
+        $this->assertSame('Write a message', $textarea->getAttribute('placeholder'));
+        $this->assertSame('', $textarea->textContent);
         $this->assertCount(1, $xpath->query('//dialog[@aria-labelledby="new-template-title"]'));
         $this->assertDatabaseCount('sms_templates', 0);
         $this->assertDatabaseCount('sms_messages', 0);
+    }
+
+    public function test_templates_expose_escaped_editor_data_without_a_backend_save_form(): void
+    {
+        $template = SmsTemplate::create([
+            'name' => '<script>synthetic title</script>', 'body' => '<img src=x onerror=alert(1)>', 'is_active' => false,
+        ]);
+
+        $response = $this->actingAs(User::factory()->create())->get(route('sms.templates.index'));
+
+        $response->assertSee('Edit template')->assertSee('Save changes')
+            ->assertDontSee($template->name, false)->assertDontSee($template->body, false);
+        $document = new \DOMDocument;
+        $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new \DOMXPath($document);
+        $data = json_decode($xpath->query('//*[@data-templates]')->item(0)->getAttribute('data-templates'), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame([
+            ['id' => (string) $template->id, 'title' => $template->name, 'body' => $template->body, 'active' => false],
+        ], $data);
+        $this->assertCount(0, $xpath->query('//dialog//form[@action]'));
     }
 
     #[TestWith(['/messaging'])]

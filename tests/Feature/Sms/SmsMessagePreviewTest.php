@@ -34,8 +34,10 @@ class SmsMessagePreviewTest extends TestCase
         $buttons = $xpath->query('//button[@data-message]');
         $this->assertCount(1, $buttons);
         $this->assertSame([
+            'id' => SmsMessage::sole()->id,
             'recipient' => 'SYNTHETIC RECIPIENT', 'mobile' => '09XX XXX 0001', 'body' => $body,
             'queued' => '2026-11-05 08:00', 'sent' => '2026-11-05 08:01', 'status' => 'Sent',
+            'failureReason' => null,
         ], json_decode($buttons->item(0)->getAttribute('data-message'), true, 512, JSON_THROW_ON_ERROR));
         $this->assertSame('sms-message-dialog', $buttons->item(0)->getAttribute('aria-controls'));
         $this->assertCount(1, $xpath->query('//dialog[@id="sms-message-dialog"]'));
@@ -69,8 +71,16 @@ class SmsMessagePreviewTest extends TestCase
         $response = $this->actingAs(User::factory()->create())->get(route('sms.messages.index'));
 
         $response->assertSee($body)->assertDontSee($body, false)
-            ->assertSee($reason)->assertDontSee($reason, false)
-            ->assertSeeHtml('action="'.route('sms.messages.retry', $message).'"');
+            ->assertDontSee($reason, false)
+            ->assertSee('Confirm Retry')->assertDontSee('action="'.route('sms.messages.retry', $message).'"', false);
+        $document = new \DOMDocument;
+        $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new \DOMXPath($document);
+        $details = json_decode($xpath->query('//button[@data-message]')->item(0)->getAttribute('data-message'), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame($reason, $details['failureReason']);
+        $this->assertCount(5, $xpath->query('//table/thead/tr/th'));
+        $this->assertCount(0, $xpath->query('//table/thead/tr/th[contains(., "Failure")]'));
+        $this->assertCount(1, $xpath->query('//button[@data-retry]'));
     }
 
     public function test_individual_message_content_requires_authentication(): void

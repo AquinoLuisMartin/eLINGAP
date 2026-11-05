@@ -11,12 +11,16 @@ import initAccountSecurity from './account-security';
 import initInputSuggestions from './input-suggestions';
 import initUppercaseSearch from './uppercase-search';
 import broadcastComposer from './broadcast-composer';
+import smsTemplateEditor from './sms-template-editor';
+import smsMessages from './sms-messages';
 
 window.idImageEditor = idImageEditor;
 window.formatSeniorMobile = formatSeniorMobile;
 window.uiSelect = uiSelect;
 window.workspaceTheme = workspaceTheme;
 window.broadcastComposer = broadcastComposer;
+window.smsTemplateEditor = smsTemplateEditor;
+window.smsMessages = smsMessages;
 const modalTriggers = new WeakMap();
 
 // Landing page interactions

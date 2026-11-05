@@ -1,7 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
-    <div x-data="broadcastComposer({ eligible: @js($eligible), message: @js(old('message', '')) })">
+    @php($templateData = $templates->map(fn ($template) => ['id' => (string) $template->id, 'title' => $template->name, 'body' => $template->body, 'active' => (bool) $template->is_active])->values())
+    <div x-data="broadcastComposer({ eligible: @js($eligible), excluded: @js($excluded), barangay: @js((string) request('barangay_id', '')), barangayIds: @js($barangays->pluck('id')->all()), key: @js('elingap-sms-templates-'.auth()->id()) })"
+        data-templates="{{ json_encode($templateData, JSON_THROW_ON_ERROR) }}"
+        x-on:sms-templates-updated.window="refreshTemplates($event)" x-on:storage.window="refreshTemplates($event)">
     <x-workspace-navigation section="messaging" />
     <x-staff.page-header title="New SMS broadcast" description="Select an audience, review your message, then confirm it for delivery.">
         <a href="{{ route('sms.blasts.index') }}" class="secondary-button">View SMS History</a>
@@ -11,8 +14,8 @@
         <aside class="panel xl:order-last xl:col-span-4" aria-labelledby="broadcast-audience-title">
             <h3 id="broadcast-audience-title" class="text-lg font-semibold">Audience</h3>
             <p class="mt-2 text-sm text-[var(--muted)]">Only verified seniors with valid mobile numbers are included.</p>
-            <form method="GET" class="mt-5 grid gap-4">
-                <div class="field-label"><label data-select-label>Target barangay</label><x-select label="Target barangay" name="barangay_id">
+            <div class="mt-5 grid gap-4">
+                <div class="field-label"><label data-select-label>Target barangay</label><x-select label="Target barangay" id="broadcast-barangay" x-model="barangay">
                         <option value="">All barangays</option>
                         @foreach ($barangays as $barangay)<option value="{{ $barangay->id }}" @selected(request('barangay_id') == $barangay->id)>{{ $barangay->name }}</option>@endforeach
                     </x-select>
@@ -27,41 +30,38 @@
                         <option value="centenarian">Centenarian Cash Gift</option>
                     </x-select>
                 </div>
-                <button class="secondary-button">Update audience</button>
-            </form>
+            </div>
             <dl class="mt-5 grid grid-cols-2 gap-4 border-t border-[var(--line)] pt-5">
-                <div><dt class="text-sm text-[var(--muted)]">Eligible recipients <span x-cloak x-show="program !== 'all'">(mock preview)</span></dt><dd class="mt-2 text-2xl font-semibold tabular-nums" aria-live="polite"><strong x-text="eligibleRecipients">{{ $eligible }}</strong></dd></div>
-                <div><dt class="text-sm text-[var(--muted)]">Excluded</dt><dd class="mt-2 text-2xl font-semibold tabular-nums"><strong>{{ $excluded }}</strong></dd></div>
+                <div><dt class="text-sm text-[var(--muted)]">Eligible recipients <span x-cloak x-show="audiencePreview">(mock preview)</span></dt><dd class="mt-2 text-2xl font-semibold tabular-nums" aria-live="polite"><strong x-text="eligibleRecipients">{{ $eligible }}</strong></dd></div>
+                <div><dt class="text-sm text-[var(--muted)]">Excluded</dt><dd class="mt-2 text-2xl font-semibold tabular-nums" aria-live="polite"><strong x-text="excludedRecipients">{{ $excluded }}</strong></dd></div>
             </dl>
             <p class="mt-4 text-sm text-[var(--muted)]">Excluded records are ineligible or have a missing or invalid mobile number.</p>
-            <p id="program-preview-note" class="mt-3 text-sm text-[var(--muted)]">Program counts are mock previews. Select All Programs to queue a broadcast using the selected barangay.</p>
+            <p id="program-preview-note" class="mt-3 text-sm text-[var(--muted)]">Changed filters preview mock counts only. Restore the original barangay and All Programs to queue a broadcast.</p>
         </aside>
 
-        <form method="POST" action="{{ route('sms.blasts.store') }}" id="sms-broadcast-form" data-eligible="{{ $eligible }}" data-excluded="{{ $excluded }}" data-audience="{{ $barangays->firstWhere('id', request('barangay_id'))?->name ?: 'All barangays' }}" class="panel grid gap-5 xl:col-span-8" x-on:submit="if (program !== 'all') $event.preventDefault()">
+        <form method="POST" action="{{ route('sms.blasts.store') }}" id="sms-broadcast-form" data-eligible="{{ $eligible }}" data-excluded="{{ $excluded }}" data-audience="{{ $barangays->firstWhere('id', request('barangay_id'))?->name ?: 'All barangays' }}" class="panel grid gap-5 xl:col-span-8" x-on:submit="if (audiencePreview) $event.preventDefault()">
             @csrf
             <input type="hidden" name="barangay_id" value="{{ request('barangay_id') }}">
             <h3 class="text-lg font-semibold">Compose message</h3>
             <div class="field-label"><label data-select-label>Quick template</label><x-select label="Quick template" id="broadcast-template" x-model="selectedTemplate" x-on:change="chooseTemplate($event)">
-                    <option value="">-- Select a template or create new --</option>
-                    @foreach ($templates as $template)<option value="{{ $template->id }}" data-body="{{ $template->body }}">{{ $template->name }}</option>@endforeach
-                    <template x-for="template in localTemplates" :key="template.id">
-                        <option :value="template.id" :data-body="template.body" x-text="template.title"></option>
+                    <template x-for="quickTemplate in availableTemplates()" :key="quickTemplate.id">
+                        <option :value="quickTemplate.id" :data-body="quickTemplate.body" x-text="quickTemplate.title"></option>
                     </template>
                     <option value="__new__">+ Create new template...</option>
                 </x-select>
             </div>
             <label class="field-label">Message
-                <textarea id="broadcast-message" x-ref="message" x-model="broadcastBody" name="message" rows="8" maxlength="1600" required aria-describedby="sms-count sms-placeholder-note" placeholder="[OSCA BROADCAST] Paalala sa mga senior citizens: May payout/announcement sa (Insert Venue/Place) sa (Insert Date) ganap na (Insert Time). Mangyaring magdala ng inyong OSCA ID.">{{ old('message') }}</textarea>
+                <textarea id="broadcast-message" x-ref="message" x-model="broadcastBody" name="message" rows="8" maxlength="1600" required aria-describedby="sms-count sms-placeholder-note" placeholder="Write a message"></textarea>
             </label>
             <p id="sms-placeholder-note" class="text-sm text-[var(--muted)]">Replace (Insert Venue/Place), (Insert Date), and (Insert Time) with confirmed details before sending.</p>
             <p id="sms-count" class="text-sm text-[var(--muted)]" aria-live="polite">Enter a message to see SMS segment usage.</p>
             <label class="flex items-start gap-3 rounded-lg border border-[var(--line)] p-4 text-sm"><input type="checkbox" name="confirmed" value="1" required class="mt-1"> <span>I reviewed the audience and message, and confirm this broadcast.</span></label>
-            <div class="staff-form-actions"><button type="submit" class="primary-button" :disabled="program !== 'all'" aria-describedby="program-preview-note">Queue broadcast</button><a href="{{ route('sms.blasts.index') }}" class="secondary-button">Cancel</a></div>
+            <div class="staff-form-actions"><button type="submit" class="primary-button" :disabled="audiencePreview" aria-describedby="program-preview-note">Queue broadcast</button><a href="{{ route('sms.blasts.index') }}" class="secondary-button">Cancel</a></div>
         </form>
     </div>
     <dialog x-ref="templateDialog" aria-labelledby="new-template-title" class="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-6 text-slate-900 shadow-xl backdrop:bg-slate-950/50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
         <form x-on:submit.prevent="saveTemplate()" class="flex flex-col gap-5">
-            <div><h2 id="new-template-title" class="text-xl font-semibold">Create new template</h2><p class="mt-2 text-sm text-slate-500">This template is available on this page until you reload or leave.</p></div>
+            <div><h2 id="new-template-title" class="text-xl font-semibold">Create new template</h2><p class="mt-2 text-sm text-slate-500">Saved in this browser and synced to the Templates tab.</p></div>
             <label class="field-label">Template Title<input x-model="templateTitle" maxlength="120" required autofocus></label>
             <label class="field-label">Message Body<textarea x-model="templateBody" rows="6" maxlength="1600" required></textarea></label>
             <p x-cloak x-show="templateError" x-text="templateError" role="alert" class="text-sm text-red-700 dark:text-red-300"></p>
