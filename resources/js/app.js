@@ -10,11 +10,13 @@ import initFieldFeedback from './field-feedback';
 import initAccountSecurity from './account-security';
 import initInputSuggestions from './input-suggestions';
 import initUppercaseSearch from './uppercase-search';
+import broadcastComposer from './broadcast-composer';
 
 window.idImageEditor = idImageEditor;
 window.formatSeniorMobile = formatSeniorMobile;
 window.uiSelect = uiSelect;
 window.workspaceTheme = workspaceTheme;
+window.broadcastComposer = broadcastComposer;
 const modalTriggers = new WeakMap();
 
 // Landing page interactions
@@ -76,13 +78,6 @@ function initStaffControls() {
     const broadcast = document.getElementById('broadcast-message');
     const count = document.getElementById('sms-count');
     if (broadcast && count) {
-        document.getElementById('broadcast-template')?.addEventListener('change', event => {
-            const selected = event.target.selectedOptions[0];
-            if (selected?.dataset.body) {
-                broadcast.value = selected.dataset.body;
-                broadcast.dispatchEvent(new Event('input'));
-            }
-        });
         const basic = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ ÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
         const extended = '^{}\\[~]|€';
         const sync = () => {
@@ -97,6 +92,7 @@ function initStaffControls() {
         broadcast.addEventListener('input', sync);
         sync();
         document.getElementById('sms-broadcast-form')?.addEventListener('submit', event => {
+            if (event.defaultPrevented) return;
             const form = event.currentTarget;
             const facts = `${form.dataset.audience}\nEligible: ${form.dataset.eligible}\nExcluded: ${form.dataset.excluded}\n${count.textContent}\n\n${broadcast.value}`;
             if (!window.confirm(`Queue this SMS broadcast?\n\n${facts}`)) event.preventDefault();

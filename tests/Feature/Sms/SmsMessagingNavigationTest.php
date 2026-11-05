@@ -46,6 +46,26 @@ class SmsMessagingNavigationTest extends TestCase
             ->assertViewIs('sms.blasts.create')->assertSee('View SMS History');
     }
 
+    public function test_broadcast_composer_renders_local_template_editor_and_program_preview_without_backend_fields(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $response = $this->get(route('sms.blasts.create'));
+
+        $response->assertSee('-- Select a template or create new --')->assertSee('+ Create new template...')
+            ->assertSee('Template Title')->assertSee('Message Body')->assertSee('(Insert Venue/Place)')
+            ->assertSee('(Insert Date)')->assertSee('(Insert Time)')->assertSee('Benefit / Pension Program')
+            ->assertSee('SSS Pension')->assertSee('GSIS Pension')->assertSee('LGU Social Pension')->assertSee('Centenarian Cash Gift');
+        $document = new \DOMDocument;
+        $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new \DOMXPath($document);
+        $program = $xpath->query('//select[@id="broadcast-program"]')->item(0);
+        $this->assertSame('', $program->getAttribute('name'));
+        $this->assertCount(1, $xpath->query('//dialog[@aria-labelledby="new-template-title"]'));
+        $this->assertDatabaseCount('sms_templates', 0);
+        $this->assertDatabaseCount('sms_messages', 0);
+    }
+
     #[TestWith(['/messaging'])]
     #[TestWith(['/sms/blasts'])]
     #[TestWith(['/sms/blasts/create'])]
