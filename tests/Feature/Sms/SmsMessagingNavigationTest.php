@@ -4,6 +4,7 @@ namespace Tests\Feature\Sms;
 
 use App\Models\SmsTemplate;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
@@ -88,6 +89,30 @@ class SmsMessagingNavigationTest extends TestCase
             ['id' => (string) $template->id, 'title' => $template->name, 'body' => $template->body, 'active' => false],
         ], $data);
         $this->assertCount(0, $xpath->query('//dialog//form[@action]'));
+    }
+
+    public function test_broadcast_with_saved_templates_renders_under_strict_attribute_checks(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $active = SmsTemplate::create(['name' => 'Synthetic active template', 'body' => 'Synthetic reminder', 'is_active' => true]);
+        SmsTemplate::create(['name' => 'Synthetic inactive template', 'body' => 'Unused reminder', 'is_active' => false]);
+        $previous = Model::preventsAccessingMissingAttributes();
+        Model::preventAccessingMissingAttributes();
+
+        try {
+            $response = $this->get(route('sms.blasts.create'));
+
+            $response->assertOk()->assertDontSee('Synthetic inactive template');
+            $document = new \DOMDocument;
+            $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+            $xpath = new \DOMXPath($document);
+            $data = json_decode($xpath->query('//*[@data-templates]')->item(0)->getAttribute('data-templates'), true, 512, JSON_THROW_ON_ERROR);
+            $this->assertSame([
+                ['id' => (string) $active->id, 'title' => 'Synthetic active template', 'body' => 'Synthetic reminder', 'active' => true],
+            ], $data);
+        } finally {
+            Model::preventAccessingMissingAttributes($previous);
+        }
     }
 
     #[TestWith(['/messaging'])]

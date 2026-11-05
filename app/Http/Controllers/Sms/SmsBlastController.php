@@ -48,7 +48,7 @@ class SmsBlastController extends Controller
             }
         });
 
-        return view('sms.blasts.create', ['barangays' => Barangay::query()->where('is_active', true)->orderBy('name')->get(), 'templates' => SmsTemplate::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'body']), 'eligible' => $eligible, 'excluded' => $total - $eligible]);
+        return view('sms.blasts.create', ['barangays' => Barangay::query()->where('is_active', true)->orderBy('name')->get(), 'templates' => SmsTemplate::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'body', 'is_active']), 'eligible' => $eligible, 'excluded' => $total - $eligible]);
     }
 
     public function store(CreateSmsBlastRequest $request, SmsService $smsService): RedirectResponse
