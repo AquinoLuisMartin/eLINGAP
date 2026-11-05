@@ -17,7 +17,7 @@ class SmsMessageController extends Controller
         Gate::authorize('viewAny', SmsMessage::class);
 
         return view('sms.messages.index', ['messages' => SmsMessage::query()
-            ->select(['id', 'senior_citizen_id', 'recipient_number', 'message', 'queued_at', 'status', 'failure_reason'])
+            ->select(['id', 'senior_citizen_id', 'recipient_number', 'message', 'queued_at', 'sent_at', 'status', 'failure_reason'])
             ->with('seniorCitizen:id,first_name,middle_name,last_name,name_suffix')->latest('id')->paginate(15)]);
     }
 
