@@ -85,6 +85,41 @@ class PayoutRecordsTest extends TestCase
         $this->get(route('payouts.index'))->assertRedirect(route('login'));
     }
 
+    public function test_compact_pagination_preserves_filters_and_filter_changes_return_to_the_first_page(): void
+    {
+        $this->freezeTime();
+        $this->actingAs(User::factory()->create());
+        $first = $this->legacy();
+        $this->entitlement(['status' => 'UNCLAIMED']);
+
+        foreach (range(1, 15) as $number) {
+            $senior = SeniorCitizen::create([
+                'barangay_id' => $first->seniorCitizen->barangay_id, 'first_name' => 'Synthetic '.$number,
+                'last_name' => 'Pagination', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE',
+                'address' => 'Synthetic address', 'status' => 'VERIFIED',
+            ]);
+            Payout::create([
+                'payout_schedule_id' => $first->payout_schedule_id, 'senior_citizen_id' => $senior->id,
+                'amount' => 500, 'status' => 'PENDING',
+            ]);
+        }
+
+        Livewire::test(Index::class)->set('status', 'PENDING')
+            ->assertSeeHtml('aria-label="Payout records pagination"')
+            ->assertSeeHtml('aria-current="page" aria-label="Page 1"')
+            ->assertViewHas('payouts', fn ($rows) => $rows->count() === 15 && $rows->total() === 16)
+            ->call('nextPage')->assertSet('paginators.page', 2)->assertSet('status', 'PENDING')
+            ->assertViewHas('payouts', fn ($rows) => $rows->count() === 1 && $rows->first()->id === $first->id)
+            ->assertSeeHtml('aria-current="page" aria-label="Page 2"')
+            ->call('previousPage')->assertSet('paginators.page', 1)
+            ->call('gotoPage', 2)->assertSet('status', 'PENDING')
+            ->set('search', 'No matching synthetic beneficiary')->assertSet('paginators.page', 1)
+            ->assertSee('No payouts match these filters.')
+            ->assertDontSeeHtml('aria-label="Payout records pagination"')
+            ->call('resetFilters')->assertSet('status', '')->assertSet('search', '')
+            ->assertViewHas('payouts', fn ($rows) => $rows->total() === 17);
+    }
+
     private function legacy(): Payout
     {
         $this->seed(BenefitProgramSeeder::class);
