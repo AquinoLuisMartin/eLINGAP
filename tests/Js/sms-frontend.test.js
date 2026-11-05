@@ -162,3 +162,21 @@ test('sent rows cannot open retry and cancel leaves the row unchanged', () => {
     state.confirmRetry();
     assert.equal(state.rowStatus(2, 'Failed'), 'Failed');
 });
+
+test('broadcast resend keeps OSCA and failure details and queues only its own frontend row', () => {
+    const state = smsMessages({ action: 'Resend' });
+    state.$nextTick = callback => callback();
+    state.$refs = { retryDialog: { showModal() {}, close() {} }, messageDialog: { showModal() {} } };
+    const details = { id: 7, oscaId: 'MOCK-ID-7', recipient: 'Synthetic recipient', mobile: '09XX XXX 0007', status: 'Failed', failureReason: 'SMS Gateway error', body: 'Synthetic broadcast' };
+
+    state.openDetails(details);
+    assert.equal(state.selected.failureReason, 'SMS Gateway error');
+    state.openRetry(details);
+    assert.equal(state.retry.oscaId, 'MOCK-ID-7');
+    assert.equal(state.retry.mobile, '09XX XXX 0007');
+    state.confirmRetry();
+
+    assert.equal(state.rowStatus(7, 'Failed'), 'Queued');
+    assert.match(state.notice, /^Resend queued/);
+    assert.equal(state.rowStatus(8, 'Failed'), 'Failed');
+});

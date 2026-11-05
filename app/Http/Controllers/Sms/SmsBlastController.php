@@ -87,7 +87,7 @@ class SmsBlastController extends Controller
 
         return view('sms.blasts.show', [
             'blast' => $blast->load(['creator:id,first_name,last_name', 'barangay:id,name']),
-            'messages' => $blast->messages()->select(['id', 'senior_citizen_id', 'recipient_number', 'status', 'failure_reason'])
+            'messages' => $blast->messages()->select(['id', 'senior_citizen_id', 'recipient_number', 'message', 'queued_at', 'sent_at', 'status', 'failure_reason'])
                 ->with('seniorCitizen:id,osca_id_number,first_name,middle_name,last_name,name_suffix')->latest('id')->paginate(20),
         ]);
     }

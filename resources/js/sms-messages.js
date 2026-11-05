@@ -6,7 +6,7 @@ export function smsStatusClass(status) {
     }[status] ?? 'bg-slate-100 text-slate-700';
 }
 
-export default function smsMessages() {
+export default function smsMessages({ action = 'Retry' } = {}) {
     return {
         selected: null,
         retry: null,
@@ -26,7 +26,7 @@ export default function smsMessages() {
         confirmRetry() {
             if (!this.retry || this.rowStatus(this.retry.id, this.retry.status) !== 'Failed') return;
             this.rowStates[this.retry.id] = 'Queued';
-            this.notice = `Retry queued for ${this.retry.recipient} in this preview. No SMS was sent.`;
+            this.notice = `${action} queued for ${this.retry.recipient} in this preview. No SMS was sent.`;
             this.$refs.retryDialog.close();
         },
     };

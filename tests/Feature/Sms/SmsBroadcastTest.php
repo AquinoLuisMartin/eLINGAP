@@ -32,6 +32,7 @@ class SmsBroadcastTest extends TestCase
         $this->assertSame(1, $blast->recipient_count);
         $this->assertSame(2, $blast->excluded_count);
         $this->get(route('sms.blasts.show', $blast))->assertOk()->assertSee('Reminder');
+        $this->get(route('sms.blasts.index'))->assertSeeHtml('class="secondary-button" href="'.route('sms.blasts.show', $blast).'">Details</a>');
         $this->assertDatabaseHas('sms_messages', ['recipient_number' => '+639171234567']);
         Queue::assertPushed(SendSmsJob::class, 1);
     }

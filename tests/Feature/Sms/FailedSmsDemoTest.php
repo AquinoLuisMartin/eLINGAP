@@ -9,6 +9,7 @@ use App\Models\SeniorCitizen;
 use App\Models\SmsBlast;
 use App\Models\User;
 use Database\Seeders\SampleFailedSmsSeeder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -32,13 +33,33 @@ class FailedSmsDemoTest extends TestCase
         $this->assertDatabaseCount('sms_messages', 4);
         $this->assertDatabaseCount('sms_delivery_logs', 8);
         $blast = SmsBlast::sole();
-        $response = $this->get(route('sms.blasts.show', $blast));
+        $previous = Model::preventsAccessingMissingAttributes();
+        Model::preventAccessingMissingAttributes();
+        try {
+            $response = $this->get(route('sms.blasts.show', $blast));
+        } finally {
+            Model::preventAccessingMissingAttributes($previous);
+        }
         foreach (['OSCA ID', 'Senior Name', 'Mobile Number', 'Failure Reason', 'Status', 'Action',
             'Invalid number format', 'Carrier network timeout', 'Inbox full', 'SMS Gateway error',
             'MOCK-ID-1', 'SYNTHETIC BENEFICIARY', '09XX XXX 0001', 'Failed', 'Resend'] as $text) {
             $response->assertSee($text);
         }
         $this->assertSame(4, substr_count($response->getContent(), '>Resend</button>'));
+        $response->assertSee('Resend Broadcast SMS')->assertSee('Confirm Resend')->assertSee('Cancel');
+        $document = new \DOMDocument;
+        $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new \DOMXPath($document);
+        $this->assertCount(5, $xpath->query('//table/thead/tr/th'));
+        $this->assertCount(0, $xpath->query('//table/thead/tr/th[contains(., "Failure")]'));
+        $this->assertCount(4, $xpath->query('//button[@data-retry]'));
+        $this->assertCount(0, $xpath->query('//table//form'));
+        $details = json_decode($xpath->query('//button[@data-retry]')->item(0)->getAttribute('data-retry'), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('MOCK-ID-4', $details['oscaId']);
+        $this->assertSame('SMS Gateway error', $details['failureReason']);
+        $this->assertSame('SYNTHETIC BENEFICIARY', $details['recipient']);
+        $this->assertSame('09XX XXX 0004', $details['mobile']);
+        $this->assertSame('FAILED', $blast->messages()->firstOrFail()->status->value);
         $this->assertSame(4, $blast->messages()->where('status', 'FAILED')->count());
         Queue::assertNothingPushed();
         Http::assertNothingSent();
