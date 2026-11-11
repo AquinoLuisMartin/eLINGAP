@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\UpdateAccountRequest;
+use App\Services\Auth\ProfilePhotos;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -30,10 +31,10 @@ class ProfilePhotoController extends Controller
         return $response;
     }
 
-    public function update(UpdateAccountRequest $request): RedirectResponse
+    public function update(UpdateAccountRequest $request, ProfilePhotos $photos): RedirectResponse
     {
         $user = $request->user();
-        $path = $request->file('photo')->store('profile-photos', 'local');
+        $path = $photos->store($request->file('photo'));
 
         try {
             $previous = $user->profile_photo_path;
@@ -54,8 +55,9 @@ class ProfilePhotoController extends Controller
     public function destroy(Request $request): RedirectResponse
     {
         $user = $request->user();
-        $this->deleteStoredPhoto($user->profile_photo_path);
+        $previous = $user->profile_photo_path;
         $user->update(['profile_photo_path' => null]);
+        $this->deleteStoredPhoto($previous);
 
         return back()->with('status', 'Profile photo removed.');
     }

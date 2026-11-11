@@ -5,8 +5,11 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\TestWith;
+use RuntimeException;
 use Tests\TestCase;
 
 class ProfilePhotoTest extends TestCase
@@ -63,7 +66,7 @@ class ProfilePhotoTest extends TestCase
         $page->assertSee(route('profile-photo.show'), false)->assertSee('Remove photo', false);
 
         $photo = $this->get(route('profile-photo.show'));
-        $photo->assertOk()->assertHeader('Content-Type', 'image/jpeg');
+        $photo->assertOk()->assertHeader('Content-Type', 'image/webp');
         $this->assertStringContainsString('no-store', (string) $photo->headers->get('Cache-Control'));
         $photo->assertHeader('X-Content-Type-Options', 'nosniff');
     }
@@ -86,6 +89,52 @@ class ProfilePhotoTest extends TestCase
         Storage::disk('local')->assertMissing($previous);
         Storage::disk('local')->assertExists($staff->profile_photo_path);
         $this->assertNotSame($previous, $staff->profile_photo_path);
+    }
+
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function test_staff_and_admin_uploads_use_lossless_compression(bool $admin): void
+    {
+        Storage::fake('local');
+        $user = ($admin ? User::factory()->admin() : User::factory())->create();
+        $file = UploadedFile::fake()->image('portrait.png', 400, 300);
+        $original = file_get_contents($file->getPathname());
+        $attributes = $user->getAttributes();
+
+        $this->actingAs($user)->post(route('profile-photo.update'), ['photo' => $file])->assertRedirect()->assertSessionHasNoErrors();
+
+        $path = $user->fresh()->profile_photo_path;
+        $stored = Storage::disk('local')->get($path);
+        $this->assertStringEndsWith('.webp', $path);
+        $this->assertLessThan(strlen($original), strlen($stored));
+        $this->assertSame([400, 300], array_slice(getimagesizefromstring($stored), 0, 2));
+        foreach (['employee_id', 'role_id', 'password_hash', 'first_name', 'last_name'] as $attribute) {
+            $this->assertSame($attributes[$attribute], $user->fresh()->getAttributes()[$attribute]);
+        }
+        $this->get(route('profile-photo.show'))->assertOk()->assertHeader('Content-Type', 'image/webp');
+    }
+
+    #[TestWith(['replace'])]
+    #[TestWith(['remove'])]
+    public function test_failed_account_update_keeps_the_previous_photo(string $action): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+        $path = UploadedFile::fake()->image('previous.png')->store('profile-photos', 'local');
+        $user->update(['profile_photo_path' => $path]);
+        $original = Storage::disk('local')->get($path);
+        Exceptions::fake([RuntimeException::class]);
+        Event::listen('eloquent.updating: '.User::class, fn () => throw new RuntimeException('Synthetic update failure'));
+        $this->actingAs($user);
+
+        ($action === 'replace'
+            ? $this->post(route('profile-photo.update'), ['photo' => UploadedFile::fake()->image('replacement.png')])
+            : $this->delete(route('profile-photo.destroy')))->assertServerError();
+
+        $this->assertSame($path, $user->fresh()->profile_photo_path);
+        $this->assertSame($original, Storage::disk('local')->get($path));
+        $this->assertSame([$path], Storage::disk('local')->allFiles('profile-photos'));
+        Exceptions::assertReported(RuntimeException::class);
     }
 
     public function test_removing_a_photo_deletes_the_file_and_restores_initials(): void
