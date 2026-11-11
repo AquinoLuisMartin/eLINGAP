@@ -22,6 +22,32 @@ class IdApplicationTest extends TestCase
 {
     use RefreshDatabase;
 
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function test_visible_fields_can_reach_confirmation_and_save_without_internal_form_keys(bool $modal): void
+    {
+        $this->actingAs(User::factory()->create());
+        $input = $this->input();
+        $component = Livewire::test(IdApplication::class, ['modal' => $modal])
+            ->set('form.requirements_checks.identity', true)
+            ->set('form.requirements_checks.residency', true)->call('next')->assertSet('step', 1)
+            ->set('form.first_name', $input['first_name'])->set('form.last_name', $input['last_name'])
+            ->set('form.birth_date', $input['birth_date'])->set('form.sex', $input['sex'])
+            ->call('next')->assertSet('step', 2)
+            ->set('form.barangay_id', $input['barangay_id'])->set('form.contact_number', $input['contact_number'])
+            ->set('form.address', $input['address'])->call('next')
+            ->assertHasNoErrors()->assertSet('step', 3)->assertSee('Application summary')->assertSee('Save and prepare ID');
+
+        $this->assertDatabaseEmpty('senior_citizens');
+        $component->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
+
+        $senior = SeniorCitizen::sole();
+        $this->assertSame('VERIFIED', $senior->status->value);
+        $this->assertSame('SYNTHETIC', $senior->first_name);
+        $this->assertSame($input['barangay_id'], $senior->barangay_id);
+        $component->assertRedirect(route('senior-id.show', [$senior, 'from' => 'registry']));
+    }
+
     public function test_address_step_displays_stored_locality_as_readonly_fields(): void
     {
         $this->actingAs(User::factory()->create());
