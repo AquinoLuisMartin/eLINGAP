@@ -29,7 +29,7 @@
             <div><h2 id="id-application-title" class="text-xl font-semibold sm:text-2xl">New ID Application</h2><p class="mt-2 max-w-xl text-sm text-slate-500">Check requirements, register the senior, and continue to ID preparation.</p></div>
             <button type="button" wire:click="cancel" class="icon-button shrink-0" aria-label="Close ID application"><x-admin.icon name="x" size="20" /></button>
         </header>
-        <nav aria-label="ID application progress" class="border-b border-slate-200 px-3 py-5 sm:px-8 dark:border-slate-700">
+        <nav aria-label="ID application progress" class="border-b border-slate-200 px-5 py-5 sm:px-6 dark:border-slate-700">
             <ol class="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 @foreach ([0 => 'Requirements', 1 => 'Personal Info', 2 => 'Address & Contact', 3 => 'Confirm & Save'] as $number => $label)
                     <li wire:key="registration-step-{{ $number }}" @class(['border-b-2 pb-3', 'border-osca-primary' => $step === $number, 'border-slate-200 dark:border-slate-700' => $step !== $number]) @if ($step === $number) aria-current="step" @endif>
@@ -85,7 +85,9 @@
                 @elseif ($step === 2)
                     <div class="grid items-start gap-x-5 gap-y-4 sm:grid-cols-2">
                         <x-registration-field name="form.barangay_id" label="Barangay" required><x-select id="form-barangay_id" wire:model="form.barangay_id"><option value="">Select barangay</option>@foreach ($barangays as $barangay)<option wire:key="registration-barangay-{{ $barangay->id }}" value="{{ $barangay->id }}">{{ $barangay->name }}</option>@endforeach</x-select></x-registration-field>
-                        <x-registration-field name="form.contact_number" label="Senior mobile number" required hint="Enter 10 digits starting with 9. The +63 country code is included."><x-senior-mobile-input id="form-contact_number" wire:model="form.contact_number" required /></x-registration-field>
+                        <x-registration-field name="form.contact_number" label="Senior mobile number" required hint="Enter 10 digits starting with 9. The +63 country code is included."><x-senior-mobile-input id="form-contact_number" wire:model="form.contact_number" :spaced="false" required /></x-registration-field>
+                        <x-registration-field name="locality.municipality" label="Municipality"><input id="locality-municipality" value="{{ $office['municipality'] ?? 'Not configured' }}" readonly aria-readonly="true"></x-registration-field>
+                        <x-registration-field name="locality.province" label="Province"><input id="locality-province" value="{{ $office['province'] ?? 'Not configured' }}" readonly aria-readonly="true"></x-registration-field>
                         <x-registration-field name="form.address" label="House and street address" required class="sm:col-span-2"><textarea id="form-address" class="resize-none uppercase" wire:model="form.address" maxlength="1000" rows="2" autocomplete="street-address"></textarea></x-registration-field>
                     </div>
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="representativeContact"> Add an authorized representative for SMS or future claiming</label>
@@ -94,7 +96,7 @@
                             @foreach (['representative_name' => 'Full name', 'representative_relationship' => 'Relationship to senior', 'representative_contact' => 'Mobile number'] as $field => $label)
                                 <x-registration-field wire:key="representative-field-{{ $field }}" :name="'form.'.$field" :label="$label" required>
                                     @if ($field === 'representative_contact')
-                                        <x-senior-mobile-input id="form-representative_contact" wire:model="form.representative_contact" required />
+                                        <x-senior-mobile-input id="form-representative_contact" wire:model="form.representative_contact" :spaced="false" required />
                                     @else
                                         <input id="form-{{ $field }}" wire:model="form.{{ $field }}" class="uppercase" maxlength="{{ $field === 'representative_name' ? 180 : 100 }}">
                                     @endif

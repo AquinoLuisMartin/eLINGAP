@@ -1,0 +1,366 @@
+{
+    "roles": [
+        {
+            "name": "ADMIN",
+            "description": "System Administrator"
+        },
+        {
+            "name": "OSCA_STAFF",
+            "description": "OSCA Staff"
+        }
+    ],
+    "barangays": [
+        {
+            "name": "Bagbaguin",
+            "code": "BAG",
+            "is_active": true
+        },
+        {
+            "name": "Balasing",
+            "code": "BAL",
+            "is_active": true
+        },
+        {
+            "name": "Buenavista",
+            "code": "BUE",
+            "is_active": true
+        },
+        {
+            "name": "Bulac",
+            "code": "BUL",
+            "is_active": true
+        },
+        {
+            "name": "Camangyanan",
+            "code": "CAM",
+            "is_active": true
+        },
+        {
+            "name": "Catmon",
+            "code": "CAT",
+            "is_active": true
+        },
+        {
+            "name": "Cay Pombo (Caypombo)",
+            "code": "CAY",
+            "is_active": true
+        },
+        {
+            "name": "Caysio",
+            "code": "CYS",
+            "is_active": true
+        },
+        {
+            "name": "Guyong",
+            "code": "GUY",
+            "is_active": true
+        },
+        {
+            "name": "Lalakhan",
+            "code": "LAL",
+            "is_active": true
+        },
+        {
+            "name": "Mag-asawang Sapa",
+            "code": "MAS",
+            "is_active": true
+        },
+        {
+            "name": "Mahabang Parang",
+            "code": "MHP",
+            "is_active": true
+        },
+        {
+            "name": "Manggahan",
+            "code": "MAN",
+            "is_active": true
+        },
+        {
+            "name": "Parada",
+            "code": "PAR",
+            "is_active": true
+        },
+        {
+            "name": "Poblacion",
+            "code": "POB",
+            "is_active": true
+        },
+        {
+            "name": "Pulong Buhangin",
+            "code": "PBU",
+            "is_active": true
+        },
+        {
+            "name": "San Gabriel",
+            "code": "SGA",
+            "is_active": true
+        },
+        {
+            "name": "San Jose Patag",
+            "code": "SJP",
+            "is_active": true
+        },
+        {
+            "name": "San Vicente",
+            "code": "SVI",
+            "is_active": true
+        },
+        {
+            "name": "Santa Clara",
+            "code": "SCL",
+            "is_active": true
+        },
+        {
+            "name": "Santa Cruz",
+            "code": "SCR",
+            "is_active": true
+        },
+        {
+            "name": "Silangan",
+            "code": "SIL",
+            "is_active": true
+        },
+        {
+            "name": "Tabing Bakod (Santo Tomas)",
+            "code": "TBA",
+            "is_active": true
+        },
+        {
+            "name": "Tumana",
+            "code": "TUM",
+            "is_active": true
+        }
+    ],
+    "programs": [
+        {
+            "name": "Annual December Senior Assistance",
+            "agency": "OSCA Santa Maria",
+            "budget": "0.00",
+            "starts_on": null,
+            "ends_on": null,
+            "status": "UPCOMING",
+            "description": null,
+            "benefit_code": "december-assistance",
+            "government_level": "LGU",
+            "benefit_rules": "{\"cadence\":\"ANNUAL\",\"cutoff\":\"06-30\",\"payout_month\":12}",
+            "default_amount": "500.00",
+            "provisional": true
+        },
+        {
+            "name": "LGU Age 90 Cash Gift",
+            "agency": "OSCA Santa Maria",
+            "budget": "0.00",
+            "starts_on": null,
+            "ends_on": null,
+            "status": "UPCOMING",
+            "description": null,
+            "benefit_code": "lgu-age-90",
+            "government_level": "LGU",
+            "benefit_rules": "{\"cadence\":\"MILESTONE\",\"milestones\":{\"90\":5000}}",
+            "default_amount": "5000.00",
+            "provisional": false
+        },
+        {
+            "name": "LGU Age 100 Cash Gift",
+            "agency": "OSCA Santa Maria",
+            "budget": "0.00",
+            "starts_on": null,
+            "ends_on": null,
+            "status": "UPCOMING",
+            "description": null,
+            "benefit_code": "lgu-age-100",
+            "government_level": "LGU",
+            "benefit_rules": "{\"cadence\":\"MILESTONE\",\"milestones\":{\"100\":10000}}",
+            "default_amount": "10000.00",
+            "provisional": false
+        },
+        {
+            "name": "National Social Pension",
+            "agency": "NATIONAL Government",
+            "budget": "0.00",
+            "starts_on": null,
+            "ends_on": null,
+            "status": "UPCOMING",
+            "description": null,
+            "benefit_code": "national-social-pension",
+            "government_level": "NATIONAL",
+            "benefit_rules": "{\"cadence\":\"QUARTERLY\"}",
+            "default_amount": null,
+            "provisional": false
+        },
+        {
+            "name": "Localized Social Pension",
+            "agency": "OSCA Santa Maria",
+            "budget": "0.00",
+            "starts_on": null,
+            "ends_on": null,
+            "status": "UPCOMING",
+            "description": null,
+            "benefit_code": "local-social-pension",
+            "government_level": "LGU",
+            "benefit_rules": "{\"cadence\":\"SEMIANNUAL\"}",
+            "default_amount": "500.00",
+            "provisional": true
+        },
+        {
+            "name": "Paglingap kay Lolo at Lola",
+            "agency": "OSCA Santa Maria",
+            "budget": "0.00",
+            "starts_on": null,
+            "ends_on": null,
+            "status": "UPCOMING",
+            "description": null,
+            "benefit_code": "october-assistance",
+            "government_level": "LGU",
+            "benefit_rules": "{\"cadence\":\"ANNUAL\",\"payout_month\":10,\"october_conditions\":true}",
+            "default_amount": null,
+            "provisional": false
+        },
+        {
+            "name": "Provincial Centenarian Cash Gift and Groceries",
+            "agency": "PROVINCIAL Government",
+            "budget": "0.00",
+            "starts_on": null,
+            "ends_on": null,
+            "status": "UPCOMING",
+            "description": null,
+            "benefit_code": "provincial-centenarian",
+            "government_level": "PROVINCIAL",
+            "benefit_rules": "{\"cadence\":\"MILESTONE\",\"milestones\":{\"100\":10000},\"groceries\":true}",
+            "default_amount": "10000.00",
+            "provisional": false
+        },
+        {
+            "name": "Expanded Centenarians Act (RA 11982)",
+            "agency": "NATIONAL Government",
+            "budget": "0.00",
+            "starts_on": null,
+            "ends_on": null,
+            "status": "ACTIVE",
+            "description": null,
+            "benefit_code": "national-milestones",
+            "government_level": "NATIONAL",
+            "benefit_rules": "{\"cadence\":\"MILESTONE\",\"milestones\":{\"80\":10000,\"85\":10000,\"90\":10000,\"95\":10000,\"100\":100000},\"claim_window_months\":12}",
+            "default_amount": null,
+            "provisional": false
+        },
+        {
+            "name": "T.S.S. - Tulong sa Senior",
+            "agency": "OSCA Santa Maria",
+            "budget": "0.00",
+            "starts_on": null,
+            "ends_on": null,
+            "status": "UPCOMING",
+            "description": null,
+            "benefit_code": "tss",
+            "government_level": "LGU",
+            "benefit_rules": "{\"cadence\":\"ON_DEMAND\",\"office_review\":true}",
+            "default_amount": null,
+            "provisional": true
+        }
+    ],
+    "sms_templates": [
+        {
+            "name": "Annual December Senior Assistance - Mga kinakailangan",
+            "body": "OSCA: Paalala tungkol sa Annual December Senior Assistance. Makipag-ugnayan sa OSCA para sa kwalipikasyon at mga dokumentong kailangan sa aplikasyon. Ihanda ang inyong senior citizen ID.",
+            "is_active": true
+        },
+        {
+            "name": "Annual December Senior Assistance - Iskedyul",
+            "body": "OSCA: Para sa mga benepisyaryo ng Annual December Senior Assistance, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
+            "is_active": true
+        },
+        {
+            "name": "LGU Age 90 Cash Gift - Mga kinakailangan",
+            "body": "OSCA: Paalala tungkol sa LGU Age 90 Cash Gift. Makipag-ugnayan sa OSCA para sa pagpapatunay ng edad at mga dokumentong kailangan sa aplikasyon. Ihanda ang inyong senior citizen ID.",
+            "is_active": true
+        },
+        {
+            "name": "LGU Age 90 Cash Gift - Iskedyul",
+            "body": "OSCA: Para sa mga benepisyaryo ng LGU Age 90 Cash Gift, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
+            "is_active": true
+        },
+        {
+            "name": "LGU Age 100 Cash Gift - Mga kinakailangan",
+            "body": "OSCA: Paalala tungkol sa LGU Age 100 Cash Gift. Makipag-ugnayan sa OSCA para sa pagpapatunay ng edad at mga dokumentong kailangan sa aplikasyon. Ihanda ang inyong senior citizen ID.",
+            "is_active": true
+        },
+        {
+            "name": "LGU Age 100 Cash Gift - Iskedyul",
+            "body": "OSCA: Para sa mga benepisyaryo ng LGU Age 100 Cash Gift, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
+            "is_active": true
+        },
+        {
+            "name": "National Social Pension - Mga kinakailangan",
+            "body": "OSCA: Paalala tungkol sa National Social Pension. Makipag-ugnayan sa OSCA para sa pagpapatunay ng kwalipikasyon at katayuan sa listahan ng pensyon. Ihanda ang inyong senior citizen ID.",
+            "is_active": true
+        },
+        {
+            "name": "National Social Pension - Iskedyul",
+            "body": "OSCA: Para sa mga benepisyaryo ng National Social Pension, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
+            "is_active": true
+        },
+        {
+            "name": "Localized Social Pension - Mga kinakailangan",
+            "body": "OSCA: Paalala tungkol sa Localized Social Pension. Makipag-ugnayan sa OSCA para sa pagpapatunay ng kwalipikasyon at katayuan sa listahan ng pensyon. Ihanda ang inyong senior citizen ID.",
+            "is_active": true
+        },
+        {
+            "name": "Localized Social Pension - Iskedyul",
+            "body": "OSCA: Para sa mga benepisyaryo ng Localized Social Pension, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
+            "is_active": true
+        },
+        {
+            "name": "Paglingap kay Lolo at Lola - Mga kinakailangan",
+            "body": "OSCA: Paalala tungkol sa Paglingap kay Lolo at Lola. Makipag-ugnayan sa OSCA para sa kwalipikasyon at mga dokumentong kailangan sa aplikasyon. Ihanda ang inyong senior citizen ID.",
+            "is_active": true
+        },
+        {
+            "name": "Paglingap kay Lolo at Lola - Iskedyul",
+            "body": "OSCA: Para sa mga benepisyaryo ng Paglingap kay Lolo at Lola, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
+            "is_active": true
+        },
+        {
+            "name": "Provincial Centenarian Cash Gift and Groceries - Mga kinakailangan",
+            "body": "OSCA: Paalala tungkol sa Provincial Centenarian Cash Gift and Groceries. Makipag-ugnayan sa OSCA para sa pagpapatunay ng edad at mga dokumentong kailangan sa aplikasyon. Ihanda ang inyong senior citizen ID.",
+            "is_active": true
+        },
+        {
+            "name": "Provincial Centenarian Cash Gift and Groceries - Iskedyul",
+            "body": "OSCA: Para sa mga benepisyaryo ng Provincial Centenarian Cash Gift and Groceries, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
+            "is_active": true
+        },
+        {
+            "name": "Expanded Centenarians Act (RA 11982) - Mga kinakailangan",
+            "body": "OSCA: Paalala tungkol sa Expanded Centenarians Act (RA 11982). Makipag-ugnayan sa OSCA para sa pagpapatunay ng edad at mga dokumentong kailangan sa aplikasyon. Ihanda ang inyong senior citizen ID.",
+            "is_active": true
+        },
+        {
+            "name": "Expanded Centenarians Act (RA 11982) - Iskedyul",
+            "body": "OSCA: Para sa mga benepisyaryo ng Expanded Centenarians Act (RA 11982), kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
+            "is_active": true
+        },
+        {
+            "name": "T.S.S. - Tulong sa Senior - Mga kinakailangan",
+            "body": "OSCA: Paalala tungkol sa T.S.S. - Tulong sa Senior. Makipag-ugnayan sa OSCA para sa pagsusuri ng inyong kahilingan at kaukulang dokumento. Ihanda ang inyong senior citizen ID.",
+            "is_active": true
+        },
+        {
+            "name": "T.S.S. - Tulong sa Senior - Iskedyul",
+            "body": "OSCA: Para sa mga benepisyaryo ng T.S.S. - Tulong sa Senior, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
+            "is_active": true
+        }
+    ],
+    "system_configurations": [
+        {
+            "key": "municipality",
+            "value": "Santa Maria",
+            "type": "string"
+        },
+        {
+            "key": "province",
+            "value": "Bulacan",
+            "type": "string"
+        }
+    ]
+}

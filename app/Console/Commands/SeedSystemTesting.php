@@ -16,7 +16,7 @@ class SeedSystemTesting extends Command
 {
     protected $signature = 'app:seed-system-testing
         {--commit : Insert reference and synthetic testing data}
-        {--reference-only : Insert roles, barangays and benefit definitions only}
+        {--reference-only : Insert reference records without synthetic testing data}
         {--force : Allow execution against a production-configured testing deployment}';
 
     protected $description = 'Add supported roles and a small synthetic system-testing dataset without replacing existing records';
@@ -25,6 +25,7 @@ class SeedSystemTesting extends Command
     {
         if (! $this->option('commit')) {
             $this->info('Preview: seeds Administrator and OSCA Staff roles, 24 barangays and nine benefit definitions.');
+            $this->info('Also fills missing office locality settings and program SMS templates.');
             if (! $this->option('reference-only')) {
                 $this->info('Also adds 24 mock seniors, one mock program, 12 beneficiaries and six pending applications.');
             }

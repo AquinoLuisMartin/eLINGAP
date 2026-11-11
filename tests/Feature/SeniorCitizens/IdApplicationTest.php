@@ -7,6 +7,7 @@ use App\Livewire\Registrations\Index;
 use App\Livewire\SeniorCitizens\ApplicationLauncher;
 use App\Models\Barangay;
 use App\Models\SeniorCitizen;
+use App\Models\SystemConfiguration;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -20,6 +21,17 @@ use Tests\TestCase;
 class IdApplicationTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_address_step_displays_stored_locality_as_readonly_fields(): void
+    {
+        $this->actingAs(User::factory()->create());
+        SystemConfiguration::forceCreate(['key' => 'municipality', 'value' => 'Santa Maria']);
+        SystemConfiguration::forceCreate(['key' => 'province', 'value' => 'Bulacan']);
+
+        $this->application()->set('form', $this->input())->call('next')
+            ->assertSeeHtml('id="locality-municipality" value="Santa Maria" readonly')
+            ->assertSeeHtml('id="locality-province" value="Bulacan" readonly');
+    }
 
     #[TestWith(['first_name', 'Test123'])]
     #[TestWith(['first_name', 'Test!'])]

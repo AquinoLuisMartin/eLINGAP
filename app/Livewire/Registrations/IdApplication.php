@@ -4,6 +4,7 @@ namespace App\Livewire\Registrations;
 
 use App\Models\Barangay;
 use App\Models\SeniorCitizen;
+use App\Services\OfficeSettings;
 use App\Services\SeniorCitizens\SeniorRegistration;
 use App\Services\SeniorCitizens\SeniorRegistrationInput;
 use Carbon\CarbonImmutable;
@@ -176,8 +177,11 @@ class IdApplication extends Component
         $this->redirectRoute('senior-id.show', [$senior, ...$this->returnContext]);
     }
 
-    public function render()
+    public function render(OfficeSettings $settings)
     {
-        return view('livewire.registrations.id-application', ['barangays' => Barangay::query()->where('is_active', true)->orderBy('name')->get(['id', 'name'])]);
+        return view('livewire.registrations.id-application', [
+            'barangays' => Barangay::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'office' => $settings->values(),
+        ]);
     }
 }
