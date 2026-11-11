@@ -16,6 +16,49 @@ class PayoutScheduleTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_new_schedule_requires_program_selection_before_showing_schedule_fields(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->get(route('payout-schedules.create'))
+            ->assertSee('Continue to schedule details')
+            ->assertDontSeeLivewire(Workspace::class)
+            ->assertDontSee('Prepare eligible recipient list')
+            ->assertDontSee('Generate Payout Masterlist');
+
+        $this->assertDatabaseCount('benefit_schedules', 0);
+    }
+
+    public function test_payout_schedule_funding_is_editable_and_saved_for_review(): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 11)->setTime(12, 0));
+        $this->actingAs(User::factory()->create());
+        $this->seed(BenefitProgramSeeder::class);
+        $program = Program::where('benefit_code', 'december-assistance')->sole();
+        $component = Livewire::test(Workspace::class, ['initialProgramId' => (string) $program->id, 'payoutMode' => true]);
+        $document = new \DOMDocument;
+        @$document->loadHTML($component->html());
+        $inputs = $document->getElementsByTagName('input');
+        $editableFields = [];
+        foreach ($inputs as $input) {
+            if (in_array($input->getAttribute('wire:model'), ['form.amount', 'form.available_funds'], true)
+                && ! $input->hasAttribute('readonly') && ! $input->hasAttribute('disabled')) {
+                $editableFields[] = $input->getAttribute('wire:model');
+            }
+        }
+        $this->assertSame(['form.amount', 'form.available_funds'], $editableFields);
+
+        $component->set('form.amount', '600')->set('form.available_funds', '12000')
+            ->set('form.location', 'Synthetic venue')->set('form.scheduled_at', '2026-12-10T12:00')
+            ->set('historicalClaimsChecked', true)->call('createSchedule')->assertHasNoErrors()
+            ->assertSeeLivewire(SchedulePanel::class);
+
+        $this->assertDatabaseHas('benefit_schedules', [
+            'program_id' => $program->id, 'amount' => '600.00', 'available_funds' => '12000.00', 'status' => 'DRAFT',
+        ]);
+        $this->assertDatabaseCount('benefit_payments', 0);
+    }
+
     public function test_payout_program_dropdown_includes_catalog_enrolled_programs_and_other(): void
     {
         $this->actingAs(User::factory()->create());

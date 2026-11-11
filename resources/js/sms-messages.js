@@ -1,9 +1,5 @@
-export function smsStatusClass(status) {
-    return {
-        Failed: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
-        Sent: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300',
-        Queued: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200',
-    }[status] ?? 'bg-slate-100 text-slate-700';
+export function smsStatusClass() {
+    return 'ui-label';
 }
 
 export default function smsMessages({ action = 'Retry' } = {}) {

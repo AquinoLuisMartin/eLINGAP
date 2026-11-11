@@ -19,10 +19,9 @@
         adminOpen: true,
         profileOpen: @js($errors->has('photo')),
         profileTrigger: null,
-        notificationsOpen: false,
         ...workspaceTheme(),
     }"
-    @storage.window="syncTheme($event)" @keydown.escape.window="if (profileOpen) profileTrigger?.focus(); else if (sidebarOpen) sidebarTrigger?.focus(); profileOpen = false; notificationsOpen = false; sidebarOpen = false" @resize.window="sidebarOpen = false">
+    @storage.window="syncTheme($event)" @keydown.escape.window="if (profileOpen) profileTrigger?.focus(); else if (sidebarOpen) sidebarTrigger?.focus(); profileOpen = false; sidebarOpen = false" @resize.window="sidebarOpen = false">
 
     {{-- Collapsible Sidebar --}}
     <aside id="admin-navigation" class="admin-sidebar" x-trap.inert.noscroll="sidebarOpen && window.matchMedia('(max-width: 760px)').matches" :class="{ 'is-expanded': sidebarOpen }" @mouseenter="if (window.matchMedia('(min-width: 761px)').matches) sidebarOpen = true" @mouseleave="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains(document.activeElement)) sidebarOpen = false" @focusin="sidebarOpen = true" @focusout="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains($event.relatedTarget) && !$el.matches(':hover')) sidebarOpen = false">
@@ -65,16 +64,8 @@
 
 
 
-                <div class="notification-wrap">
-                    <button type="button" class="notification-button icon-button" aria-label="Notifications" @click="notificationsOpen = true">
-                        <x-admin.icon name="bell" size="19" />
-                        @if ($this->summary['pending'] > 0)
-                            <b>{{ number_format($this->summary['pending']) }}</b>
-                        @endif
-                    </button>
-                </div>
+                <livewire:task-notifications />
 
-                <x-theme-toggle />
                 <div class="header-account" @click.outside="profileOpen = false">
                     <button type="button" class="profile-avatar" @click="profileTrigger = $event.currentTarget; profileOpen = !profileOpen" aria-label="Open account menu" aria-controls="admin-account-panel" :aria-expanded="profileOpen"><x-profile-photo :user="$this->currentUser" /></button>
                     <aside id="admin-account-panel" class="profile-menu" x-trap.inert.noscroll="profileOpen" aria-label="Account details" x-show="profileOpen" @click.stop style="display: none;">
@@ -105,7 +96,6 @@
 
     {{-- Overlays and Dialogs --}}
     @include('administration.dashboard.modals')
-    @include('administration.dashboard.drawer')
 
     {{-- Toast Notification --}}
     @if ($toast)

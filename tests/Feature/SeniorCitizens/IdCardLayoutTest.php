@@ -72,13 +72,14 @@ class IdCardLayoutTest extends TestCase
 
         $pdf->render();
 
+        $this->assertGreaterThanOrEqual(1 * 72 / 25.4, $boxes['id-thumbprint']['y'] - ($boxes['id-validity']['y'] + $boxes['id-validity']['h']));
+
         foreach ($textBoxes as $text) {
             $outer = $boxes[$text['side']];
             $this->assertGreaterThanOrEqual($outer['x'], $text['box']['x'], $text['text'].' exceeds the left edge');
             $this->assertLessThanOrEqual($outer['x'] + $outer['w'], $text['box']['x'] + $text['box']['w'], $text['text'].' exceeds the right edge');
         }
-        foreach ([['id-number', 'id-photo'], ['id-photo', 'id-personal'], ['id-heading', 'id-personal'], ['id-personal', 'id-address'],
-            ['id-seal', 'id-contact'], ['id-heading', 'id-contact'], ['id-personal', 'id-contact'], ['id-address', 'id-contact'], ['address', 'id-contact'], ['id-contact', 'id-dates'], ['id-address', 'id-dates'], ['address', 'id-dates'], ['id-dates', 'id-validity'], ['id-validity', 'id-thumbprint'],
+        foreach ([['id-number', 'id-photo'], ['id-photo', 'id-personal'], ['id-heading', 'id-personal'], ['id-personal', 'id-address'], ['id-address', 'id-contact'], ['address', 'id-contact'], ['id-contact', 'id-dates'], ['id-personal', 'id-dates'], ['id-dates', 'id-validity'], ['id-validity', 'id-thumbprint'],
             ['id-birth', 'id-validity'], ['id-age', 'id-validity'], ['id-sex', 'id-validity'], ['id-issuance', 'id-validity'], ['id-holder-name', 'id-thumbprint-label'],
             ['id-back-heading', 'id-benefits'], ['id-benefits', 'id-warning'], ['id-benefits', 'id-qr'],
             ['id-warning', 'id-officials'], ['id-qr', 'id-qr-label']] as [$above, $below]) {

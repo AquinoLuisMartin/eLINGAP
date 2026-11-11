@@ -10,7 +10,7 @@ export function beginSubmission(form, event, pending) {
     const controls = Array.from(form.querySelectorAll('button:not([type]), button[type="submit"], input[type="submit"]'))
         .filter(control => !control.disabled);
     const status = form.ownerDocument.createElement('p');
-    status.className = 'ui-submit-status';
+    status.className = 'sr-only';
     status.setAttribute('role', 'status');
     status.textContent = 'Submitting...';
     form.append(status);

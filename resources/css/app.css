@@ -218,7 +218,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    min-height: 38px;
+    min-height: 44px;
     border-radius: 9px;
     font-size: 14px;
     font-weight: 400;
@@ -298,6 +298,47 @@
 @media (max-width: 470px) {
     .registry-filters { grid-template-columns: minmax(0, 1fr); }
 }
+
+.staff-shell .admin-content .account-form .account-field-label,
+.staff-shell .admin-content .account-form .account-section-title {
+    color: var(--ink);
+    font-weight: 500;
+}
+
+.staff-shell .admin-content .account-form :is(input, .ui-select-trigger) {
+    min-height: 46px;
+    background: var(--white);
+}
+
+.staff-shell .admin-content .account-form button[type='submit'] {
+    min-height: 44px;
+    font-weight: 500;
+}
+
+.staff-shell .admin-content .user-accounts :is(.primary-button, .secondary-button) {
+    min-height: 44px;
+    font-size: 14px;
+    transform: none;
+}
+
+.staff-shell .admin-content .user-accounts :is(input[type='search'], .ui-select-trigger) {
+    min-height: 44px;
+    background: var(--white);
+}
+
+.staff-shell .admin-content .user-accounts label {
+    color: var(--ink);
+    font-weight: 500;
+}
+
+.user-accounts table { min-width: 720px; }
+.user-accounts :is(th, td) { padding: 16px 20px; }
+.staff-shell .admin-content .user-accounts .account-name { font-weight: 500; }
+.user-accounts tbody tr:last-child td { border-bottom: 0; }
+.user-accounts .account-action { display: inline-flex; align-items: center; min-height: 44px; color: var(--blue); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.user-accounts .account-action-suspend { color: #b91c1c; }
+.theme-dark .user-accounts .account-action { color: #93c5fd; }
+.theme-dark .user-accounts .account-action-suspend { color: #fca5a5; }
 
 @layer components {
     .field-label {

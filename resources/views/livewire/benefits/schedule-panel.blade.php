@@ -16,8 +16,8 @@
             <label class="field-label">Review or exclusion note<textarea wire:model="reviewNote" rows="2" maxlength="1000" placeholder="Required when excluding a recipient"></textarea></label>
             <div class="my-4 flex flex-wrap gap-3">
                 <button type="button" class="secondary-button" wire:click="regenerate" wire:loading.attr="disabled">Refresh eligibility list</button>
-                <button type="button" class="primary-button" wire:click="approve" wire:confirm="Confirm every included recipient was checked and funds are sufficient?" wire:loading.attr="disabled" @disabled($schedule->preparation_token)>Approve reviewed list</button>
-                <button type="button" class="secondary-button" wire:click="cancel" wire:confirm="Cancel this draft and keep all benefits pending?" wire:loading.attr="disabled">Cancel draft</button>
+                <button type="button" class="primary-button" wire:click="approve" data-confirm-title="Approve reviewed list?" data-confirm="Confirm every included recipient was checked and funds are sufficient." data-confirm-label="Approve list" wire:loading.attr="disabled" @disabled($schedule->preparation_token)>Approve reviewed list</button>
+                <button type="button" class="secondary-button" wire:click="cancel" data-confirm-title="Cancel this draft?" data-confirm="All benefits stay pending." data-confirm-label="Cancel draft" data-confirm-tone="danger" wire:loading.attr="disabled">Cancel draft</button>
             </div>
         @elseif ($schedule->status === 'APPROVED')
             <div class="my-4 grid gap-3 md:grid-cols-2">
@@ -27,7 +27,7 @@
                 @if ($schedule->rule_snapshot['groceries'] ?? false)<label class="text-sm"><input type="checkbox" wire:model="groceriesReceived"> Groceries received</label>@endif
                 <label class="text-sm"><input type="checkbox" wire:model="paymentConfirmed"> I confirm this recipient received the benefit.</label>
             </div>
-            <button type="button" class="secondary-button mb-3" wire:click="close" wire:confirm="Close this schedule and mark remaining unpaid benefits unclaimed?" wire:loading.attr="disabled">Close completed payout schedule</button>
+            <button type="button" class="secondary-button mb-3" wire:click="close" data-confirm-title="Close this payout schedule?" data-confirm="Remaining unpaid benefits are marked unclaimed." data-confirm-label="Close schedule" data-confirm-tone="danger" wire:loading.attr="disabled">Close completed payout schedule</button>
         @endif
     @endcan
     <p wire:loading class="my-3 text-sm" role="status">Updating schedule...</p>
@@ -36,7 +36,7 @@
             <tr wire:key="schedule-entry-{{ $entry->id }}"><td><a href="{{ route('senior-citizens.show', $entry->seniorCitizen) }}" class="text-button">{{ $entry->seniorCitizen->full_name }}</a><p class="text-xs text-slate-500">{{ $entry->seniorCitizen->osca_id_number }}</p></td><td>{{ $entry->seniorCitizen->barangay->name }}</td><td>{{ $entry->period_key }}</td><td>{{ $entry->amount === null ? 'Awaiting funds' : 'PHP '.number_format((float) $entry->amount, 2) }}</td><td>{{ $entry->status->label() }}<p class="text-xs text-slate-500">{{ $entry->reviewed_at ? 'Staff checked' : 'Needs staff review' }}</p><p class="text-xs text-slate-500">{{ $entry->seniorCitizen->status->value }}</p></td><td>
                 @can('manage', \App\Models\BenefitSchedule::class)
                     @if ($schedule->status === 'DRAFT' && ! $schedule->preparation_token)<div class="flex gap-3"><button type="button" class="text-button" wire:click="review({{ $entry->id }}, true)" wire:loading.attr="disabled">Check and include</button><button type="button" class="text-button" wire:click="review({{ $entry->id }}, false)" wire:loading.attr="disabled">Exclude</button></div>
-                    @elseif ($schedule->status === 'APPROVED' && $entry->status->value === 'UNPAID')<button type="button" class="primary-button" wire:click="claim({{ $entry->id }})" wire:confirm="Confirm receipt for this senior and generate a unique payment reference?" wire:loading.attr="disabled">{{ ($schedule->rule_snapshot['government_level'] ?? $schedule->program->government_level) === 'LGU' ? 'Confirm payment' : 'Record external receipt' }}</button>@endif
+                    @elseif ($schedule->status === 'APPROVED' && $entry->status->value === 'UNPAID')<button type="button" class="primary-button" wire:click="claim({{ $entry->id }})" data-confirm-title="Confirm receipt for {{ $entry->seniorCitizen->full_name }}?" data-confirm="A unique payment reference is generated." data-confirm-label="Confirm receipt" wire:loading.attr="disabled">{{ ($schedule->rule_snapshot['government_level'] ?? $schedule->program->government_level) === 'LGU' ? 'Confirm payment' : 'Record external receipt' }}</button>@endif
                 @endcan
                 @foreach ($entry->payments as $payment)<p wire:key="schedule-payment-{{ $payment->id }}" class="text-xs">{{ $payment->reference_number }} {{ $payment->reversed_at ? '(reversed)' : '' }}</p>@endforeach
             </td></tr>

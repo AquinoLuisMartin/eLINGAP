@@ -20,12 +20,12 @@ export function visibleText(node) {
     return Array.from(node.childNodes ?? [], visibleText).join('');
 }
 
-export function menuPosition(rect, width, height) {
+export function menuPosition(rect, width, height, contentHeight = 304) {
     const gap = 6;
     const margin = 8;
     const below = height - rect.bottom - gap - margin;
     const above = rect.top - gap - margin;
-    const upwards = below < 240 && above > below;
+    const upwards = below < Math.min(304, contentHeight) && above > below;
     const menuHeight = Math.max(0, Math.min(304, upwards ? above : below));
     const menuWidth = Math.max(0, Math.min(rect.width, width - margin * 2));
     return {
@@ -37,11 +37,17 @@ export function menuPosition(rect, width, height) {
     };
 }
 
+export function scrollToFit(rect, height, contentHeight, room, topOffset = 80) {
+    const shortfall = Math.min(304, contentHeight) + 14 - (height - rect.bottom);
+    return Math.max(0, Math.min(shortfall, room, rect.top - topOffset));
+}
+
 export default function uiSelect({ searchable = null } = {}) {
     let observer;
     let reset;
     let originalTabindex;
     let labels = [];
+    let scrolledAt = 0;
     const focusLabel = event => {
         event.preventDefault();
         event.currentTarget.parentElement.querySelector('.ui-select-trigger')?.focus();
@@ -131,6 +137,7 @@ export default function uiSelect({ searchable = null } = {}) {
             this.sync();
             if (this.disabled) return;
             this.query = '';
+            this.fitBelow();
             this.reposition();
             this.$dispatch('ui-select-open', this.$el);
             this.open = true;
@@ -144,8 +151,28 @@ export default function uiSelect({ searchable = null } = {}) {
             });
         },
 
+        contentHeight() {
+            return (this.searchEnabled ? 61 : 0) + Math.max(1, this.filteredOptions.length) * 44 + 10;
+        },
+
+        fitBelow() {
+            const root = document.scrollingElement;
+            if (!root) return;
+            const room = root.scrollHeight - root.clientHeight - root.scrollTop;
+            const step = scrollToFit(this.$refs.trigger.getBoundingClientRect(), window.innerHeight, this.contentHeight(), room);
+            if (step < 1) return;
+            scrolledAt = Date.now();
+            window.scrollBy({ top: step, behavior: 'instant' });
+        },
+
         reposition() {
-            this.position = menuPosition(this.$refs.trigger.getBoundingClientRect(), window.innerWidth, window.innerHeight);
+            this.position = menuPosition(this.$refs.trigger.getBoundingClientRect(), window.innerWidth, window.innerHeight, this.contentHeight());
+        },
+
+        scrolled(event) {
+            if (!this.open || this.$refs.menu.contains(event.target)) return;
+            if (Date.now() - scrolledAt < 250) this.reposition();
+            else this.close();
         },
 
         close(restoreFocus = false) {

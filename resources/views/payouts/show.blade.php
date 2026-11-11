@@ -1,24 +1,64 @@
 @extends('layouts.app')
+
 @section('content')
 <x-workspace-navigation section="payouts" />
-<a href="{{ route('payouts.index') }}" class="text-sm text-osca-primary underline">Back to payouts</a>
-<h2 class="mt-3 text-3xl font-semibold">Payout for {{ $payout->seniorCitizen->full_name }}</h2>
-<dl class="my-6 grid gap-4 rounded-lg border bg-white p-5 sm:grid-cols-2"><div><dt class="text-sm text-slate-600">OSCA ID</dt><dd>{{ $payout->seniorCitizen->osca_id_number ?: '—' }}</dd></div><div><dt class="text-sm text-slate-600">Barangay</dt><dd>{{ $payout->seniorCitizen->barangay->name }}</dd></div><div><dt class="text-sm text-slate-600">Program</dt><dd>{{ $payout->schedule->program->name }}</dd></div><div><dt class="text-sm text-slate-600">Amount</dt><dd class="font-medium">{{ \App\Support\PhilippineCurrency::format($payout->amount) }}</dd></div><div><dt class="text-sm text-slate-600">Status</dt><dd><x-badge :status="$payout->status" /></dd></div><div><dt class="text-sm text-slate-600">Scheduled</dt><dd>{{ $payout->schedule->scheduled_on }}</dd></div></dl>
+<x-staff.page-header title="Payout details" description="Check beneficiary information and confirm the release requirements.">
+    <a class="secondary-button" href="{{ route('payouts.index') }}">Back to payouts</a>
+</x-staff.page-header>
+<section class="panel mb-6">
+    <dl class="workspace-detail-grid">
+        <div><dt>Beneficiary</dt><dd>{{ $payout->seniorCitizen->full_name }}</dd></div>
+        <div><dt>OSCA ID</dt><dd>{{ $payout->seniorCitizen->osca_id_number ?: 'Not issued' }}</dd></div>
+        <div><dt>Barangay</dt><dd>{{ $payout->seniorCitizen->barangay->name }}</dd></div>
+        <div><dt>Program</dt><dd>{{ $payout->schedule->program->name }}</dd></div>
+        <div><dt>Amount</dt><dd>{{ \App\Support\PhilippineCurrency::format($payout->amount) }}</dd></div>
+        <div><dt>Status</dt><dd><x-badge :status="$payout->status" /></dd></div>
+        <div><dt>Scheduled</dt><dd>{{ $payout->schedule->scheduled_on->format('M j, Y') }}</dd></div>
+    </dl>
+</section>
 @if ($payout->status === \App\Enums\PayoutStatus::Pending)
-<form method="POST" action="{{ route('payouts.status.update', $payout) }}" id="payout-release-form" data-beneficiary="{{ $payout->seniorCitizen->full_name }}" data-program="{{ $payout->schedule->program->name }}" data-amount="{{ \App\Support\PhilippineCurrency::format($payout->amount) }}" class="grid max-w-2xl gap-4 rounded-lg border bg-white p-5">
-    @csrf @method('PATCH') <input type="hidden" name="status" value="RELEASED">
-    <h3 class="text-xl font-semibold">Confirm claimant and release</h3>
-    <p>{{ $payout->seniorCitizen->full_name }} · {{ $payout->schedule->program->name }} · {{ \App\Support\PhilippineCurrency::format($payout->amount) }}</p>
-    <div class="field-label"><label data-select-label>Claimant type</label><x-select label="Claimant type" name="claimant_type" id="claimant-type" class="mt-1 w-full"><option value="SELF">Senior in person</option><option value="PROXY">Authorized representative</option></x-select></div>
-    <div id="proxy-fields" hidden class="grid gap-3"><label>Representative name <input name="claimant_name" class="mt-1 w-full rounded border p-2"></label><label>Relationship <input name="claimant_relationship" class="mt-1 w-full rounded border p-2"></label><label>Contact number <input name="claimant_contact" class="mt-1 w-full rounded border p-2"></label><label><input type="checkbox" name="authorization_checked" value="1"> Authorization letter checked</label><label><input type="checkbox" name="representative_id_checked" value="1"> Representative government ID checked</label></div>
-    <label><input type="checkbox" name="osca_id_checked" value="1" required> {{ $payout->seniorCitizen->osca_id_number ? 'Original OSCA ID checked' : 'Senior identity checked' }}</label>
-    @if ($errors->any())<p class="text-osca-danger">{{ $errors->first() }}</p>@endif
-    <button class="rounded bg-osca-primary px-4 py-2 font-semibold text-white" type="submit">Confirm &amp; release payout</button>
-</form>
+    <form method="POST" action="{{ route('payouts.status.update', $payout) }}" id="payout-release-form" data-beneficiary="{{ $payout->seniorCitizen->full_name }}" data-program="{{ $payout->schedule->program->name }}" data-amount="{{ \App\Support\PhilippineCurrency::format($payout->amount) }}" class="panel grid max-w-2xl gap-5">
+        @csrf
+        @method('PATCH')
+        <input type="hidden" name="status" value="RELEASED">
+        <h3 class="text-base font-semibold">Confirm claimant and release</h3>
+        <div class="ui-field">
+            <label for="claimant-type">Claimant type</label>
+            <x-select class="w-full" name="claimant_type" id="claimant-type">
+                <option value="SELF" @selected(old('claimant_type') === 'SELF')>Senior in person</option>
+                <option value="PROXY" @selected(old('claimant_type') === 'PROXY')>Authorized representative</option>
+            </x-select>
+        </div>
+        <div id="proxy-fields" hidden class="grid gap-4">
+            <label class="ui-field">Representative name<input class="w-full" type="text" name="claimant_name" value="{{ old('claimant_name') }}" maxlength="200"></label>
+            <label class="ui-field">Relationship<input class="w-full" type="text" name="claimant_relationship" value="{{ old('claimant_relationship') }}" maxlength="100"></label>
+            <label class="ui-field">Contact number<input class="w-full" type="text" inputmode="tel" name="claimant_contact" value="{{ old('claimant_contact') }}" maxlength="30"></label>
+            <label class="flex items-start gap-3"><input class="mt-1" type="checkbox" name="authorization_checked" value="1" @checked(old('authorization_checked'))><span>Authorization letter checked</span></label>
+            <label class="flex items-start gap-3"><input class="mt-1" type="checkbox" name="representative_id_checked" value="1" @checked(old('representative_id_checked'))><span>Representative government ID checked</span></label>
+        </div>
+        <label class="flex items-start gap-3"><input class="mt-1" type="checkbox" name="osca_id_checked" value="1" required @checked(old('osca_id_checked'))><span>{{ $payout->seniorCitizen->osca_id_number ? 'Original OSCA ID checked' : 'Senior identity checked' }}</span></label>
+        <div class="staff-form-actions"><x-button type="submit">Confirm &amp; release payout</x-button></div>
+    </form>
 @else
-<section class="rounded-lg border bg-white p-5"><h3 class="text-xl font-semibold">Release record</h3><p>Claimant: {{ $payout->claimant_name ?: '—' }} ({{ $payout->claimant_type ?: '—' }})</p><p>Released: {{ $payout->released_at?->format('Y-m-d H:i') ?: '—' }}</p><p>Releasing staff: {{ $payout->releasedBy?->first_name }} {{ $payout->releasedBy?->last_name }}</p>@if ($payout->reversal_reason)<p>Reversal reason: {{ $payout->reversal_reason }}</p>@endif</section>
+    <section class="panel">
+        <h3 class="mb-5 text-base font-semibold">Release record</h3>
+        <dl class="workspace-detail-grid">
+            <div><dt>Claimant</dt><dd>{{ $payout->claimant_name ?: 'Not recorded' }} ({{ $payout->claimant_type ?: 'Not recorded' }})</dd></div>
+            <div><dt>Released</dt><dd>{{ $payout->released_at?->format('M j, Y g:i A') ?: 'Not released' }}</dd></div>
+            <div><dt>Releasing staff</dt><dd>{{ $payout->releasedBy?->full_name ?? 'Not recorded' }}</dd></div>
+            @if ($payout->reversal_reason)<div><dt>Reversal reason</dt><dd>{{ $payout->reversal_reason }}</dd></div>@endif
+        </dl>
+    </section>
 @endif
 @can('reverse', $payout)
-    @if ($payout->status === \App\Enums\PayoutStatus::Released)<form method="POST" action="{{ route('payouts.reverse', $payout) }}" class="mt-6 max-w-2xl rounded-lg border border-osca-danger p-5" onsubmit="return confirm('Reverse this released payout?')">@csrf @method('PATCH')<label class="block">Reason for reversal <textarea name="reason" required minlength="10" class="mt-1 w-full rounded border p-2"></textarea></label><button class="mt-3 rounded bg-osca-danger px-4 py-2 text-white">Reverse payout</button></form>@endif
+    @if ($payout->status === \App\Enums\PayoutStatus::Released)
+        <form method="POST" action="{{ route('payouts.reverse', $payout) }}" class="panel mt-6 grid max-w-2xl gap-5" data-confirm="The original release stays in the audit history." data-confirm-title="Reverse this released payout?" data-confirm-label="Reverse payout" data-confirm-tone="danger">
+            @csrf
+            @method('PATCH')
+            <h3 class="text-base font-semibold">Reverse payout</h3>
+            <label class="ui-field">Reason for reversal<textarea class="w-full" name="reason" rows="4" required minlength="10" maxlength="1000">{{ old('reason') }}</textarea></label>
+            <div class="staff-form-actions"><x-button type="submit" variant="danger">Reverse payout</x-button></div>
+        </form>
+    @endif
 @endcan
 @endsection

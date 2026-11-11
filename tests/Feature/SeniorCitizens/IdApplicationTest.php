@@ -93,7 +93,7 @@ class IdApplicationTest extends TestCase
         $this->get(route('senior-id.show', [$senior, 'from' => 'registry']))
             ->assertOk()
             ->assertDontSee('New ID Application')
-            ->assertSee('Exit to registry');
+            ->assertSee('&larr; Back', false);
         $this->get(route('senior-citizens.create'))->assertOk()->assertSeeLivewire(IdApplication::class);
         $this->assertDatabaseCount('senior_citizens', 1);
     }
@@ -213,9 +213,9 @@ class IdApplicationTest extends TestCase
             ->assertRedirect(route('senior-citizens.index', ['search' => 'Synthetic', 'status' => 'PENDING', 'page' => 2]));
     }
 
-    #[TestWith(['registry', 'senior-citizens.index', 'Exit to registry'])]
-    #[TestWith(['registrations', 'registrations.index', 'Exit to registrations'])]
-    public function test_id_navigation_keeps_the_origin_and_filters(string $from, string $route, string $exit): void
+    #[TestWith(['registry', 'senior-citizens.index'])]
+    #[TestWith(['registrations', 'registrations.index'])]
+    public function test_id_navigation_keeps_the_origin_and_filters(string $from, string $route): void
     {
         $this->actingAs(User::factory()->create());
         $senior = SeniorCitizen::create([...Arr::except($this->input(), ['requirements_status'])]);
@@ -223,10 +223,17 @@ class IdApplicationTest extends TestCase
 
         $response = $this->get(route('senior-id.show', [$senior, 'from' => $from, ...$context]));
 
-        $response->assertSee($exit)->assertSeeHtml('href="'.e(route($route, $context)).'"');
+        $response->assertSee('&larr; Back', false)
+            ->assertDontSee('Back to senior record')
+            ->assertDontSee('Back to registrations')
+            ->assertDontSee('Exit to registrations')
+            ->assertDontSee('Exit to registry');
         $document = new \DOMDocument;
         $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
         $xpath = new \DOMXPath($document);
+        $backLinks = $xpath->query('//header//a[contains(normalize-space(.), "Back")]');
+        $this->assertCount(1, $backLinks);
+        $this->assertSame(route($route, $context), $backLinks->item(0)->getAttribute('href'));
         $links = $xpath->query('//nav[@aria-label="OSCA Staff navigation"]//a[@aria-current="page"]');
         $this->assertCount(1, $links);
         $this->assertSame(route($route), $links->item(0)->getAttribute('href'));

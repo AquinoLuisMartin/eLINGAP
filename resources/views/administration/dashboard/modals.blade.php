@@ -90,7 +90,7 @@
             <p>You will be returned to the public eLINGAP landing page.</p>
             <div class="modal-actions">
                 <button type="button" class="secondary-button" wire:click="$set('logoutConfirmOpen', false)">Cancel</button>
-                <form method="POST" action="{{ route('logout') }}" style="display: inline;">
+                <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit" class="danger-button">
                         <x-admin.icon name="log-out" size="16" /> Log Out

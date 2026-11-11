@@ -21,8 +21,10 @@
         <h3 class="text-lg font-semibold">2. Upload and preview</h3>
         <form method="POST" action="{{ route('registrations.import.preview') }}" enctype="multipart/form-data" class="mt-4 space-y-4" x-data="{ busy: false }" x-on:submit="busy = true" x-on:pageshow.window="busy = false">
             @csrf
-            <label for="import-file" class="field-label">Spreadsheet file <span aria-hidden="true">*</span></label>
-            <input id="import-file" type="file" name="file" accept=".csv,.xlsx,.xls" required aria-describedby="import-file-help" class="block w-full">
+            <div class="ui-field">
+                <label for="import-file" class="field-label">Spreadsheet file <span aria-hidden="true">*</span></label>
+                <input id="import-file" type="file" name="file" accept=".csv,.xlsx,.xls" required aria-describedby="import-file-help" class="block w-full">
+            </div>
             <p id="import-file-help" class="text-sm text-slate-500">Previewing does not save senior records. The preview expires after 30 minutes.</p>
             @error('file')<p role="alert" class="text-sm text-red-700 dark:text-red-300">{{ $message }}</p>@enderror
             <button type="submit" class="primary-button disabled:opacity-50" x-bind:disabled="busy" x-text="busy ? 'Preparing preview...' : 'Preview import'">Preview import</button>

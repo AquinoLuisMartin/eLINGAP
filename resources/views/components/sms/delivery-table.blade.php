@@ -33,7 +33,7 @@
                             aria-haspopup="dialog" aria-controls="sms-message-dialog" aria-label="View message {{ $message->id }}">{{ $details['body'] }}</button>
                     </td>
                     <td class="whitespace-nowrap px-4! py-3! text-left">{{ $message->queued_at?->format('Y-m-d H:i') ?: '—' }}</td>
-                    <td class="whitespace-nowrap px-4! py-3! text-center"><span class="rounded px-2 py-1 text-xs font-medium" :class="statusClass(rowStatus({{ $message->id }}, @js($details['status'])))" x-text="rowStatus({{ $message->id }}, @js($details['status']))">{{ $details['status'] }}</span></td>
+                    <td class="whitespace-nowrap px-4! py-3! text-center"><span class="ui-label" :class="statusClass(rowStatus({{ $message->id }}, @js($details['status'])))" x-text="rowStatus({{ $message->id }}, @js($details['status']))">{{ $details['status'] }}</span></td>
                     <td class="w-32 min-w-32 py-3! pl-4! pr-6! text-right">
                         <div class="flex flex-wrap justify-end gap-2">
                             @if ($message->status === \App\Enums\SmsStatus::Failed)

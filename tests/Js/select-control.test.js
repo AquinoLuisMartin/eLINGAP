@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import uiSelect, { filterOptions, menuPosition, readOptions, visibleText } from '../../resources/js/select-control.js';
+import uiSelect, { filterOptions, menuPosition, readOptions, scrollToFit, visibleText } from '../../resources/js/select-control.js';
 
 function control() {
     const attributes = new Map();
@@ -246,4 +246,45 @@ test('menus open above near the viewport bottom and fit narrow screens', () => {
     const position = menuPosition({ top: 650, bottom: 694, left: 300, width: 400 }, 360, 720);
 
     assert.deepEqual(position, { top: 'auto', bottom: '76px', left: '8px', width: '344px', maxHeight: '304px' });
+});
+
+test('short menus open below when their options fit', () => {
+    const position = menuPosition({ top: 450, bottom: 494, left: 20, width: 400 }, 1024, 720, 98);
+
+    assert.equal(position.top, '500px');
+    assert.equal(position.bottom, 'auto');
+});
+
+test('long menus scroll the page just enough to open below without hiding the field', () => {
+    const rect = { top: 251, bottom: 283 };
+
+    assert.equal(scrollToFit(rect, 340, 1000, 500), 171);
+    assert.equal(scrollToFit(rect, 340, 1000, 100), 100);
+    assert.equal(scrollToFit(rect, 340, 1000, 0), 0);
+    assert.equal(scrollToFit(rect, 800, 1000, 500), 0);
+});
+
+test('the page scroll made for a menu keeps it open while other scrolling closes it', () => {
+    const { state } = control();
+    let scrolledBy = 0;
+    state.$refs.menu = { contains: () => false };
+    state.$refs.trigger.getBoundingClientRect = () => ({ top: 640, bottom: 684, left: 10, width: 240 });
+    globalThis.document.scrollingElement = { scrollHeight: 2000, clientHeight: 768, scrollTop: 0 };
+    globalThis.window.scrollBy = ({ top }) => { scrolledBy = top; };
+
+    state.show();
+    state.scrolled({ target: {} });
+
+    assert.ok(scrolledBy > 0);
+    assert.equal(state.open, true);
+
+    const other = control().state;
+    other.$refs.menu = { contains: () => false };
+    other.open = true;
+    other.scrolled({ target: {} });
+    assert.equal(other.open, false);
+});
+
+test('short menus still open above when their options do not fit below', () => {
+    assert.equal(menuPosition({ top: 600, bottom: 644, left: 20, width: 400 }, 1024, 720, 98).top, 'auto');
 });

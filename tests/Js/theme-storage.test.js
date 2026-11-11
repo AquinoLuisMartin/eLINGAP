@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
+import { workspaceTheme } from '../../resources/js/workspace-theme.js';
 
 const root = new URL('../../', import.meta.url);
 
@@ -26,7 +27,8 @@ for (const [page, shell] of [
         const prepaint = readFileSync(new URL(page, root), 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
         vm.runInContext(prepaint, context);
         const data = readFileSync(new URL(shell, root), 'utf8').match(/x-data="([\s\S]*?)"/)[1];
-        const state = vm.runInContext(`(${data})`, context);
+        assert.match(data, /\.\.\.workspaceTheme\(\)/);
+        const state = workspaceTheme(context);
         state.init?.();
         assert.equal(state.theme, 'light');
         state.toggleTheme();

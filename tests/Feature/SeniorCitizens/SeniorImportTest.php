@@ -41,8 +41,11 @@ class SeniorImportTest extends TestCase
         $row = [...$this->row(), 'representative_name' => 'Synthetic Representative', 'representative_relationship' => 'Child', 'representative_contact' => '967-234-8976'];
         $token = $this->preview([$row], $format);
 
-        $this->get(route('registrations.import.show', $token))->assertOk()->assertSee('SYNTHETIC ÑANDÚ')
-            ->assertSee('+639672348976')->assertSee('000123')->assertSee('Confirm import')->assertHeader('Cache-Control', 'no-store, private');
+        $preview = $this->get(route('registrations.import.show', $token));
+        $preview->assertOk()->assertSee('SYNTHETIC ÑANDÚ')
+            ->assertSee('+639672348976')->assertSee('000123')->assertSee('Confirm import')->assertHeader('Cache-Control');
+        $this->assertTrue($preview->headers->hasCacheControlDirective('no-store'));
+        $this->assertTrue($preview->headers->hasCacheControlDirective('private'));
         $this->assertDatabaseCount('senior_citizens', 0);
         $this->post(route('registrations.import.store', $token), ['reviewed' => 1, 'rows' => [['status' => 'VERIFIED']]])
             ->assertRedirect(route('senior-citizens.index', ['status' => 'PENDING']))->assertSessionHas('status', 'Import complete: 1 records added for review; 0 duplicates skipped.');

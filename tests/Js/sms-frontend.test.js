@@ -146,8 +146,8 @@ test('retry confirmation changes only the selected failed row and preserves othe
     assert.match(state.notice, /No SMS was sent/);
     state.openDetails(details);
     assert.equal(state.selected.status, 'Queued');
-    assert.match(smsStatusClass('Failed'), /bg-red-100 text-red-700/);
-    assert.match(smsStatusClass('Sent'), /bg-green-100 text-green-700/);
+    assert.equal(smsStatusClass('Failed'), 'ui-label');
+    assert.equal(smsStatusClass('Sent'), 'ui-label');
 });
 
 test('sent rows cannot open retry and cancel leaves the row unchanged', () => {

@@ -163,7 +163,7 @@ class IdIssuanceTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $senior = $this->senior();
-        $this->get(route('senior-id.preview', $senior))->assertOk()->assertSee('DRAFT - NOT ISSUED')->assertSee('Thumbprint')->assertSee('2.54 x 2.54 cm')->assertDontSee('Printed Name and Signature');
+        $this->get(route('senior-id.preview', $senior))->assertOk()->assertSee('DRAFT - NOT ISSUED')->assertSee('Thumbprint')->assertSee('2.54 x 2.54 cm')->assertSee('Printed Name and Signature / Thumbprint / Thumbmark');
         $this->assertDatabaseCount('osca_id_numbers', 0);
         $this->assertDatabaseCount('senior_citizen_id_credentials', 0);
         $this->assertNull($senior->fresh()->id_generated_at);

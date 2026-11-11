@@ -22,11 +22,17 @@
         @else
             <a href="{{ route('password.change') }}"><x-admin.icon name="shield-check" size="18" /><span>Change password</span><x-admin.icon name="chevron-right" size="16" /></a>
         @endif
-        <button type="button" @click="toggleTheme()" :aria-pressed="theme === 'dark'">
-            <span class="profile-action-icon"><span x-show="theme === 'light'"><x-admin.icon name="moon" size="18" /></span><span x-show="theme === 'dark'" x-cloak><x-admin.icon name="sun" size="18" /></span></span>
-            <span>Dark mode</span><span class="account-theme-state" x-text="theme === 'dark' ? 'On' : 'Off'"></span>
-        </button>
     </div>
+    <section class="account-appearance" aria-labelledby="account-appearance-heading">
+        <h3 id="account-appearance-heading">Appearance</h3>
+        <button type="button" class="account-dark-mode" role="switch" aria-checked="false" :aria-checked="theme === 'dark'" aria-labelledby="account-dark-mode-label" @click="toggleTheme()">
+            <span id="account-dark-mode-label">Dark mode</span>
+            <span class="account-dark-mode-control" aria-hidden="true">
+                <span class="account-dark-mode-state" x-text="theme === 'dark' ? 'On' : 'Off'">Off</span>
+                <span class="account-dark-mode-track"><span></span></span>
+            </span>
+        </button>
+    </section>
     <div class="account-menu-footer">
         @if ($adminDashboard)
             <button type="button" class="profile-logout" @click="profileOpen = false; $wire.set('logoutConfirmOpen', true)"><x-admin.icon name="log-out" size="18" /><span>Log out</span></button>

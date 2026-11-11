@@ -108,7 +108,7 @@
                         </td>
                         <td>{{ $user->employee_id }}</td>
                         <td>
-                            <span class="status-badge {{ $user->is_active ? 'active' : 'suspended' }}">
+                            <span class="ui-label">
                                 {{ $user->is_active ? 'Active' : 'Suspended' }}
                             </span>
                         </td>

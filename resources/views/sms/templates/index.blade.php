@@ -15,7 +15,7 @@
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <h2 class="min-w-0 wrap-anywhere font-semibold" x-text="item.title"></h2>
                     <div class="flex items-center gap-3">
-                        <span class="rounded px-2 py-1 text-xs font-medium" :class="item.active ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'" x-text="item.active ? 'Active' : 'Inactive'"></span>
+                        <span class="ui-label" x-text="item.active ? 'Active' : 'Inactive'"></span>
                         <button type="button" class="secondary-button" x-on:click="editTemplate(item)" :aria-label="'Edit ' + item.title">Edit</button>
                     </div>
                 </div>

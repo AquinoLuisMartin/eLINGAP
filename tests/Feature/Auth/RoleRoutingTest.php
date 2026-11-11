@@ -81,7 +81,7 @@ class RoleRoutingTest extends TestCase
     {
         $this->actingAs($this->staff)
             ->get(route('applications.verify'))
-            ->assertOk();
+            ->assertRedirect(route('applications.index', ['status' => 'PENDING']));
     }
 
     public function test_admin_can_login_with_employee_id(): void

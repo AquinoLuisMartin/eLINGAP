@@ -1,0 +1,34 @@
+.task-notifications-trigger { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); background: var(--white); cursor: pointer; }
+.task-notifications-trigger:hover { color: var(--ink); background: var(--paper); }
+.task-notifications-trigger > span:first-child { display: inline-flex; }
+.task-notifications-count { position: absolute; top: -5px; right: -5px; display: grid; place-items: center; min-width: 21px; height: 21px; padding-inline: 4px; border: 2px solid var(--white); border-radius: 999px; color: #fff; background: #b91c1c; font: 600 10px var(--font-sans); font-variant-numeric: tabular-nums; }
+.task-notifications-dialog { position: fixed; inset: 16px 16px 16px auto; width: min(440px, calc(100vw - 32px)); height: calc(100dvh - 32px); max-height: none; margin: 0; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); background: var(--white); font-family: var(--font-sans); box-shadow: 0 16px 48px rgb(15 23 42 / .16); }
+.task-notifications-dialog[open] { display: flex; flex-direction: column; }
+.task-notifications-dialog::backdrop { background: rgb(15 23 42 / .28); }
+.task-notifications-dialog :is(h2, h3, p) { margin: 0; }
+.task-notifications-heading { display: flex; flex-shrink: 0; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px; border-bottom: 1px solid var(--line); }
+.task-notifications-heading > div { display: flex; flex-direction: column; gap: 8px; }
+.task-notifications-heading h2 { font-size: 20px; font-weight: 600; line-height: 1.35; }
+.task-notifications-dialog p { color: var(--muted); font-size: 13px; line-height: 1.65; }
+.task-notifications-list { flex: 1; min-height: 0; padding-inline: 24px; overflow-y: auto; overscroll-behavior: contain; }
+.task-notifications-item { display: flex; flex-direction: column; gap: 12px; padding-block: 24px; border-bottom: 1px solid var(--line); }
+.task-notifications-item:last-child { border-bottom: 0; }
+.task-notifications-item-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 12px; }
+.task-notifications-item h3 { flex: 1; min-width: 160px; font-size: 14px; font-weight: 600; line-height: 1.5; }
+.task-notifications-pending { padding: 3px 8px; border: 1px solid var(--line); border-radius: 5px; color: var(--muted); background: var(--paper); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.task-notifications-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; }
+.task-notifications-action, .task-notifications-close, .task-notifications-refresh { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--white); font: 500 13px var(--font-sans); text-decoration: none; cursor: pointer; }
+.task-notifications-action:hover, .task-notifications-close:hover, .task-notifications-refresh:hover { background: var(--paper); }
+.task-notifications-action.is-primary { border-color: var(--blue); color: #fff; background: var(--blue); }
+.task-notifications-action.is-primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
+.task-notifications-dialog .task-notifications-empty { padding-block: 40px; text-align: center; }
+.task-notifications-footer { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; border-top: 1px solid var(--line); color: var(--muted); background: var(--paper); font-size: 12px; line-height: 1.6; }
+.task-notifications-refresh { flex-shrink: 0; }
+.task-notifications-dialog :is(a, button):focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.task-notifications-dialog button:disabled { opacity: .6; cursor: wait; }
+@media (max-width: 470px) {
+    .task-notifications-dialog { inset: 0; width: 100%; max-width: none; height: 100dvh; border: 0; border-radius: 0; }
+    .task-notifications-heading { padding: 20px; }
+    .task-notifications-list { padding-inline: 20px; }
+    .task-notifications-footer { padding: 16px 20px max(16px, env(safe-area-inset-bottom)); }
+}

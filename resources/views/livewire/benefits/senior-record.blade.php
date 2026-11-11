@@ -23,15 +23,15 @@
                     <div class="field-label"><label data-select-label>Program or benefit</label><x-select label="Program or benefit" wire:model="programId" required><option value="">Select program</option>@foreach ($programs as $program)<option wire:key="assignment-program-{{ $program->id }}" value="{{ $program->id }}">{{ $program->name }}</option>@endforeach</x-select></div>
                     <button type="submit" class="primary-button" wire:loading.attr="disabled">Assign benefit</button>
                 </form>
-                <form wire:submit="saveClassifications" class="mt-6 space-y-3">
+                <form wire:submit="saveClassifications" class="mt-6 grid gap-4">
                     <h3 class="font-semibold">Staff-verified classifications</h3>
                     <div class="grid gap-3 sm:grid-cols-2">
                         @foreach (['is_bedridden' => 'Bedridden', 'is_indigent' => 'Indigent', 'has_national_pension' => 'Receives national pension', 'has_local_pension' => 'Receives local pension'] as $field => $label)
-                            <label wire:key="classification-{{ $field }}" class="text-sm"><input type="checkbox" wire:model="classifications.{{ $field }}"> {{ $label }}</label>
+                            <label wire:key="classification-{{ $field }}" class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="classifications.{{ $field }}">{{ $label }}</label>
                         @endforeach
                     </div>
-                    <label class="field-label">TSS office request and verification note (leave blank when not verified)<textarea wire:model="classifications.tss_request" maxlength="500"></textarea></label>
-                    <button class="secondary-button" wire:loading.attr="disabled">Record verified classifications</button>
+                    <label class="field-label">TSS office request and verification note (leave blank when not verified)<textarea wire:model="classifications.tss_request" rows="3" maxlength="500"></textarea></label>
+                    <div><button type="submit" class="primary-button" wire:loading.attr="disabled">Record verified classifications</button></div>
                 </form>
             @else
                 <p class="mt-4 text-sm text-slate-500">Register, verify and generate the OSCA ID before assigning benefits or classifications.</p>

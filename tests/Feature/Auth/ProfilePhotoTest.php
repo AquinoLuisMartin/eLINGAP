@@ -24,7 +24,9 @@ class ProfilePhotoTest extends TestCase
             ->assertSee('account-menu-content', false)
             ->assertSee('Assigned office')->assertSee('Last sign-in')
             ->assertSee('Account status')->assertSee('Change password')
-            ->assertSee('Dark mode')->assertSee('Log out');
+            ->assertSee('Appearance')->assertSee('Dark mode')->assertSee('Log out')
+            ->assertSeeHtml('role="switch"')->assertSeeHtml('aria-labelledby="account-dark-mode-label"')
+            ->assertDontSeeHtml('class="workspace-theme-toggle"');
     }
 
     public function test_account_menu_offers_a_profile_photo_upload(): void

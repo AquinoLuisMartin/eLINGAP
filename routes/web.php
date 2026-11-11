@@ -94,7 +94,7 @@ Route::middleware(['auth', 'auth.session', 'active', EnsureCurrentCredentials::c
     Route::get('senior-citizens/{senior_citizen}/id-card', [SeniorCitizenController::class, 'idCard'])->name('senior-citizens.id-card');
     Route::get('senior-citizens/{senior_citizen}/documents/{document}', [SeniorCitizenController::class, 'document'])->name('senior-citizens.document');
     Route::resource('programs', ProgramController::class)->only(['index', 'show']);
-    Route::view('applications/verify', 'applications.verify')->name('applications.verify');
+    Route::get('applications/verify', fn () => redirect()->route('applications.index', ['status' => 'PENDING']))->name('applications.verify');
     Route::resource('applications', ApplicationController::class)->only(['index', 'create', 'store', 'show']);
     Route::patch('applications/{application}/status', [ApplicationController::class, 'updateStatus'])->name('applications.status.update');
     Route::get('programs/{program}/beneficiaries', [BeneficiaryController::class, 'index'])->name('programs.beneficiaries.index');

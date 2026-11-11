@@ -14,7 +14,7 @@
     @click.outside="close()" @focusout="$nextTick(() => { if (!$el.contains(document.activeElement)) close() })"
     @keydown.escape="if (open) { $event.stopPropagation(); $event.preventDefault(); close(true) }"
     @keydown.tab="tab($event)"
-    @resize.window="if (open) reposition()" @scroll.window.capture="if (!$refs.menu.contains($event.target)) close()"
+    @resize.window="if (open) reposition()" @scroll.window.capture="scrolled($event)"
     @ui-select-open.window="if ($event.detail !== $el) close()">
     <select {{ $attributes->except('class')->class(['w-full'])->merge($defaults) }} x-ref="native" :class="{ 'ui-select-native': enhanced }"
         :aria-hidden="enhanced ? 'true' : null" @focus="if (enhanced) $refs.trigger.focus()"

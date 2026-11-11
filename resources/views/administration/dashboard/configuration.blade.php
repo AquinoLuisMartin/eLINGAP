@@ -8,7 +8,7 @@
         @foreach (\App\Models\SystemConfiguration::OFFICE_KEYS as $key)
             <label class="field-label" wire:key="office-setting-{{ $key }}">{{ ucfirst(str_replace('_', ' ', $key)) }}
                 <input name="settings[{{ $key }}]" type="{{ $key === 'support_email' ? 'email' : 'text' }}" maxlength="{{ $key === 'office_address' ? 1000 : 180 }}" value="{{ old('settings.'.$key, $this->configuration->firstWhere('key', $key)?->value) }}">
-                @error('settings.'.$key)<span class="text-sm text-red-700" role="alert">{{ $message }}</span>@enderror
+                @error('settings.'.$key)<span class="text-sm text-red-700 dark:text-red-300" role="alert">{{ $message }}</span>@enderror
             </label>
         @endforeach
         <div class="sm:col-span-2"><x-button type="submit">Save office settings</x-button></div>

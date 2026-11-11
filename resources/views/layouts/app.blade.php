@@ -100,7 +100,7 @@
                 </div>
                 <div class="header-actions">
                     <span class="header-date"><x-admin.icon name="calendar-days" size="16" />{{ now()->format('l, F j, Y') }}</span>
-                    <x-theme-toggle />
+                    <livewire:task-notifications />
                     <div class="header-account" @click.outside="profileOpen = false">
                         <button type="button" class="profile-avatar" @click="profileTrigger = $event.currentTarget; profileOpen = !profileOpen" aria-label="Open account menu" aria-controls="osca-account-panel" :aria-expanded="profileOpen"><x-profile-photo :user="$user" /></button>
                         <aside id="osca-account-panel" class="profile-menu" x-trap.inert.noscroll="profileOpen" aria-label="Account details" x-show="profileOpen" x-transition @click.stop style="display: none;">
@@ -115,6 +115,7 @@
                 @yield('content')
             </main>
         </div>
+        <x-confirm-dialog />
     </div>
     @livewireScripts
 </body>

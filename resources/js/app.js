@@ -13,6 +13,7 @@ import initUppercaseSearch from './uppercase-search';
 import broadcastComposer from './broadcast-composer';
 import smsTemplateEditor from './sms-template-editor';
 import smsMessages from './sms-messages';
+import initConfirmDialogs, { confirmSubmit } from './confirm-dialog';
 
 window.idImageEditor = idImageEditor;
 window.formatSeniorMobile = formatSeniorMobile;
@@ -34,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Alpine.start();
     }
 
+    initConfirmDialogs();
     initStaffControls();
     initApplicationWizard(document.getElementById('application-wizard'));
     initMobileMenu();
@@ -75,8 +77,11 @@ function initStaffControls() {
     const releaseForm = document.getElementById('payout-release-form');
     releaseForm?.addEventListener('submit', event => {
         const claimant = claimantType.value === 'PROXY' ? releaseForm.elements.claimant_name.value : 'Senior in person';
-        const facts = `${releaseForm.dataset.beneficiary}\n${releaseForm.dataset.program}\n${releaseForm.dataset.amount}\nClaimant: ${claimant}`;
-        if (!window.confirm(`Confirm payout release?\n\n${facts}`)) event.preventDefault();
+        confirmSubmit(event, {
+            title: 'Confirm payout release?',
+            details: [['Beneficiary', releaseForm.dataset.beneficiary], ['Program', releaseForm.dataset.program], ['Amount', releaseForm.dataset.amount], ['Claimant', claimant]],
+            confirmLabel: 'Release payout',
+        });
     });
 
     const broadcast = document.getElementById('broadcast-message');
@@ -98,8 +103,11 @@ function initStaffControls() {
         document.getElementById('sms-broadcast-form')?.addEventListener('submit', event => {
             if (event.defaultPrevented) return;
             const form = event.currentTarget;
-            const facts = `${form.dataset.audience}\nEligible: ${form.dataset.eligible}\nExcluded: ${form.dataset.excluded}\n${count.textContent}\n\n${broadcast.value}`;
-            if (!window.confirm(`Queue this SMS broadcast?\n\n${facts}`)) event.preventDefault();
+            confirmSubmit(event, {
+                title: 'Queue this SMS broadcast?',
+                details: [['Audience', form.dataset.audience], ['Eligible', form.dataset.eligible], ['Excluded', form.dataset.excluded], ['Length', count.textContent], ['Message', broadcast.value]],
+                confirmLabel: 'Queue broadcast',
+            });
         });
     }
 }

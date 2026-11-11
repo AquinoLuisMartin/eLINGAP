@@ -59,6 +59,18 @@ class WorkspaceNavigationTest extends TestCase
         $this->assertCurrentNavigationLink($response->getContent(), 'System navigation', route('administration.dashboard', ['tab' => 'programs']));
     }
 
+    #[TestWith(['programs.index'])]
+    #[TestWith(['administration.users.index'])]
+    #[TestWith(['administration.password-reset-requests.index'])]
+    public function test_shared_pages_render_feedback_once(string $route): void
+    {
+        $response = $this->actingAs(User::factory()->admin()->create())
+            ->withSession(['status' => 'Synthetic account update completed.'])->get(route($route));
+
+        $response->assertSeeText('Synthetic account update completed.');
+        $this->assertSame(1, substr_count($response->getContent(), 'Synthetic account update completed.'));
+    }
+
     private function assertCurrentNavigationLink(string $html, string $navigation, string $url): void
     {
         $document = new \DOMDocument;

@@ -331,7 +331,7 @@ class EmployeeIdRecoveryTest extends TestCase
         $this->post(route('password.request.store'), ['employee_id' => '2026-0001'])->assertSessionHas('status', PasswordRecovery::CONFIRMATION);
         $this->post(route('login'), ['employee_id' => $admin->employee_id, 'password' => 'Synthetic administrator passphrase'])->assertRedirectToRoute('administration.dashboard');
         $reset = PasswordResetRequest::sole();
-        $this->get(route('administration.password-reset-requests.index'))->assertSee('2026-0001')->assertSee('PENDING');
+        $this->get(route('administration.password-reset-requests.index'))->assertSee('2026-0001')->assertSee('Pending');
         $approval = $this->patch(route('administration.password-reset-requests.update', $reset),
             ['decision' => 'approve', 'identity_verified' => true, 'admin_password' => 'Synthetic administrator passphrase'])->assertOk();
         $code = $approval->viewData('credential');

@@ -11,7 +11,7 @@
     }" @registration-verified.window="window.location.reload()">
         <header class="space-y-3">
             <div class="flex items-center justify-between gap-3">
-                <x-record-return-link />
+                <a href="{{ route('senior-citizens.index', request()->only(['search', 'search_by', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])) }}" x-on:click="if (window.history.length > 1) { $event.preventDefault(); window.history.back(); }" class="text-button text-sm">&larr; Back</a>
                 @can('update', $seniorCitizen)
                     <a href="{{ route('senior-citizens.edit', [$seniorCitizen, ...request()->only(['from', 'search', 'search_by', 'stage', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])]) }}" class="primary-button shrink-0"><x-admin.icon name="pencil" size="16" /> Edit profile</a>
                 @endcan
@@ -151,7 +151,7 @@
                     @forelse ($milestoneAges as $age)
                         @php($achieved = $seniorCitizen->birth_date->age >= $age)
                         <div class="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
-                            <div class="flex items-center justify-between gap-2"><span class="text-2xl font-semibold text-osca-primary dark:text-blue-300">{{ $age }}+</span><span @class(['rounded-full px-2 py-1 text-xs', 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' => $achieved, 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300' => !$achieved])>{{ $achieved ? 'Achieved' : 'Upcoming' }}</span></div>
+                            <div class="flex items-center justify-between gap-2"><span class="text-2xl font-semibold text-osca-primary dark:text-blue-300">{{ $age }}+</span><span class="ui-label">{{ $achieved ? 'Achieved' : 'Upcoming' }}</span></div>
                             <p class="flex items-center gap-2 text-sm text-slate-500"><x-admin.icon name="calendar-days" size="15" /> {{ $seniorCitizen->birth_date->copy()->addYears($age)->format('M j, Y') }}</p>
                         </div>
                     @empty

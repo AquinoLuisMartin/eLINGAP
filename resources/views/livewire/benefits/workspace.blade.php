@@ -6,9 +6,15 @@
     @can('manage', \App\Models\BenefitSchedule::class)
     @if (! $payoutMode || ! $selectedSchedule)
         <x-benefit-panel>
+            @if ($payoutMode)
+                <div>
+                    <h3 class="text-lg font-semibold">Schedule details</h3>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Prepare a draft recipient list. Review and approval are required before any payment.</p>
+            @else
             <details @if(!$selectedSchedule) open @endif>
                 <summary class="cursor-pointer text-lg font-semibold">Create a schedule or tracking batch</summary>
-                <form wire:submit="createSchedule" class="schedule-form mt-4 grid grid-cols-1 items-start gap-6 md:grid-cols-2 xl:grid-cols-3">
+            @endif
+                <form wire:submit="createSchedule" class="schedule-form mt-5 grid grid-cols-1 items-start gap-5 md:grid-cols-2 xl:grid-cols-3">
                     <h4 class="-mb-3 text-base font-semibold md:col-span-2 xl:col-span-3">Schedule and funding</h4>
                     @unless ($payoutMode)
                         <div class="field-label"><label data-select-label>Program</label><x-select label="Program" wire:model.live="form.program_id" required><option value="">Select program</option>@foreach ($programs as $program)<option wire:key="schedule-program-{{ $program->id }}" value="{{ $program->id }}">{{ $program->name }}{{ $program->status === 'UPCOMING' ? ' (Upcoming)' : '' }}</option>@endforeach<option value="other">Other - enter a new program</option></x-select></div>
@@ -22,7 +28,7 @@
                             <div class="field-label"><label data-select-label>Benefit frequency</label><x-select label="Benefit frequency" wire:model.live="newProgram.cadence"><option value="ANNUAL">Annual</option><option value="QUARTERLY">Quarterly</option><option value="SEMIANNUAL">Every six months</option><option value="ON_DEMAND">Upon request</option></x-select></div>
                             <p class="text-sm text-slate-500">The program will be saved for future schedules. Verified seniors with issued OSCA IDs are eligible, subject to staff review. For milestone ages, cutoffs or additional eligibility rules, create the program in <a class="text-button" href="{{ route('benefits.programs') }}">Program rules</a> first.</p>
                         </fieldset>
-                    @elseif ($selectedProgram)
+                    @elseif ($selectedProgram?->provisional)
                         <div class="text-sm md:col-span-2 xl:col-span-3" wire:key="selected-program-rules-{{ $selectedProgram->id }}">
                             @if ($selectedProgram->provisional)<p class="mt-2 text-amber-700 dark:text-amber-300">This program has provisional rules. Confirm the rules before scheduling.</p>@endif
                         </div>
@@ -33,17 +39,17 @@
                     <label class="field-label"><span data-field-label>Payout date and time</span><input wire:model="form.scheduled_at" type="datetime-local" required></label>
                     <label class="field-label"><span data-field-label>Payout location</span><input wire:model="form.location" required maxlength="250"></label>
                     <label class="field-label"><span data-field-label>Batch name</span><input wire:model="form.batch_name" maxlength="100" placeholder="Batch 1"></label>
-                    <label class="field-label"><span data-field-label>Cash aid per recipient</span><input wire:model="form.amount" type="number" step="0.01" min="0.01" @readonly($payoutMode)><span class="field-helper">Leave blank while awaiting funds. Milestone amounts follow program rules.</span></label>
-                    <label class="field-label"><span data-field-label>Funds available for this schedule</span><input wire:model="form.available_funds" type="number" step="0.01" min="0" required @readonly($payoutMode)></label>
+                    <label class="field-label"><span data-field-label>Cash aid per recipient</span><input wire:model="form.amount" type="number" step="0.01" min="0.01"><span class="field-helper">Leave blank while awaiting funds. Milestone amounts follow program rules.</span></label>
+                    <label class="field-label"><span data-field-label>Funds available for this schedule</span><input wire:model="form.available_funds" type="number" step="0.01" min="0" required><span class="field-helper">Enter 0 if funding has not been confirmed.</span></label>
                     <h4 class="mt-2 border-t border-[var(--line)] pt-4 text-base font-semibold md:col-span-2 xl:col-span-3">Claim requirements and audience</h4>
                     <label class="field-label md:col-span-2 xl:col-span-3"><span data-field-label>Additional requirements</span><textarea wire:model="form.requirements" maxlength="1500" rows="2" placeholder="Optional: no extra documents when blank"></textarea></label>
                     <fieldset class="md:col-span-2 xl:col-span-3"><legend class="mb-2 text-sm font-semibold">Barangays in this batch</legend><p class="mb-3 text-xs text-slate-500">Leave all unchecked to include all recorded barangays.</p><div class="grid gap-2 sm:grid-cols-3 xl:grid-cols-4">
                         @foreach ($barangays as $barangay)<label wire:key="batch-barangay-{{ $barangay->id }}" class="text-sm"><input type="checkbox" wire:model="form.barangay_ids" value="{{ $barangay->id }}"> {{ $barangay->name }}</label>@endforeach
                     </div></fieldset>
                     <label class="text-sm md:col-span-2"><input type="checkbox" wire:model="form.allow_representative"> Authorized representatives may claim under this schedule's announced instructions.</label>
-                    <div class="staff-form-actions md:col-span-2 xl:col-span-3"><x-button type="submit" wire:loading.attr="disabled">Prepare eligible recipient list</x-button>@if ($payoutMode)<button type="button" class="secondary-button" @click="handleGeneratePayoutMasterlist()">Generate Payout Masterlist</button>@endif<span wire:loading wire:target="createSchedule" class="text-sm" role="status">Preparing recipients...</span></div>
+                    <div class="staff-form-actions md:col-span-2 xl:col-span-3">@if ($payoutMode)<a href="{{ route('payout-schedules.index') }}" class="secondary-button">Cancel</a>@endif<x-button type="submit" wire:loading.attr="disabled">Prepare eligible recipient list</x-button><span wire:loading wire:target="createSchedule" class="text-sm" role="status">Preparing recipients...</span></div>
                 </form>
-            </details>
+            @if ($payoutMode)</div>@else</details>@endif
         </x-benefit-panel>
     @endif
     @endcan

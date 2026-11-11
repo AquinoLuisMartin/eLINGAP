@@ -24,7 +24,7 @@
                         <div class="flex items-baseline justify-between gap-4"><dt class="shrink-0 text-[var(--muted)]">Cash benefit</dt><dd class="text-right font-medium tabular-nums">{{ ($program->benefit_rules['cadence'] ?? null) === 'MILESTONE' ? 'Varies by milestone age' : ($program->default_amount ? 'PHP '.number_format((float) $program->default_amount, 2) : 'Set per funded schedule') }}</dd></div>
                     </dl>
                     <div class="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
-                        @if ($program->provisional)<span class="rounded border border-amber-200 px-2 py-1 text-xs font-medium text-amber-800 dark:border-amber-800 dark:text-amber-200">Provisional rules</span>@endif
+                        @if ($program->provisional)<span class="ui-label">Provisional rules</span>@endif
                         @can('manage', \App\Models\BenefitSchedule::class)<x-button variant="text" class="ml-auto" wire:click="edit({{ $program->id }})" wire:loading.attr="disabled" wire:target="edit,save,cancel" aria-controls="program-editor" aria-label="Configure {{ $program->name }}">Configure program</x-button>@endcan
                     </div>
                 </article>

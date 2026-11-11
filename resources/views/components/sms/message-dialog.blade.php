@@ -11,7 +11,7 @@
             <div><dt class="text-slate-500">Mobile number</dt><dd class="mt-1" x-text="selected?.mobile ?? ''"></dd></div>
             <div><dt class="text-slate-500">Queued</dt><dd class="mt-1" x-text="selected?.queued ?? ''"></dd></div>
             <div><dt class="text-slate-500">Sent</dt><dd class="mt-1" x-text="selected?.sent ?? ''"></dd></div>
-            <div><dt class="text-slate-500">Status</dt><dd class="mt-1"><span class="rounded px-2 py-1 text-xs font-medium" :class="statusClass(selected?.status)" x-text="selected?.status ?? ''"></span></dd></div>
+            <div><dt class="text-slate-500">Status</dt><dd class="mt-1"><span class="ui-label" :class="statusClass(selected?.status)" x-text="selected?.status ?? ''"></span></dd></div>
             <div x-show="selected?.status === 'Failed'" class="sm:col-span-2"><dt class="text-slate-500">Failure Reason</dt><dd class="mt-1 wrap-anywhere" x-text="selected?.failureReason ?? ''"></dd></div>
         </dl>
         <div class="mt-6 border-t border-slate-200 pt-5 dark:border-slate-700">

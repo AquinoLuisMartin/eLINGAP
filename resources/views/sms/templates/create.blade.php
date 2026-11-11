@@ -1,6 +1,8 @@
 @extends('layouts.app')
 @section('content')
 <x-workspace-navigation section="messaging" />
+<div class="mx-auto w-full min-w-0 max-w-4xl">
 <x-staff.page-header title="New SMS template" description="Save a reusable message for the broadcast composer." />
-<form method="POST" action="{{ route('sms.templates.store') }}" class="grid max-w-2xl gap-4 rounded-lg border bg-white p-5">@csrf<label>Template name <input name="name" value="{{ old('name') }}" required maxlength="120" class="mt-1 block w-full rounded border p-2"></label><label>Message <textarea name="body" rows="7" required maxlength="1600" class="mt-1 block w-full rounded border p-2">{{ old('body') }}</textarea></label><label><input type="checkbox" name="is_active" value="1" @checked(old('is_active', true))> Available in broadcast composer</label><div class="flex gap-3"><a class="rounded border px-4 py-2" href="{{ route('sms.templates.index') }}">Cancel</a><x-button type="submit">Save template</x-button></div></form>
+<form method="POST" action="{{ route('sms.templates.store') }}" class="grid gap-4 rounded-lg border bg-white p-5">@csrf<label>Template name <input name="name" value="{{ old('name') }}" required maxlength="120" class="mt-1 block w-full rounded border p-2"></label><label>Message <textarea name="body" rows="7" required maxlength="1600" class="mt-1 block w-full rounded border p-2">{{ old('body') }}</textarea></label><label><input type="checkbox" name="is_active" value="1" @checked(old('is_active', true))> Available in broadcast composer</label><div class="flex gap-3"><a class="secondary-button" href="{{ route('sms.templates.index') }}">Cancel</a><x-button type="submit">Save template</x-button></div></form>
+</div>
 @endsection

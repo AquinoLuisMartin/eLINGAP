@@ -63,7 +63,7 @@
                     </fieldset>
                 @elseif ($step === 1)
                     <p class="max-w-2xl text-sm text-slate-500">Enter the senior's details as shown on their identification documents. Applicants must be at least 60 years old. Fields marked <span class="field-required" aria-hidden="true">*</span><span class="sr-only"> with an asterisk</span> are required.</p>
-                    <div class="grid items-start gap-x-5 gap-y-4 sm:grid-cols-2">
+                    <div class="grid items-start gap-x-5 gap-y-4 pt-5 sm:grid-cols-2">
                         @foreach (['first_name' => 'First name', 'last_name' => 'Last name', 'middle_name' => 'Middle name', 'name_suffix' => 'Name suffix'] as $field => $label)
                             <x-registration-field wire:key="personal-field-{{ $field }}" :name="'form.'.$field" :label="$label" :required="in_array($field, ['first_name', 'last_name'])"><input id="form-{{ $field }}" data-draft-name="{{ $field }}" wire:model="form.{{ $field }}" class="uppercase" maxlength="{{ $field === 'name_suffix' ? 20 : 100 }}" autocomplete="{{ ['first_name' => 'given-name', 'last_name' => 'family-name', 'middle_name' => 'additional-name'][$field] ?? 'off' }}"></x-registration-field>
                         @endforeach
