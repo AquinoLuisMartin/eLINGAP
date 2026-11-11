@@ -16,8 +16,8 @@ class NewPassword implements ValidationRule
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        if (! is_string($value) || mb_strlen($value) < 15 || mb_strlen($value) > 128 || str_contains($value, "\0")) {
-            $fail('Use 15 to 128 characters without null characters. Spaces and special characters are allowed.');
+        if (! is_string($value) || mb_strlen($value) < 8 || mb_strlen($value) > 15 || str_contains($value, "\0")) {
+            $fail('Use 8 to 15 characters without null characters. Spaces and special characters are allowed.');
 
             return;
         }

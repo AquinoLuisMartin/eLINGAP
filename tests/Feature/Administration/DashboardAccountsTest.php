@@ -88,7 +88,7 @@ class DashboardAccountsTest extends TestCase
     public function test_password_changes_are_persisted_and_logged(): void
     {
         $current = Str::password();
-        $next = Str::password();
+        $next = Str::password(15);
         $admin = User::factory()->admin()->create([
             'password_hash' => $current,
             'remember_token' => Str::random(60),
@@ -114,7 +114,7 @@ class DashboardAccountsTest extends TestCase
     public function test_invalid_password_changes_are_rejected_and_sensitive_fields_cleared(string $field, string $rule): void
     {
         $current = Str::password();
-        $next = Str::password();
+        $next = Str::password(15);
         $admin = User::factory()->admin()->create(['password_hash' => $current]);
         $hash = $admin->password_hash;
         $form = ['current' => $current, 'next' => $next, 'confirm' => $next];

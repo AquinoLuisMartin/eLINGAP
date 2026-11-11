@@ -24,12 +24,12 @@
         <div class="ui-field" x-data="{ visible: false }">
             <label for="{{ $field }}" class="text-sm font-medium text-osca-ink">{{ $label }} <span class="field-required" aria-hidden="true">*</span><span class="sr-only"> required</span></label>
             <div class="relative">
-                <input id="{{ $field }}" name="{{ $field }}" type="password" :type="visible ? 'text' : 'password'" autocomplete="{{ $field === 'current_password' ? 'current-password' : 'new-password' }}" @if ($field !== 'current_password') minlength="15" @endif required aria-invalid="{{ $errors->has($field) ? 'true' : 'false' }}" aria-describedby="{{ $field }}-help{{ $errors->has($field) ? ' '.$field.'-error' : '' }}" class="min-h-12 w-full rounded-lg border border-slate-300 bg-white py-3 pr-20 pl-3.5 text-base text-osca-ink focus:border-osca-primary focus:outline-2 focus:outline-offset-2 focus:outline-osca-primary">
+                <input id="{{ $field }}" name="{{ $field }}" type="password" :type="visible ? 'text' : 'password'" autocomplete="{{ $field === 'current_password' ? 'current-password' : 'new-password' }}" @if ($field !== 'current_password') minlength="8" @endif required aria-invalid="{{ $errors->has($field) ? 'true' : 'false' }}" aria-describedby="{{ $field }}-help{{ $errors->has($field) ? ' '.$field.'-error' : '' }}" class="min-h-12 w-full rounded-lg border border-slate-300 bg-white py-3 pr-20 pl-3.5 text-base text-osca-ink focus:border-osca-primary focus:outline-2 focus:outline-offset-2 focus:outline-osca-primary">
                 <button type="button" x-cloak @click="visible = !visible" :aria-pressed="visible" aria-controls="{{ $field }}" aria-label="Show {{ strtolower($label) }}" :aria-label="(visible ? 'Hide ' : 'Show ') + '{{ strtolower($label) }}'" x-text="visible ? 'Hide' : 'Show'" class="absolute inset-y-0 right-0 min-w-16 cursor-pointer rounded-r-lg px-3 text-sm font-semibold text-osca-primary hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-osca-primary">Show</button>
             </div>
             <p id="{{ $field }}-help" class="text-xs leading-5 text-slate-500">{{ match ($field) {
                 'current_password' => 'Enter the password you currently use to sign in.',
-                'password' => 'Use 15 to 128 characters. Spaces and special characters are allowed. Choose a password unrelated to your name or employee ID.',
+                'password' => 'Use 8 to 15 characters. Spaces and special characters are allowed. Choose a password unrelated to your name or employee ID.',
                 default => 'Enter your new password again to confirm.',
             } }}</p>
             @error($field)<p id="{{ $field }}-error" class="field-error" role="alert">{{ $message }}</p>@enderror

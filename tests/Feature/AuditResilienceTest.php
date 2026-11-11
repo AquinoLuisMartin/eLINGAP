@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Http\Middleware\AuditActivity;
 use App\Models\AuditLog;
 use App\Models\Barangay;
-use App\Models\Program;
 use App\Models\SeniorCitizen;
 use App\Models\User;
 use App\Services\Auth\PasswordRecovery;
@@ -139,7 +138,7 @@ class AuditResilienceTest extends TestCase
         $admin = User::factory()->admin()->create(['password_hash' => 'Synthetic administrator password']);
         $staff = User::factory()->create();
         $originalHash = $staff->password_hash;
-        $password = Str::password();
+        $password = Str::password(15);
         $service = app(PasswordRecovery::class);
         $reset = $service->request($staff->employee_id);
         $code = $service->review($reset, $admin, 'approve', true, 'Synthetic administrator password');

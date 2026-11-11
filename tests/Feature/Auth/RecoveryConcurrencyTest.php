@@ -32,12 +32,12 @@ class RecoveryConcurrencyTest extends TestCase
         $service = app(PasswordRecovery::class);
         $reset = $service->request($user->employee_id);
         $code = $service->review($reset, $admin, 'approve', true, 'Synthetic administrator password');
-        $results = $this->race(['action' => 'complete', 'employee_id' => $user->employee_id, 'code' => $code, 'password' => 'Synthetic replacement passphrase']);
+        $results = $this->race(['action' => 'complete', 'employee_id' => $user->employee_id, 'code' => $code, 'password' => 'Replace-test!42']);
 
         sort($results);
         $this->assertSame([false, true], $results);
         $this->assertSame(2, $user->fresh()->credential_version);
-        $this->assertTrue(Hash::check('Synthetic replacement passphrase', $user->fresh()->password_hash));
+        $this->assertTrue(Hash::check('Replace-test!42', $user->fresh()->password_hash));
         $this->assertSame('COMPLETED', $reset->fresh()->status->value);
         $this->assertSame(1, AuditLog::where('action', 'user.recovery_completed')->count());
     }

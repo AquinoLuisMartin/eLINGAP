@@ -142,7 +142,7 @@ class AccountManagementTest extends TestCase
         $admin = User::factory()->admin()->create(['password_hash' => 'Synthetic administrator password']);
         $staff = User::factory()->create(['remember_token' => Str::random(60)]);
         $previousHash = $staff->password_hash;
-        $password = Str::password();
+        $password = Str::password(15);
         $service = app(PasswordRecovery::class);
         $reset = $service->request($staff->employee_id);
         $code = $service->review($reset, $admin, 'approve', true, 'Synthetic administrator password');

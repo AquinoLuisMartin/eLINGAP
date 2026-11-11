@@ -60,7 +60,7 @@ class UserController extends Controller
     public function store(StoreUserRequest $request): View
     {
         abort_if($request->expectsJson(), 406, 'Use the account creation form for private credential handover.');
-        $password = Str::random(24);
+        $password = Str::random(15);
         try {
             $user = DB::transaction(function () use ($request, $password): User {
                 $admin = User::query()->lockForUpdate()->findOrFail($request->user()->id);

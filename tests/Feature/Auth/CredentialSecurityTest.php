@@ -30,24 +30,40 @@ class CredentialSecurityTest extends TestCase
     #[TestWith(['identifier'])]
     public function test_password_policy_rejects_invalid_replacements_without_changing_credentials(string $case): void
     {
-        $user = User::factory()->create(['employee_id' => '2026-0001', 'password_hash' => 'Synthetic current passphrase']);
+        $user = User::factory()->create(['employee_id' => '2026-0001', 'password_hash' => 'Current-test!42']);
         $password = match ($case) {
-            'short' => str_repeat('s', 14), 'long' => str_repeat('l', 129), 'null' => "Synthetic\0new password",
-            'reuse' => 'Synthetic current passphrase', default => '2026-00011234567890'
+            'short' => str_repeat('s', 7), 'long' => str_repeat('l', 16), 'null' => "New\0test!42",
+            'reuse' => 'Current-test!42', default => '2026-0001123'
         };
         $before = $user->password_hash;
 
-        $this->actingAs($user)->post(route('password.change.update'), ['current_password' => 'Synthetic current passphrase',
+        $this->actingAs($user)->post(route('password.change.update'), ['current_password' => 'Current-test!42',
             'password' => $password, 'password_confirmation' => $password])->assertSessionHasErrors('password');
 
         $this->assertSame($before, $user->fresh()->password_hash);
         $this->assertSame(1, $user->fresh()->credential_version);
     }
 
+    #[TestWith(['Q7!a9_z?'])]
+    #[TestWith(['Q7!a9_z?A2#b4_c'])]
+    public function test_password_changes_accept_both_length_boundaries(string $password): void
+    {
+        $user = User::factory()->create(['password_hash' => 'Synthetic current passphrase']);
+
+        $this->actingAs($user)->post(route('password.change.update'), [
+            'current_password' => 'Synthetic current passphrase',
+            'password' => $password,
+            'password_confirmation' => $password,
+        ])->assertRedirectToRoute('dashboard')->assertSessionHasNoErrors();
+
+        $this->assertTrue(Hash::check($password, $user->fresh()->password_hash));
+        $this->assertSame(2, $user->fresh()->credential_version);
+    }
+
     public function test_new_passwords_are_screened_against_the_pinned_local_list(): void
     {
         $common = collect(file(resource_path('security/common-passwords.txt'), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES))
-            ->first(fn ($value) => mb_strlen($value) >= 15 && mb_strlen($value) <= 128);
+            ->first(fn ($value) => mb_strlen($value) >= 8 && mb_strlen($value) <= 15);
         $this->assertNotNull($common, 'The denylist must contain entries within the accepted password length.');
         $user = User::factory()->create(['password_hash' => 'Synthetic current passphrase']);
 
@@ -57,10 +73,10 @@ class CredentialSecurityTest extends TestCase
         $this->assertSame(1, $user->fresh()->credential_version);
     }
 
-    public function test_whitespace_and_long_unicode_passwords_are_preserved_and_the_current_session_survives(): void
+    public function test_whitespace_and_unicode_passwords_are_preserved_and_the_current_session_survives(): void
     {
         $user = User::factory()->create(['password_hash' => '  Synthetic current passphrase  ']);
-        $password = '  '.str_repeat('é', 124).'  ';
+        $password = '  '.str_repeat('é', 11).'  ';
         $this->actingAs($user)->post(route('password.change.update'), ['current_password' => '  Synthetic current passphrase  ',
             'password' => $password, 'password_confirmation' => $password])->assertRedirectToRoute('dashboard');
 
@@ -125,7 +141,7 @@ class CredentialSecurityTest extends TestCase
         $this->assertSame(2, $user->fresh()->credential_version);
         $this->assertNull($user->fresh()->remember_token);
         $this->assertSame(PasswordResetStatus::Expired, $reset->fresh()->status);
-        $this->assertFalse($service->complete($user->employee_id, $code, 'Synthetic replacement passphrase'));
+        $this->assertFalse($service->complete($user->employee_id, $code, 'Replace-test!42'));
     }
 
     public function test_database_sessions_are_deleted_after_recovery(): void
@@ -138,7 +154,7 @@ class CredentialSecurityTest extends TestCase
         DB::table('sessions')->insert(['id' => 'synthetic session', 'user_id' => $user->id, 'payload' => 'synthetic', 'last_activity' => time()]);
         config(['session.driver' => 'database']);
 
-        $this->assertTrue($service->complete($user->employee_id, $code, 'Synthetic replacement passphrase'));
+        $this->assertTrue($service->complete($user->employee_id, $code, 'Replace-test!42'));
 
         $this->assertDatabaseMissing('sessions', ['user_id' => $user->id]);
     }
@@ -152,10 +168,10 @@ class CredentialSecurityTest extends TestCase
         $code = $service->review($reset, $admin, 'approve', true, 'Synthetic administrator password');
 
         $this->actingAs($user)->post(route('password.change.update'), ['current_password' => 'Synthetic current passphrase',
-            'password' => 'Synthetic replacement passphrase', 'password_confirmation' => 'Synthetic replacement passphrase'])->assertSessionHasNoErrors();
+            'password' => 'Replace-test!42', 'password_confirmation' => 'Replace-test!42'])->assertSessionHasNoErrors();
 
         $this->assertSame(PasswordResetStatus::Expired, $reset->fresh()->status);
-        $this->assertFalse($service->complete($user->employee_id, $code, 'Another synthetic replacement'));
+        $this->assertFalse($service->complete($user->employee_id, $code, 'Another-test!42'));
     }
 
     public function test_approval_audit_failure_does_not_issue_a_code(): void

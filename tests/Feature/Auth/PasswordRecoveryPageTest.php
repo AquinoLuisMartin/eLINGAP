@@ -52,11 +52,11 @@ class PasswordRecoveryPageTest extends TestCase
         $reset = $service->request($user->employee_id);
         $code = $service->review($reset, $admin, 'approve', true, 'Synthetic administrator password');
         $payload = ['employee_id' => $user->employee_id, 'recovery_code' => $code,
-            'password' => 'Synthetic-new-password', 'password_confirmation' => 'Synthetic-new-password'];
+            'password' => 'New-test!42', 'password_confirmation' => 'New-test!42'];
 
         $this->post(route('password.update'), $payload)->assertRedirectToRoute('login');
 
-        $this->assertTrue(Hash::check('Synthetic-new-password', $user->fresh()->password_hash));
+        $this->assertTrue(Hash::check('New-test!42', $user->fresh()->password_hash));
         $this->assertNull($reset->fresh()->recovery_code_hash);
         $this->post(route('password.update'), $payload)->assertSessionHasErrors('recovery_code');
     }

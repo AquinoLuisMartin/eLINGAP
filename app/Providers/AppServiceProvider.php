@@ -47,7 +47,7 @@ class AppServiceProvider extends ServiceProvider
             'senior-citizens.ids.verify', 'livewire.senior-citizens.id-manager',
         ], OfficeContent::class);
         Hash::extend('argon2id', fn () => new PasswordHasher(config('hashing.argon', [])));
-        Password::defaults(fn () => Password::min(15)->max(128));
+        Password::defaults(fn () => Password::min(8)->max(15));
         foreach (['recovery-request' => [3, 60, 5], 'recovery-complete' => [5, 1, 20]] as $name => [$attempts, $minutes, $ipAttempts]) {
             RateLimiter::for($name, function ($request) use ($attempts, $minutes, $ipAttempts) {
                 $employeeId = is_string($request->input('employee_id')) ? EmployeeId::normalize($request->input('employee_id')) : '';

@@ -91,7 +91,7 @@ class EmployeeIdRecoveryTest extends TestCase
         $credential = $response->viewData('credential');
         $user = User::where('employee_id', '2026-0001')->sole();
 
-        $this->assertSame(24, strlen($credential));
+        $this->assertSame(15, strlen($credential));
         $this->assertTrue(Hash::check($credential, $user->password_hash));
         $this->assertTrue($user->must_change_password);
         $this->assertNull($user->email);
@@ -206,9 +206,9 @@ class EmployeeIdRecoveryTest extends TestCase
         $this->post(route('login'), ['employee_id' => $user->employee_id, 'password' => 'Synthetic temporary password'])->assertRedirectToRoute('password.change');
         $this->get(route('senior-citizens.index'))->assertRedirectToRoute('password.change');
         $this->post(route('password.change.update'), ['current_password' => 'wrong password',
-            'password' => 'A new private staff passphrase', 'password_confirmation' => 'A new private staff passphrase'])->assertSessionHasErrors('current_password');
+            'password' => 'Private-test!42', 'password_confirmation' => 'Private-test!42'])->assertSessionHasErrors('current_password');
         $this->post(route('password.change.update'), ['current_password' => 'Synthetic temporary password',
-            'password' => 'A new private staff passphrase', 'password_confirmation' => 'A new private staff passphrase'])->assertRedirectToRoute('dashboard');
+            'password' => 'Private-test!42', 'password_confirmation' => 'Private-test!42'])->assertRedirectToRoute('dashboard');
 
         $this->assertFalse($user->fresh()->must_change_password);
         $this->assertSame(2, $user->fresh()->credential_version);
@@ -244,12 +244,12 @@ class EmployeeIdRecoveryTest extends TestCase
         [$user, $reset, $code] = $this->approved();
         $user->forceFill(['remember_token' => 'synthetic-persistent-token'])->save();
         $payload = ['employee_id' => $user->employee_id, 'recovery_code' => $code,
-            'password' => 'A replacement personal passphrase', 'password_confirmation' => 'A replacement personal passphrase'];
+            'password' => 'Replace-test!42', 'password_confirmation' => 'Replace-test!42'];
 
         $this->post(route('password.update'), $payload)->assertRedirectToRoute('login');
 
         $this->assertGuest();
-        $this->assertTrue(Hash::check('A replacement personal passphrase', $user->fresh()->password_hash));
+        $this->assertTrue(Hash::check('Replace-test!42', $user->fresh()->password_hash));
         $this->assertSame(2, $user->fresh()->credential_version);
         $this->assertNull($user->fresh()->remember_token);
         $this->assertSame(PasswordResetStatus::Completed, $reset->fresh()->status);
@@ -264,13 +264,13 @@ class EmployeeIdRecoveryTest extends TestCase
         [$user, $reset, $code] = $this->approved();
         $service = app(PasswordRecovery::class);
         for ($attempt = 1; $attempt <= 5; $attempt++) {
-            $this->assertFalse($service->complete($user->employee_id, str_repeat('x', 43), 'A replacement personal passphrase'));
+            $this->assertFalse($service->complete($user->employee_id, str_repeat('x', 43), 'Replace-test!42'));
             $this->assertSame($attempt, $reset->fresh()->failed_attempts);
         }
 
         $this->assertSame(PasswordResetStatus::Expired, $reset->fresh()->status);
         $this->assertNull($reset->fresh()->recovery_code_hash);
-        $this->assertFalse($service->complete($user->employee_id, $code, 'A replacement personal passphrase'));
+        $this->assertFalse($service->complete($user->employee_id, $code, 'Replace-test!42'));
         $this->assertSame(1, $user->fresh()->credential_version);
     }
 
@@ -280,7 +280,7 @@ class EmployeeIdRecoveryTest extends TestCase
         [$user, $reset, $code] = $this->approved();
         $this->travel(15)->minutes();
 
-        $this->assertFalse(app(PasswordRecovery::class)->complete($user->employee_id, $code, 'A replacement personal passphrase'));
+        $this->assertFalse(app(PasswordRecovery::class)->complete($user->employee_id, $code, 'Replace-test!42'));
         $new = app(PasswordRecovery::class)->request($user->employee_id);
         $this->assertNotSame($reset->id, $new->id);
         $this->assertSame(PasswordResetStatus::Pending, $new->status);
@@ -294,7 +294,7 @@ class EmployeeIdRecoveryTest extends TestCase
         Event::listen('eloquent.creating: '.AuditLog::class, fn () => throw new RuntimeException('Synthetic audit failure'));
 
         $this->post(route('password.update'), ['employee_id' => $user->employee_id, 'recovery_code' => $code,
-            'password' => 'A replacement personal passphrase', 'password_confirmation' => 'A replacement personal passphrase'])->assertInternalServerError();
+            'password' => 'Replace-test!42', 'password_confirmation' => 'Replace-test!42'])->assertInternalServerError();
 
         $this->assertSame($old, $user->fresh()->password_hash);
         $this->assertSame(PasswordResetStatus::Approved, $reset->fresh()->status);
@@ -326,7 +326,7 @@ class EmployeeIdRecoveryTest extends TestCase
         $this->post(route('login'), ['employee_id' => '2026-0001', 'password' => $temporary])->assertRedirectToRoute('password.change');
         $this->get(route('reports.index'))->assertRedirectToRoute('password.change');
         $this->post(route('password.change.update'), ['current_password' => $temporary,
-            'password' => 'Synthetic employee personal passphrase', 'password_confirmation' => 'Synthetic employee personal passphrase'])->assertRedirectToRoute('dashboard');
+            'password' => 'Personal-test42', 'password_confirmation' => 'Personal-test42'])->assertRedirectToRoute('dashboard');
         $this->post(route('logout'))->assertRedirectToRoute('home');
         $this->post(route('password.request.store'), ['employee_id' => '2026-0001'])->assertSessionHas('status', PasswordRecovery::CONFIRMATION);
         $this->post(route('login'), ['employee_id' => $admin->employee_id, 'password' => 'Synthetic administrator passphrase'])->assertRedirectToRoute('administration.dashboard');
@@ -337,8 +337,8 @@ class EmployeeIdRecoveryTest extends TestCase
         $code = $approval->viewData('credential');
         $this->post(route('logout'))->assertRedirectToRoute('home');
         $this->post(route('password.update'), ['employee_id' => '2026-0001', 'recovery_code' => $code,
-            'password' => 'Synthetic employee recovered passphrase', 'password_confirmation' => 'Synthetic employee recovered passphrase'])->assertRedirectToRoute('login');
-        $this->post(route('login'), ['employee_id' => '2026-0001', 'password' => 'Synthetic employee recovered passphrase'])->assertRedirectToRoute('dashboard');
+            'password' => 'Recover-test!42', 'password_confirmation' => 'Recover-test!42'])->assertRedirectToRoute('login');
+        $this->post(route('login'), ['employee_id' => '2026-0001', 'password' => 'Recover-test!42'])->assertRedirectToRoute('dashboard');
 
         $this->get(route('reports.index'))->assertOk();
         $this->assertSame(PasswordResetStatus::Completed, $reset->fresh()->status);
