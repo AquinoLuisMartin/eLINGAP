@@ -21,6 +21,31 @@ class IdApplicationTest extends TestCase
 {
     use RefreshDatabase;
 
+    #[TestWith(['first_name', 'Test123'])]
+    #[TestWith(['first_name', 'Test!'])]
+    #[TestWith(['middle_name', 'Test2'])]
+    #[TestWith(['middle_name', 'Test-Name'])]
+    #[TestWith(['last_name', 'Test3'])]
+    #[TestWith(['last_name', "Test'Name"])]
+    #[TestWith(['name_suffix', '3'])]
+    #[TestWith(['name_suffix', 'Jr.'])]
+    public function test_personal_info_rejects_numbers_and_special_characters_in_names(string $field, string $value): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->application()->set('form', [...$this->input(), $field => $value])->call('next')
+            ->assertHasErrors('form.'.$field)->assertSet('step', 1);
+
+        $this->assertDatabaseCount('senior_citizens', 0);
+    }
+
+    public function test_personal_info_accepts_accented_letters_spaces_and_roman_suffixes(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->application()->set('form', [...$this->input(), 'first_name' => 'Ñame Éxample',
+            'middle_name' => "N\u{0303}ame", 'last_name' => 'De La Test', 'name_suffix' => 'III'])->call('next')
+            ->assertHasNoErrors()->assertSet('step', 2);
+    }
+
     public function test_registration_pages_require_authentication_including_in_production(): void
     {
         $this->app->instance('env', 'production');
@@ -341,15 +366,15 @@ class IdApplicationTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->application()->set('form', [
             ...$this->input(), 'first_name' => '  synthetic ñandú ', 'middle_name' => 'mixed',
-            'last_name' => "o'synthetic", 'name_suffix' => 'jr.', 'address' => '  synthetic street ', 'contact_number' => $number,
+            'last_name' => 'de synthetic', 'name_suffix' => 'jr', 'address' => '  synthetic street ', 'contact_number' => $number,
         ])->call('next')->call('next')->assertSet('step', 3)->assertHasNoErrors()
             ->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
 
         $senior = SeniorCitizen::sole();
         $this->assertSame('SYNTHETIC ÑANDÚ', $senior->first_name);
         $this->assertSame('MIXED', $senior->middle_name);
-        $this->assertSame("O'SYNTHETIC", $senior->last_name);
-        $this->assertSame('JR.', $senior->name_suffix);
+        $this->assertSame('DE SYNTHETIC', $senior->last_name);
+        $this->assertSame('JR', $senior->name_suffix);
         $this->assertSame('SYNTHETIC STREET', $senior->address);
         $this->assertSame('+639672348976', $senior->contact_number);
     }

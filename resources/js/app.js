@@ -3,7 +3,7 @@ import Alpine from 'alpinejs';
 import collapse from '@alpinejs/collapse';
 import idImageEditor from './id-image-editor';
 import initApplicationWizard from './application-wizard';
-import { formatSeniorMobile } from './senior-registration-input';
+import { formatSeniorMobile, formatSeniorName, initSeniorNameInputs } from './senior-registration-input';
 import uiSelect from './select-control';
 import initFormFeedback from './form-feedback';
 import initFieldFeedback from './field-feedback';
@@ -17,6 +17,7 @@ import initConfirmDialogs, { confirmSubmit } from './confirm-dialog';
 
 window.idImageEditor = idImageEditor;
 window.formatSeniorMobile = formatSeniorMobile;
+window.formatSeniorName = formatSeniorName;
 window.uiSelect = uiSelect;
 window.workspaceTheme = workspaceTheme;
 window.broadcastComposer = broadcastComposer;
@@ -27,6 +28,7 @@ const modalTriggers = new WeakMap();
 // Landing page interactions
 
 document.addEventListener('DOMContentLoaded', () => {
+    initSeniorNameInputs();
     initInputSuggestions();
     initUppercaseSearch();
     if (!window.Alpine) {

@@ -53,7 +53,7 @@ class SeniorImportTest extends TestCase
         $senior = SeniorCitizen::sole();
         $this->assertSame('SYNTHETIC ÑANDÚ', $senior->first_name);
         $this->assertSame('SYNTHETIC ADDRESS', $senior->address);
-        $this->assertSame('JR.', $senior->name_suffix);
+        $this->assertSame('JR', $senior->name_suffix);
         $this->assertSame('+639672348976', $senior->contact_number);
         $this->assertSame('000123', $senior->osca_id_number);
         $this->assertSame('1950-01-02', $senior->birth_date->format('Y-m-d'));
@@ -278,7 +278,7 @@ class SeniorImportTest extends TestCase
         $row = $this->row();
         $rows = [];
         for ($index = 0; $index < 500; $index++) {
-            $rows[] = [...$row, 'first_name' => 'Synthetic '.$index, 'osca_id_number' => 'LEGACY-'.$index];
+            $rows[] = [...$row, 'first_name' => 'Synthetic '.chr(65 + intdiv($index, 26)).chr(65 + $index % 26), 'osca_id_number' => 'LEGACY-'.$index];
         }
         $queries = 0;
         DB::listen(function ($query) use (&$queries): void {
@@ -288,8 +288,8 @@ class SeniorImportTest extends TestCase
         });
         $token = $this->preview($rows);
         $this->assertLessThanOrEqual(2, $queries);
-        $this->get(route('registrations.import.show', $token))->assertSee('500 ready')->assertSee('SYNTHETIC 0')->assertDontSee('SYNTHETIC 50');
-        $this->get(route('registrations.import.show', [$token, 'page' => 10]))->assertSee('SYNTHETIC 499');
+        $this->get(route('registrations.import.show', $token))->assertSee('500 ready')->assertSee('SYNTHETIC AA')->assertDontSee('SYNTHETIC BY');
+        $this->get(route('registrations.import.show', [$token, 'page' => 10]))->assertSee('SYNTHETIC TF');
         $this->post(route('registrations.import.store', $token), ['reviewed' => 1])->assertRedirect();
         $this->assertDatabaseCount('senior_citizens', 500);
         $this->assertDatabaseCount('audit_logs', 1);
@@ -377,7 +377,7 @@ class SeniorImportTest extends TestCase
     {
         Barangay::firstOrCreate(['code' => 'SYN'], ['name' => 'Synthetic Barangay']);
 
-        return array_replace(array_fill_keys(SeniorImportReader::COLUMNS, ''), ['first_name' => 'synthetic ñandú', 'last_name' => 'Applicant', 'name_suffix' => 'jr.', 'birth_date' => '01/02/1950', 'sex' => 'F', 'civil_status' => 'widowed', 'barangay' => 'syn', 'address' => 'Synthetic address', 'contact_number' => '0967 234 8976', 'osca_id_number' => '000123']);
+        return array_replace(array_fill_keys(SeniorImportReader::COLUMNS, ''), ['first_name' => 'synthetic ñandú', 'last_name' => 'Applicant', 'name_suffix' => 'jr', 'birth_date' => '01/02/1950', 'sex' => 'F', 'civil_status' => 'widowed', 'barangay' => 'syn', 'address' => 'Synthetic address', 'contact_number' => '0967 234 8976', 'osca_id_number' => '000123']);
     }
 
     private function preview(array $rows, string $format = 'csv', ?callable $configure = null): string

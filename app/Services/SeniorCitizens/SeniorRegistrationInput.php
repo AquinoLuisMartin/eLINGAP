@@ -14,6 +14,18 @@ class SeniorRegistrationInput
 {
     public const UPPERCASE_FIELDS = ['first_name', 'middle_name', 'last_name', 'name_suffix', 'address', 'representative_name', 'representative_relationship'];
 
+    public static function nameRules(): array
+    {
+        $letters = 'regex:/\A[\p{L}\p{M} ]+\z/u';
+
+        return [
+            'first_name' => ['required', 'string', 'max:100', $letters],
+            'middle_name' => ['nullable', 'string', 'max:100', $letters],
+            'last_name' => ['required', 'string', 'max:100', $letters],
+            'name_suffix' => ['nullable', 'string', 'max:20', $letters],
+        ];
+    }
+
     public static function requirementsRules(array $input): array
     {
         $checked = ($input['requirements_status'] ?? null) === 'CHECKED';
@@ -72,8 +84,7 @@ class SeniorRegistrationInput
         return [
             ...self::requirementsRules($input),
             'barangay_id' => ['required', 'integer', Rule::exists('barangays', 'id')->where('is_active', true)],
-            'first_name' => ['required', 'string', 'max:100'], 'middle_name' => ['nullable', 'string', 'max:100'],
-            'last_name' => ['required', 'string', 'max:100'], 'name_suffix' => ['nullable', 'string', 'max:20'],
+            ...self::nameRules(),
             'birth_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.today()->subYears(60)->toDateString()],
             'sex' => ['required', 'string', 'in:MALE,FEMALE'], 'civil_status' => ['nullable', 'string', 'in:SINGLE,MARRIED,WIDOWED'],
             'address' => ['required', 'string', 'max:1000'],
@@ -122,6 +133,10 @@ class SeniorRegistrationInput
     public static function messages(): array
     {
         return [
+            'first_name.regex' => 'First name may contain only letters and spaces.',
+            'middle_name.regex' => 'Middle name may contain only letters and spaces.',
+            'last_name.regex' => 'Last name may contain only letters and spaces.',
+            'name_suffix.regex' => 'Name suffix may contain only letters and spaces.',
             'requirements_checks.*.accepted' => 'Please check all required document requirements before continuing.',
             'requirements_checks.*.required' => 'Please check all required document requirements before continuing.',
             'photo.max' => 'The photo field must not be greater than 2MB.',

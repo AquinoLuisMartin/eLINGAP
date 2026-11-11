@@ -10,19 +10,19 @@
 </div>
 <div>
     <label for="first_name" class="block font-medium">First name *</label>
-    <input id="first_name" name="first_name" value="{{ old('first_name', $seniorCitizen->first_name ?? '') }}" required class="mt-1 w-full rounded border p-2 uppercase">
+    <input data-senior-name pattern="[\p{L}\p{M} ]+" title="Letters and spaces only" id="first_name" name="first_name" value="{{ old('first_name', $seniorCitizen->first_name ?? '') }}" required class="mt-1 w-full rounded border p-2 uppercase">
 </div>
 <div>
     <label for="middle_name" class="block font-medium">Middle name</label>
-    <input id="middle_name" name="middle_name" value="{{ old('middle_name', $seniorCitizen->middle_name ?? '') }}" class="mt-1 w-full rounded border p-2 uppercase">
+    <input data-senior-name pattern="[\p{L}\p{M} ]+" title="Letters and spaces only" id="middle_name" name="middle_name" value="{{ old('middle_name', $seniorCitizen->middle_name ?? '') }}" class="mt-1 w-full rounded border p-2 uppercase">
 </div>
 <div>
     <label for="last_name" class="block font-medium">Last name *</label>
-    <input id="last_name" name="last_name" value="{{ old('last_name', $seniorCitizen->last_name ?? '') }}" required class="mt-1 w-full rounded border p-2 uppercase">
+    <input data-senior-name pattern="[\p{L}\p{M} ]+" title="Letters and spaces only" id="last_name" name="last_name" value="{{ old('last_name', $seniorCitizen->last_name ?? '') }}" required class="mt-1 w-full rounded border p-2 uppercase">
 </div>
 <div>
     <label for="name_suffix" class="block font-medium">Name suffix</label>
-    <input id="name_suffix" name="name_suffix" value="{{ old('name_suffix', $seniorCitizen->name_suffix ?? '') }}" class="mt-1 w-full rounded border p-2 uppercase">
+    <input data-senior-name pattern="[\p{L}\p{M} ]+" title="Letters and spaces only" id="name_suffix" name="name_suffix" value="{{ old('name_suffix', $seniorCitizen->name_suffix ?? '') }}" class="mt-1 w-full rounded border p-2 uppercase">
 </div>
 <div>
     <label for="birth_date" class="block font-medium">Birth date *</label>

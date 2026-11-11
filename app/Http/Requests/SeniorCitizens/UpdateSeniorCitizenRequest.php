@@ -25,10 +25,7 @@ class UpdateSeniorCitizenRequest extends FormRequest
     {
         return [
             'barangay_id' => ['required', 'integer', Rule::exists('barangays', 'id')->where('is_active', true)],
-            'first_name' => ['required', 'string', 'max:100'],
-            'middle_name' => ['nullable', 'string', 'max:100'],
-            'last_name' => ['required', 'string', 'max:100'],
-            'name_suffix' => ['nullable', 'string', 'max:20'],
+            ...SeniorRegistrationInput::nameRules(),
             'birth_date' => ['required', 'date', 'before_or_equal:'.now()->subYears(60)->toDateString()],
             'sex' => ['required', 'string', 'in:MALE,FEMALE,OTHER'],
             'civil_status' => ['nullable', 'string', 'in:SINGLE,MARRIED,WIDOWED'],
