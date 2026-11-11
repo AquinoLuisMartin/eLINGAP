@@ -108,12 +108,10 @@
                     <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-700 dark:bg-slate-800">
                         <h3 class="font-semibold">Application summary</h3><dl class="mt-3 grid gap-3 sm:grid-cols-2"><div><dt class="text-slate-500">Senior</dt><dd>{{ $form['first_name'] }} {{ $form['middle_name'] }} {{ $form['last_name'] }} {{ $form['name_suffix'] }}</dd></div><div><dt class="text-slate-500">Birth date</dt><dd>{{ $form['birth_date'] }}</dd></div><div><dt class="text-slate-500">Barangay</dt><dd>{{ $barangays->firstWhere('id', (int) $form['barangay_id'])?->name }}</dd></div></dl>
                     </div>
-                    <p class="text-sm text-slate-500">No photo upload is needed. Attach the senior's printed 1 x 1 inch photo to the ID after printing.</p>
-                    <div class="grid gap-5 sm:grid-cols-2">
-                        <x-registration-field name="identificationFile" label="Supporting identification" hint="Optional identification or birth-date proof. PDF, JPEG or PNG, up to 5 MB."><input id="identificationFile" type="file" wire:model="identificationFile" accept=".pdf,.jpg,.jpeg,.png"></x-registration-field>
-                        @if ($this->needsRepresentative())<x-registration-field name="authorizationFile" label="Proof of authorization" required hint="Required for the recorded representative. PDF, JPEG or PNG, up to 5 MB." class="sm:col-span-2"><input id="authorizationFile" type="file" wire:model="authorizationFile" accept=".pdf,.jpg,.jpeg,.png"></x-registration-field>@endif
-                    </div>
-                    <p wire:loading wire:target="authorizationFile,identificationFile" class="text-sm text-slate-500" role="status">Uploading document...</p>
+                    @if ($this->needsRepresentative())
+                        <x-registration-field name="authorizationFile" label="Proof of authorization" required hint="Required for the recorded representative. PDF, JPEG or PNG, up to 5 MB."><input id="authorizationFile" type="file" wire:model="authorizationFile" accept=".pdf,.jpg,.jpeg,.png"></x-registration-field>
+                        <p wire:loading wire:target="authorizationFile" class="text-sm text-slate-500" role="status">Uploading document...</p>
+                    @endif
                     <p class="text-sm text-slate-500">Requirements checked. Saving verifies this registration and continues to ID preparation.</p>
                     <label class="flex items-start gap-2 text-sm"><input type="checkbox" wire:model="informationReviewed" class="mt-1"> <span>I confirmed that the entered information matches the presented documents.</span></label>
                     @error('informationReviewed')<p class="text-sm text-red-700 dark:text-red-300" role="alert">{{ $message }}</p>@enderror
