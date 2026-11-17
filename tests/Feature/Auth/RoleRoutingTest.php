@@ -6,11 +6,13 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\TestWith;
+use Tests\Concerns\VerifiesLogin;
 use Tests\TestCase;
 
 class RoleRoutingTest extends TestCase
 {
     use RefreshDatabase;
+    use VerifiesLogin;
 
     protected User $admin;
 
@@ -29,7 +31,7 @@ class RoleRoutingTest extends TestCase
 
     public function test_admin_login_redirects_to_administration_dashboard(): void
     {
-        $response = $this->post('/login', [
+        $response = $this->postVerifiedLogin([
             'employee_id' => $this->admin->employee_id,
             'password' => $this->password,
         ]);
@@ -40,7 +42,7 @@ class RoleRoutingTest extends TestCase
 
     public function test_staff_login_redirects_to_staff_dashboard(): void
     {
-        $response = $this->post('/login', [
+        $response = $this->postVerifiedLogin([
             'employee_id' => $this->staff->employee_id,
             'password' => $this->password,
         ]);
@@ -86,7 +88,7 @@ class RoleRoutingTest extends TestCase
 
     public function test_admin_can_login_with_employee_id(): void
     {
-        $response = $this->post('/login', [
+        $response = $this->postVerifiedLogin([
             'employee_id' => $this->admin->employee_id,
             'password' => $this->password,
         ]);
@@ -102,7 +104,7 @@ class RoleRoutingTest extends TestCase
         $user = $admin ? $this->admin : $this->staff;
         $user->update(['employee_id' => $admin ? '2026-9001' : '2026-9002', 'email' => null]);
 
-        $this->post(route('login'), [
+        $this->postVerifiedLogin([
             'employee_id' => Str::upper($user->employee_id),
             'password' => $this->password,
         ])->assertRedirect(route($dashboard));

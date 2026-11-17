@@ -38,6 +38,10 @@
                 <a href="{{ route('password.request') }}" class="col-start-2 row-start-1 justify-self-end rounded py-1 text-sm text-osca-primary hover:text-osca-primary-dark">Forgot password?</a>
             </div>
 
+            <div id="login-turnstile" data-sitekey="{{ config('services.turnstile.site_key') }}"></div>
+            <p id="login-verification-status" role="status" aria-live="polite">Loading security verification...</p>
+            <button id="login-verification-retry" type="button" hidden>Retry verification</button>
+
             <button id="login-submit" type="submit" class="flex min-h-11 w-full items-center justify-center rounded-lg bg-osca-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-osca-primary-dark disabled:cursor-wait disabled:opacity-70">
                 <span data-login-label>Sign in</span>
                 <span data-login-loading role="status" class="hidden items-center justify-center gap-2">

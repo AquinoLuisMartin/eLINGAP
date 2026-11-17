@@ -19,6 +19,7 @@ import initPrintingCompletion from './printing-completion';
 import transferConfirmation from './transfer-confirmation';
 import profileConfirmation from './profile-confirmation';
 import payoutDateTime from './payout-date-time';
+import initLoginTurnstile from './login-turnstile';
 
 window.idImageEditor = idImageEditor;
 window.formatSeniorMobile = formatSeniorMobile;
@@ -53,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initApplicationWizard(document.getElementById('application-wizard'));
     initMobileMenu();
     initModal('search');
+    initLoginTurnstile();
     initModal('login', false);
     initPasswordToggle();
     initLoginSubmission();
@@ -176,7 +178,7 @@ function initModal(prefix, closeOnBackdrop = true) {
     });
     modal.addEventListener('keydown', event => {
         if (event.key !== 'Tab') return;
-        const controls = [...modal.querySelectorAll('button, input:not([type="hidden"]), select, textarea, a[href], [tabindex]')]
+        const controls = [...modal.querySelectorAll('button, input:not([type="hidden"]), select, textarea, a[href], iframe, [tabindex]')]
             .filter(control => !control.disabled && control.tabIndex >= 0 && control.getClientRects().length);
         const first = controls[0];
         const last = controls[controls.length - 1];
@@ -199,6 +201,7 @@ function openModal(modal, focusTarget) {
     modal.dataset.bodyOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     modal.classList.remove('hidden');
+    if (modal.id === 'login-modal') modal.dispatchEvent(new Event('login:opened'));
     requestAnimationFrame(() => {
         if (!modal.classList.contains('hidden')) (focusTarget || modal).focus();
     });
@@ -223,6 +226,7 @@ function initLoginSubmission() {
         loading.classList.toggle('inline-flex', busy);
     };
     form.addEventListener('submit', event => {
+        if (event.defaultPrevented) return;
         if (button.disabled) { event.preventDefault(); return; }
         setBusy(true);
     });

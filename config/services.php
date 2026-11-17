@@ -2,6 +2,13 @@
 
 return [
 
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY'),
+        'secret_key' => env('TURNSTILE_SECRET_KEY'),
+        'action' => env('TURNSTILE_ACTION', 'login'),
+        'hostnames' => array_filter(array_map('trim', explode(',', env('TURNSTILE_HOSTNAMES', 'elingap.app,e-lingap.vercel.app')))),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

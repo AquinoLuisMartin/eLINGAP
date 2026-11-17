@@ -8,11 +8,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Tests\Concerns\VerifiesLogin;
 use Tests\TestCase;
 
 class PasswordRecoverySecurityTest extends TestCase
 {
     use RefreshDatabase;
+    use VerifiesLogin;
 
     public function test_a_successful_legacy_login_upgrades_the_stored_hash(): void
     {
@@ -20,7 +22,7 @@ class PasswordRecoverySecurityTest extends TestCase
         $user = User::factory()->create();
         DB::table('users')->where('id', $user->id)->update(['password_hash' => hash('sha256', $password)]);
 
-        $this->post(route('login'), ['employee_id' => $user->employee_id, 'password' => $password])->assertRedirectToRoute('dashboard');
+        $this->postVerifiedLogin(['employee_id' => $user->employee_id, 'password' => $password])->assertRedirectToRoute('dashboard');
 
         $this->assertAuthenticatedAs($user);
         $this->assertSame('argon2id', password_get_info($user->fresh()->password_hash)['algoName']);
@@ -47,7 +49,7 @@ class PasswordRecoverySecurityTest extends TestCase
             $this->post(route('password.request.store'), ['employee_id' => 'missing.user'.$attempt])->assertRedirect();
         }
         $this->post(route('password.request.store'), ['employee_id' => 'missing.user6'])->assertStatus(429);
-        $this->post(route('login'), ['employee_id' => 'missing.user', 'password' => 'Synthetic-test-password'])
+        $this->postVerifiedLogin(['employee_id' => 'missing.user', 'password' => 'Synthetic-test-password'])
             ->assertInvalid(['employee_id' => trans('auth.failed')]);
         Notification::assertNothingSent();
     }

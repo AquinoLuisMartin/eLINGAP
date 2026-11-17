@@ -11,11 +11,13 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\TestWith;
 use RuntimeException;
+use Tests\Concerns\VerifiesLogin;
 use Tests\TestCase;
 
 class LoginSecurityTest extends TestCase
 {
     use RefreshDatabase;
+    use VerifiesLogin;
 
     public function test_logout_ends_the_session_when_audit_storage_fails(): void
     {
@@ -34,7 +36,7 @@ class LoginSecurityTest extends TestCase
     {
         $identity = Str::lower(Str::random(100));
 
-        $this->post(route('login'), ['employee_id' => $identity, 'password' => Str::password()])
+        $this->postVerifiedLogin(['employee_id' => $identity, 'password' => Str::password()])
             ->assertInvalid(['employee_id' => trans('auth.failed')]);
 
         $this->assertGuest();
@@ -50,7 +52,7 @@ class LoginSecurityTest extends TestCase
         $password = Str::password();
         $user = User::factory()->inactive()->create(['password_hash' => $password]);
 
-        $this->post(route('login'), ['employee_id' => $user->employee_id, 'password' => $password])
+        $this->postVerifiedLogin(['employee_id' => $user->employee_id, 'password' => $password])
             ->assertInvalid(['employee_id' => trans('auth.failed')]);
 
         $this->assertGuest();
@@ -62,7 +64,7 @@ class LoginSecurityTest extends TestCase
         $password = Str::password();
         $user = User::factory()->create(['password_hash' => $password]);
 
-        $this->post(route('login'), ['employee_id' => Str::upper($user->employee_id), 'password' => $password])
+        $this->postVerifiedLogin(['employee_id' => Str::upper($user->employee_id), 'password' => $password])
             ->assertRedirect(route('dashboard'));
 
         $this->assertAuthenticatedAs($user);
@@ -75,7 +77,7 @@ class LoginSecurityTest extends TestCase
         $password = Str::password();
         $user = User::factory()->create(['password_hash' => $password]);
 
-        $response = $this->post(route('login'), ['employee_id' => $user->employee_id, 'password' => $password, 'remember' => '1']);
+        $response = $this->postVerifiedLogin(['employee_id' => $user->employee_id, 'password' => $password, 'remember' => '1']);
 
         $response->assertRedirect(route('dashboard'));
         $this->assertAuthenticatedAs($user);
@@ -87,10 +89,10 @@ class LoginSecurityTest extends TestCase
         $password = Str::password();
         $user = User::factory()->create(['first_name' => 'Synthetic', 'last_name' => 'Person', 'employee_id' => '2026-0002', 'password_hash' => $password]);
 
-        $this->post(route('login'), ['employee_id' => 'SyntheticPerson', 'password' => $password])->assertInvalid('employee_id');
+        $this->postVerifiedLogin(['employee_id' => 'SyntheticPerson', 'password' => $password])->assertInvalid('employee_id');
         $this->assertGuest();
 
-        $this->post(route('login'), ['employee_id' => '2026-0002', 'password' => $password])->assertRedirect(route('dashboard'));
+        $this->postVerifiedLogin(['employee_id' => '2026-0002', 'password' => $password])->assertRedirect(route('dashboard'));
         $this->assertAuthenticatedAs($user);
     }
 
@@ -99,10 +101,10 @@ class LoginSecurityTest extends TestCase
         $password = Str::password();
         User::factory()->create(['employee_id' => '2026-0004', 'password_hash' => $password]);
 
-        $this->post(route('login'), ['employee_id' => '20260004', 'password' => $password])->assertInvalid(['employee_id' => trans('auth.failed')]);
+        $this->postVerifiedLogin(['employee_id' => '20260004', 'password' => $password])->assertInvalid(['employee_id' => trans('auth.failed')]);
         $this->assertGuest();
 
-        $this->post(route('login'), ['employee_id' => ' 2026-0004 ', 'password' => $password])->assertRedirect(route('dashboard'));
+        $this->postVerifiedLogin(['employee_id' => ' 2026-0004 ', 'password' => $password])->assertRedirect(route('dashboard'));
         $this->assertAuthenticated();
     }
 
@@ -112,7 +114,7 @@ class LoginSecurityTest extends TestCase
     #[TestWith(['synthetic@@example.com'])]
     public function test_unknown_legacy_identity_formats_have_generic_failures(string $identity): void
     {
-        $this->post(route('login'), ['employee_id' => $identity, 'password' => Str::password()])->assertInvalid('employee_id');
+        $this->postVerifiedLogin(['employee_id' => $identity, 'password' => Str::password()])->assertInvalid('employee_id');
         $this->assertGuest();
         $this->assertDatabaseCount('login_logs', 1);
     }
@@ -134,16 +136,16 @@ class LoginSecurityTest extends TestCase
         $user = User::factory()->create(['password_hash' => $password]);
 
         foreach (range(1, 5) as $attempt) {
-            $this->post(route('login'), ['employee_id' => $user->employee_id, 'password' => Str::password()])
+            $this->postVerifiedLogin(['employee_id' => $user->employee_id, 'password' => Str::password()])
                 ->assertInvalid(['employee_id' => trans('auth.failed')]);
         }
 
-        $this->post(route('login'), ['employee_id' => $user->employee_id, 'password' => $password])
+        $this->postVerifiedLogin(['employee_id' => $user->employee_id, 'password' => $password])
             ->assertInvalid(['employee_id']);
         $this->assertGuest();
 
         $this->travel(61)->seconds();
-        $this->post(route('login'), ['employee_id' => $user->employee_id, 'password' => $password])
+        $this->postVerifiedLogin(['employee_id' => $user->employee_id, 'password' => $password])
             ->assertRedirect(route('dashboard'));
         $this->assertAuthenticatedAs($user);
     }
