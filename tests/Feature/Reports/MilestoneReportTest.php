@@ -26,11 +26,11 @@ class MilestoneReportTest extends TestCase
         }
 
         $this->get(route('reports.workspace', ['type' => 'milestones']))->assertOk()
-            ->assertSee('85+')->assertSee('95+')->assertSee('Synthetic Included')->assertDontSee('Synthetic Excluded');
+            ->assertSee('85+')->assertSee('95+')->assertSee('>Included<', false)->assertDontSee('>Excluded<', false);
         $export = $this->get(route('reports.export', ['type' => 'milestones', 'milestone' => 85]))->assertOk();
 
-        $this->assertStringContainsString('Synthetic Included', $export->streamedContent());
-        $this->assertStringNotContainsString('Synthetic Excluded', $export->streamedContent());
+        $this->assertStringContainsString(',Included,Synthetic,', $export->streamedContent());
+        $this->assertStringNotContainsString(',Excluded,Synthetic,', $export->streamedContent());
         $this->getJson(route('reports.workspace', ['type' => 'milestones', 'milestone' => 80]))
             ->assertUnprocessable()->assertJsonValidationErrors('milestone');
     }

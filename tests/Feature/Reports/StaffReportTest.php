@@ -34,11 +34,11 @@ class StaffReportTest extends TestCase
         $this->actingAs(User::factory()->create());
 
         $this->get(route('reports.workspace', ['type' => 'masterlist', 'status' => 'TRANSFERRED']))
-            ->assertOk()->assertSee('Synthetic TRANSFERRED')->assertDontSee('Synthetic VERIFIED');
+            ->assertOk()->assertSee('>TRANSFERRED<', false)->assertDontSee('>VERIFIED<', false);
         $export = $this->get(route('reports.export', ['type' => 'masterlist', 'status' => 'TRANSFERRED']))->assertOk();
 
-        $this->assertStringContainsString('Synthetic TRANSFERRED', $export->streamedContent());
-        $this->assertStringNotContainsString('Synthetic VERIFIED', $export->streamedContent());
+        $this->assertStringContainsString(',TRANSFERRED,Synthetic,', $export->streamedContent());
+        $this->assertStringNotContainsString(',VERIFIED,Synthetic,', $export->streamedContent());
     }
 
     #[TestWith(['applications'])]
@@ -71,12 +71,12 @@ class StaffReportTest extends TestCase
         $staff = User::create(['role_id' => $role->id, 'employee_id' => '2026-0007', 'email' => 'report@example.test', 'password_hash' => 'password', 'first_name' => 'Test', 'last_name' => 'User', 'is_active' => true]);
 
         $this->actingAs($staff)->get(route('reports.workspace', ['type' => 'masterlist', 'barangay_id' => $first->id]))
-            ->assertOk()->assertSee('Test Poblacion')->assertDontSee('Test Bagbaguin');
+            ->assertOk()->assertSee('>Poblacion</td>', false)->assertDontSee('>Bagbaguin</td>', false);
 
         $export = $this->get(route('reports.export', ['type' => 'masterlist', 'barangay_id' => $first->id]));
         $export->assertOk();
-        $this->assertStringContainsString('Test Poblacion', $export->streamedContent());
-        $this->assertStringNotContainsString('Test Bagbaguin', $export->streamedContent());
+        $this->assertStringContainsString(',Poblacion,Test,', $export->streamedContent());
+        $this->assertStringNotContainsString(',Bagbaguin,Test,', $export->streamedContent());
         $this->assertDatabaseHas('audit_logs', ['action' => 'report.exported', 'user_id' => $staff->id]);
     }
 }

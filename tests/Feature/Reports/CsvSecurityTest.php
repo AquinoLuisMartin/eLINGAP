@@ -13,10 +13,10 @@ class CsvSecurityTest extends TestCase
 {
     use RefreshDatabase;
 
-    #[TestWith(['=1+1', "'=1+1 Applicant"])]
-    #[TestWith(['  =1+1', "'  =1+1 Applicant"])]
-    #[TestWith(["\n=1+1", "'\n=1+1 Applicant"])]
-    #[TestWith(['Synthetic', 'Synthetic Applicant'])]
+    #[TestWith(['=1+1', "'=1+1"])]
+    #[TestWith(['  =1+1', "'  =1+1"])]
+    #[TestWith(["\n=1+1", "'\n=1+1"])]
+    #[TestWith(['Synthetic', 'Synthetic'])]
     public function test_csv_exports_escape_formula_cells_and_preserve_plain_text(string $name, string $expected): void
     {
         $staff = User::factory()->create();
@@ -34,7 +34,7 @@ class CsvSecurityTest extends TestCase
         $row = fgetcsv($stream, escape: '');
         fclose($stream);
 
-        $this->assertSame($expected, $row[1]);
+        $this->assertSame($expected, $row[2]);
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
     }
 }

@@ -13,6 +13,6 @@ class DemographicsReportController extends Controller
     {
         Gate::authorize('viewAny', Application::class);
 
-        return redirect()->route('reports.workspace', 'masterlist');
+        return redirect()->route('reports.workspace', 'population');
     }
 }
