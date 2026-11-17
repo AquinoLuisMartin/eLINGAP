@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('content')
 <x-workspace-navigation section="payouts" />
-<div class="mx-auto w-full min-w-0 max-w-4xl space-y-5">
+<div class="w-full min-w-0 max-w-full space-y-5">
 <x-staff.page-header :title="$selectedScheduleId ? 'Review payout schedule' : 'New payout schedule'" :description="$selectedScheduleId ? 'Review recipients and funding before approving the schedule.' : 'Choose a program, enter schedule details, then review eligible recipients.'">
     <a href="{{ route('payout-schedules.index') }}" class="secondary-button">&larr; Back to schedules</a>
 </x-staff.page-header>

@@ -14,18 +14,21 @@ class SeniorEligibilityRecord
 {
     public function __construct(private OscaIdNumber $numbers, private IdCredential $credentials) {}
 
-    public function verify(SeniorCitizen $senior, bool $checked): void
+    public function verify(SeniorCitizen $senior, bool $checked, bool $requireAuthorizationFile = true): void
     {
         Gate::authorize('verify', $senior);
         abort_unless($checked, 422, 'Confirm the registration documents first.');
-        DB::transaction(function () use ($senior): void {
+        DB::transaction(function () use ($senior, $requireAuthorizationFile): void {
             $senior = SeniorCitizen::query()->lockForUpdate()->findOrFail($senior->id);
             abort_unless(in_array($senior->status->value, ['PENDING', 'VERIFIED']), 422);
             abort_if($senior->died_on || $senior->death_declared_at, 422, 'A deceased record cannot be verified.');
             abort_unless($senior->smsContact(), 422, 'A senior or representative mobile number is required.');
             $representative = $senior->applicant_type === 'REPRESENTATIVE' || filled($senior->representative_name) || filled($senior->representative_contact);
             if ($representative) {
-                abort_unless($senior->representative_name && $senior->representative_relationship && $senior->documents()->where('document_type', 'AUTHORIZATION')->exists(), 422, 'Representative authorization is required.');
+                $authorized = $requireAuthorizationFile
+                    ? $senior->documents()->where('document_type', 'AUTHORIZATION')->exists()
+                    : ($senior->requirements_checks['authorization'] ?? false);
+                abort_unless($senior->representative_name && $senior->representative_relationship && $authorized, 422, 'Representative authorization is required.');
             }
             if ($senior->status->value === 'VERIFIED' && $senior->verified_at) {
                 return;
@@ -72,8 +75,10 @@ class SeniorEligibilityRecord
             }
             $senior->forceFill([
                 ...$data, 'classification_verified_at' => now(), 'classification_verified_by' => auth()->id(),
-                'tss_verified_at' => empty($data['tss_request']) ? null : now(),
-                'tss_verified_by' => empty($data['tss_request']) ? null : auth()->id(),
+                ...(array_key_exists('tss_request', $data) ? [
+                    'tss_verified_at' => empty($data['tss_request']) ? null : now(),
+                    'tss_verified_by' => empty($data['tss_request']) ? null : auth()->id(),
+                ] : []),
             ])->save();
             $changes = ['from' => $before, 'to' => $senior->only($fields), 'tss_verified' => $senior->tss_verified_at !== null];
             $senior->histories()->create(['changed_by' => auth()->id(), 'action' => 'classifications_verified', 'changes' => $changes]);

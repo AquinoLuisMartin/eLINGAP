@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="mx-auto max-w-5xl space-y-6">
+<div class="w-full min-w-0 max-w-full space-y-6">
     <section class="welcome-row"><div><p class="section-kicker">Senior registration</p><h2 class="text-2xl font-semibold">Import previous records</h2><p class="section-subtitle">Upload a spreadsheet, check the preview, then add records for staff review.</p></div><a href="{{ route('senior-citizens.index') }}" class="secondary-button">Back to Senior Masterlist</a></section>
     <x-benefit-panel>
         <h3 class="text-lg font-semibold">1. Prepare your file</h3>

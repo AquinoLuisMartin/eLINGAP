@@ -42,6 +42,8 @@
 *.sql.gz
 *.sql.zip
 *.sql.bak
+*-test-data.sql
+*-mock-data*.sql
 
 # Private keys and credential bundles.
 *.key

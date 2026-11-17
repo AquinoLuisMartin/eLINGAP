@@ -4,12 +4,16 @@ namespace App\Livewire\SeniorCitizens;
 
 use App\Models\SeniorCitizen;
 use Illuminate\Support\Facades\Gate;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
 class ApplicationLauncher extends Component
 {
     public bool $applicationOpen = false;
+
+    #[Locked]
+    public int $applicationSession = 0;
 
     public function boot(): void
     {
@@ -19,6 +23,11 @@ class ApplicationLauncher extends Component
     public function apply(): void
     {
         Gate::authorize('create', SeniorCitizen::class);
+        if ($this->applicationOpen) {
+            return;
+        }
+        $this->applicationSession++;
+        session()->forget('status');
         $this->applicationOpen = true;
     }
 

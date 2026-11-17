@@ -10,31 +10,32 @@
     .id-office { margin-top: 1.4mm !important; font-size: 6.3pt; }
     .id-heading .municipality { margin-top: 1.6mm; font-size: 5.9pt; font-weight: bold; letter-spacing: 0; line-height: 1.1; }
     /* The photo opening is one inch square, with its border outside that area. */
-    .id-photo { position: absolute; top: 2.75mm; right: 2.2mm; width: 25.4mm; height: 25.4mm; border: 0.15mm solid #222; box-sizing: content-box; overflow: hidden; color: #555; text-align: center; font-size: 5.4pt; line-height: 1.35; }
+    .id-photo { position: absolute; top: 1mm; right: 2.2mm; width: 25.4mm; height: 25.4mm; border: 0.15mm solid #222; box-sizing: content-box; overflow: hidden; color: #555; text-align: center; font-size: 5.4pt; line-height: 1.35; }
     .id-photo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
     .id-photo span { display: block; width: 100%; padding-top: 8.2mm; }
     .id-photo small { font-size: 4.5pt; }
-    .id-number { position: absolute; top: 0.35mm; right: 2.2mm; width: 34mm; height: 2.2mm; font-size: 5pt; line-height: 1; text-align: right; overflow: hidden; }
-    .id-number strong { margin-left: 0.8mm; font-size: 5.4pt; }
-    .id-personal { position: absolute; top: 28.6mm; left: 2.4mm; width: 80.4mm; }
+    .id-number { position: absolute; top: 22.8mm; left: 2.4mm; width: 53.2mm; height: 3.5mm; font-size: 5.8pt; line-height: 1.1; text-align: left; overflow: hidden; }
+    .id-number strong { margin-left: 0.8mm; font-size: 6.2pt; text-decoration: underline; text-underline-offset: 0.2mm; }
+    .id-personal { position: absolute; top: 26.9mm; left: 2.4mm; width: 80.4mm; }
     .id-personal .id-label { position: absolute; top: 0.55mm; left: 0; width: 8.8mm; }
     .id-personal .name { margin-left: 9mm; padding-bottom: 0.2mm; border-bottom: 0.25mm solid #111; font-size: 7.8pt; font-weight: bold; line-height: 1.02; text-transform: uppercase; overflow-wrap: anywhere; word-wrap: break-word; }
-    .id-details { position: absolute; top: 32.6mm; left: 2.4mm; width: 80.4mm; }
+    .id-details { position: absolute; top: 30.8mm; left: 2.4mm; width: 80.4mm; }
     .id-address { position: relative; width: 100%; }
     .id-address .id-label { position: absolute; top: 0.2mm; left: 0; width: 11.8mm; }
-    .id-address .address { margin-left: 12mm; padding-bottom: 0.2mm; border-bottom: 0.25mm solid #111; font-size: 6.2pt; font-weight: bold; line-height: 1.05; overflow-wrap: anywhere; word-wrap: break-word; }
-    .id-contact { position: relative; margin-top: 0.05mm; width: 37mm; font-size: 4.5pt; line-height: 1; }
+    .id-address .address { margin-left: 12mm; font-size: 6.2pt; font-weight: bold; line-height: 1; overflow-wrap: anywhere; word-wrap: break-word; }
+    .id-address-line { display: block; border-bottom: 0.15mm solid #111; }
+    .id-contact { position: relative; margin-top: 0.1mm; width: 37mm; font-size: 4.5pt; line-height: 1; }
     .id-contact-label { position: absolute; top: 0.05mm; left: 0; width: 13mm; font-size: 5.8pt; white-space: nowrap; }
     .id-contact-value { display: inline-block; margin-left: 13.3mm; border-bottom: 0.2mm solid #111; font-weight: bold; line-height: 1; text-align: left; vertical-align: top; }
-    .id-dates { position: absolute; top: 42mm; left: 2.4mm; width: 80.4mm; height: 4.5mm; text-align: center; }
+    .id-dates { position: absolute; top: 40mm; left: 2.4mm; width: 80.4mm; height: 4.5mm; text-align: center; }
     .id-dates .id-label { padding-top: 0; font-size: 3.7pt; font-style: italic; line-height: 1; }
     .id-date-value { border-bottom: 0.25mm solid #111; padding-bottom: 0.1mm !important; font-size: 5.5pt; font-weight: bold; line-height: 1; white-space: nowrap; }
     .id-birth { position: absolute; top: 0; left: 0; width: 22.8mm; }
     .id-age { position: absolute; top: 0; left: 25.8mm; width: 10.6mm; }
     .id-sex { position: absolute; top: 0; left: 39.4mm; width: 15mm; }
     .id-issuance { position: absolute; top: 0; left: 57.4mm; width: 23mm; }
-    .id-validity { position: absolute; top: 46.55mm; left: 2.4mm; width: 80.4mm; font-size: 3.7pt; line-height: 1; text-align: center; }
-    .id-thumbprint { position: absolute; top: 49.25mm; left: 10.4mm; width: 64.4mm; height: 2.75mm; border-bottom: 0.25mm solid #111; text-align: center; }
+    .id-validity { position: absolute; top: 45.1mm; left: 2.4mm; width: 80.4mm; font-size: 3.7pt; line-height: 1; text-align: center; }
+    .id-thumbprint { position: absolute; top: 49.3mm; left: 10.4mm; width: 64.4mm; height: 2.75mm; border-bottom: 0.25mm solid #111; text-align: center; }
     .id-holder-name { font-size: 6.2pt; font-weight: bold; line-height: 1; text-transform: uppercase; white-space: nowrap; }
     .id-thumbprint-label { position: absolute; top: 2.85mm; left: 0; width: 100%; font-size: 3.2pt; font-style: italic; line-height: 1; }
     .id-back-heading { position: absolute; top: 2.8mm; left: 2.4mm; width: 80.4mm; }
@@ -53,5 +54,5 @@
     .id-qr { position: absolute; top: 33.8mm; right: 2.8mm; width: 16mm; height: 16mm; }
     .id-qr-placeholder { border: 0.2mm dashed #777; padding-top: 6.4mm; color: #666; font-size: 5pt; text-align: center; }
     .id-qr-label { position: absolute; top: 50.8mm; right: 2.2mm; width: 17.2mm; font-size: 3.3pt; line-height: 1.1; text-align: center; }
-    .id-draft { position: absolute; top: 23mm; left: 16mm; width: 40mm; color: #a12626; font-size: 5pt; font-weight: bold; text-align: center; }
+    .id-draft { position: absolute; top: 19.3mm; left: 2.4mm; width: 53.2mm; color: #a12626; font-size: 5pt; font-weight: bold; text-align: left; }
 </style>

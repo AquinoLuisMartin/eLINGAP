@@ -26,7 +26,7 @@ class PayoutScheduleController extends Controller
         return view('payouts.schedules.index', [
             'schedules' => PayoutSchedule::query()->select(['id', 'program_id', 'reference_number', 'scheduled_on', 'amount', 'status'])
                 ->with('program:id,name')->latest('scheduled_on')->paginate(15)->withQueryString(),
-            'benefitSchedules' => BenefitSchedule::query()->select(['id', 'program_id', 'reference_number', 'scheduled_at', 'location', 'status'])
+            'benefitSchedules' => BenefitSchedule::query()->select(['id', 'program_id', 'reference_number', 'scheduled_at', 'ends_at', 'location', 'status'])
                 ->with('program:id,name')->latest('id')->paginate(15, pageName: 'benefitSchedulesPage')->withQueryString(),
         ]);
     }

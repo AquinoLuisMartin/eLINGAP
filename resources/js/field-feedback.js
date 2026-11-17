@@ -19,7 +19,7 @@ function labelFor(control) {
 }
 
 function markRequired(control) {
-    const label = labelFor(control);
+    const label = control.closest('[data-required-group]')?.querySelector('legend') || labelFor(control);
     if (!label) return;
     const required = control.required || control.getAttribute('aria-required') === 'true' || control.closest('[data-field-required="true"]');
     const marker = label.querySelector('[data-required-marker]');
@@ -33,11 +33,17 @@ function markRequired(control) {
     star.dataset.requiredMarker = '';
     star.setAttribute('aria-hidden', 'true');
     star.textContent = '*';
-    const title = label.querySelector('[data-field-label], .font-semibold') || label;
+    const title = label.querySelector('[data-field-label], .field-label-text, .font-semibold') || label;
     const field = title === label && !['checkbox', 'radio'].includes(control.type)
         ? Array.from(label.children || []).find(child => child === control || child.contains(control)) : null;
-    if (field) label.insertBefore(star, field);
-    else title.append(star);
+    if (title === label && label.firstChild && !['checkbox', 'radio'].includes(control.type)) {
+        const text = document.createElement('span');
+        text.className = 'field-label-text';
+        while (label.firstChild && label.firstChild !== field) text.append(label.firstChild);
+        text.append(star);
+        if (field) label.insertBefore(text, field);
+        else label.append(text);
+    } else title.append(star);
 }
 
 function showError(control, message) {

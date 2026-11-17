@@ -73,7 +73,7 @@ class IdCardLayout
         $pdf = new Dompdf($options);
         [$width, $height] = self::PAPERS[$paper];
         $pdf->setPaper([0, 0, $width * 72 / 25.4, $height * 72 / 25.4]);
-        $pdf->loadHtml(view('senior-citizens.ids.pdf', ['cards' => $cards, 'printLayout' => $printLayout])->render());
+        $pdf->loadHtml(view('senior-citizens.ids.pdf', ['cards' => $cards, 'printLayout' => $printLayout, 'paperHeight' => $height])->render());
         $pdf->render();
 
         return $pdf->output();

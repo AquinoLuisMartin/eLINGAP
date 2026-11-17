@@ -20,15 +20,15 @@ class SeniorRegistration
 
     public function __construct(private SeniorEligibilityRecord $eligibility) {}
 
-    public function create(array $input): SeniorCitizen
+    public function create(array $input, bool $requireAuthorizationFile = true): SeniorCitizen
     {
         Gate::authorize('create', SeniorCitizen::class);
-        $data = SeniorRegistrationInput::validator(SeniorRegistrationInput::normalize($input))->validate();
+        $data = SeniorRegistrationInput::validator(SeniorRegistrationInput::normalize($input), requireAuthorizationFile: $requireAuthorizationFile)->validate();
         $paths = [];
         try {
-            return DB::transaction(function () use ($data, &$paths) {
+            return DB::transaction(function () use ($data, &$paths, $requireAuthorizationFile) {
                 self::lockIdentityChanges();
-                $data = SeniorRegistrationInput::validator($data)->validate();
+                $data = SeniorRegistrationInput::validator($data, requireAuthorizationFile: $requireAuthorizationFile)->validate();
                 $senior = SeniorCitizen::create([
                     ...collect($data)->except(['photo', 'authorization_file', 'identification_file', 'requirements_status'])->all(),
                     'status' => 'PENDING',
@@ -44,7 +44,7 @@ class SeniorRegistration
                 BenefitAudit::record('senior_citizen.created', $senior, $senior->only(['osca_id_number', 'status']));
 
                 if ($data['requirements_status'] === 'CHECKED') {
-                    $this->eligibility->verify($senior, true);
+                    $this->eligibility->verify($senior, true, $requireAuthorizationFile);
                 } else {
                     $senior->histories()->create(['changed_by' => auth()->id(), 'action' => 'requirements_review_requested', 'changes' => $senior->only(['requirements_checks', 'review_reason'])]);
                     BenefitAudit::record('senior_citizen.requirements_review_requested', $senior);

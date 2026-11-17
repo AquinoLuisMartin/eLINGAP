@@ -16,7 +16,7 @@ class IdCardAddress
         $normalizedLocality = array_map(fn ($part) => mb_strtolower($part), $locality);
         $parts = preg_split('/\s*,\s*/', trim($address), -1, PREG_SPLIT_NO_EMPTY);
         $parts = array_filter($parts, fn ($part) => ! in_array(mb_strtolower($part), $normalizedLocality, true));
-        $text = preg_replace('/\s+/', ' ', implode(', ', [...$parts, ...$locality]));
+        $text = mb_strtoupper(preg_replace('/\s+/', ' ', implode(', ', [...$parts, ...$locality])));
         $metrics = (new Dompdf)->getFontMetrics();
         $font = $metrics->getFont('DejaVu Sans', 'bold');
 

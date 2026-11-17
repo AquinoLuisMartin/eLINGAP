@@ -23,10 +23,11 @@
     </div>
 </x-benefit-panel>
 @can('transfer', $seniorCitizen)
-    <x-benefit-panel class="p-4!">
+    @php($currentLocation = \App\Services\SeniorCitizens\TransferAddress::current($seniorCitizen->address, $seniorCitizen->barangay?->name, $officeDetails))
+    <x-benefit-panel class="p-4!" x-data="transferConfirmation({{ \Illuminate\Support\Js::from(['currentLocation' => $currentLocation, 'seniorName' => $seniorCitizen->full_name, 'municipality' => $officeDetails['municipality'], 'province' => $officeDetails['province'], 'timezone' => config('app.timezone')]) }})" @pageshow.window="resetSubmission()">
         <h3 class="text-lg font-semibold">Record transfer</h3>
         <p class="mt-2 text-sm text-slate-500">An external transfer cancels the local registration and stops new benefit assignments, ID printing and QR validation. Existing history is retained.</p>
-        <form method="POST" action="{{ route('senior-citizens.transfers.store', $seniorCitizen) }}" class="mt-4 flex flex-col gap-6" x-data="{ type: {{ \Illuminate\Support\Js::from(old('type', 'INTERNAL')) }}, requester: {{ \Illuminate\Support\Js::from(old('requested_by', 'SELF')) }} }">
+        <form method="POST" action="{{ route('senior-citizens.transfers.store', $seniorCitizen) }}" x-ref="transferForm" @submit="reviewTransfer($event)" class="mt-4 flex flex-col gap-6" x-data="{ type: {{ \Illuminate\Support\Js::from(old('type', 'INTERNAL')) }}, requester: {{ \Illuminate\Support\Js::from(old('requested_by', 'SELF')) }} }">
             @csrf
             <div class="grid gap-6 sm:grid-cols-2">
                 <div class="field-label"><label data-select-label>Transfer type</label><x-select label="Transfer type" name="type" x-model="type" required><option value="INTERNAL">Within the municipality</option><option value="EXTERNAL">Outside the municipality</option></x-select></div>
@@ -36,21 +37,27 @@
                 <label class="field-label">Requester name<input name="requester_name" value="{{ old('requester_name') }}" maxlength="180" :required="requester === 'OTHER'"></label>
                 <label class="field-label">Relationship to senior<input name="requester_relationship" value="{{ old('requester_relationship') }}" maxlength="100" :required="requester === 'OTHER'"></label>
             </div>
-            <p class="text-sm text-slate-500">Previous location: {{ implode(', ', array_filter([$seniorCitizen->address, $seniorCitizen->barangay->name, $officeDetails['municipality'], $officeDetails['province']])) }}</p>
-            <div x-show="type === 'INTERNAL'">
-                <div class="field-label"><label data-select-label>Destination barangay</label><x-select label="Destination barangay" name="barangay_id" ::required="type === 'INTERNAL'"><option value="">Select barangay</option>@foreach ($barangays as $barangay)<option value="{{ $barangay->id }}" @selected(old('barangay_id') == $barangay->id)>{{ $barangay->name }}</option>@endforeach</x-select></div>
-            </div>
-            <div class="grid gap-6 sm:grid-cols-3" x-show="type === 'EXTERNAL'" x-cloak>
-                @foreach (['destination_municipality' => 'Destination municipality / city', 'destination_province' => 'Province', 'destination_barangay' => 'Barangay'] as $field => $label)
-                    <label class="field-label">{{ $label }}<input name="{{ $field }}" value="{{ old($field) }}" maxlength="100" ::required="type === 'EXTERNAL'"></label>
-                @endforeach
-            </div>
-            <label class="field-label">Destination house / street address<textarea name="destination_address" required maxlength="1000">{{ old('destination_address') }}</textarea></label>
-            <label class="field-label">Transfer date<input type="date" name="transferred_on" value="{{ old('transferred_on', today()->toDateString()) }}" min="{{ $seniorCitizen->created_at->toDateString() }}" max="{{ today()->toDateString() }}" required></label>
+            <p class="text-sm text-slate-500">Current location: {{ $currentLocation }}</p>
+            <section aria-labelledby="transfer-destination-title" class="flex min-w-0 flex-col gap-6">
+                <h4 id="transfer-destination-title" class="flex items-center gap-2 border-b border-slate-200 pb-3 text-base font-semibold dark:border-slate-700">Destination Address</h4>
+                <div x-show="type === 'INTERNAL'">
+                    <div class="field-label" :data-field-required="type === 'INTERNAL' ? 'true' : 'false'"><label data-select-label>Barangay</label><x-select label="Barangay" name="barangay_id" ::required="type === 'INTERNAL'"><option value="">Select barangay</option>@foreach ($barangays as $barangay)<option value="{{ $barangay->id }}" @selected(old('barangay_id') == $barangay->id)>{{ $barangay->name }}</option>@endforeach</x-select></div>
+                </div>
+                <div class="grid min-w-0 gap-6 md:grid-cols-3" x-show="type === 'EXTERNAL'" x-cloak>
+                    @foreach (['destination_municipality' => 'Municipality / City', 'destination_province' => 'Province', 'destination_barangay' => 'Barangay'] as $field => $label)
+                        <label class="field-label min-w-0">{{ $label }}<input name="{{ $field }}" value="{{ old($field) }}" maxlength="100" :required="type === 'EXTERNAL'"></label>
+                    @endforeach
+                </div>
+                <div class="min-w-0">
+                    <label class="field-label">House / Street / Purok / Sitio / Subdivision<textarea name="destination_address" required maxlength="1000" aria-describedby="transfer-address-help">{{ old('destination_address') }}</textarea></label>
+                    <p id="transfer-address-help" class="mt-1.5 flex items-start gap-1.5 text-[12px] leading-relaxed text-slate-500"><span aria-hidden="true" class="mt-0.5 shrink-0"><x-admin.icon name="info" size="14" /></span><span>Enter the applicable address details. Do not repeat the barangay, municipality, or province.</span></p>
+                </div>
+            </section>
             <label class="field-label">Reason (optional)<textarea name="reason" maxlength="1000">{{ old('reason') }}</textarea></label>
             <div class="flex justify-end">
-                <button type="submit" class="primary-button">Record transfer</button>
+                <button type="submit" class="primary-button" :disabled="submitting">Record transfer</button>
             </div>
         </form>
+        @include('senior-citizens.transfers.confirmation')
     </x-benefit-panel>
 @endcan

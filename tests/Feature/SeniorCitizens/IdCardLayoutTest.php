@@ -17,26 +17,27 @@ class IdCardLayoutTest extends TestCase
         $address = app(IdCardAddress::class)->format('Unit 20, Sample Street, sample barangay, Santa Maria, Bulacan', 'Sample Barangay', ['municipality' => 'Santa Maria', 'province' => 'Bulacan']);
 
         $this->assertTrue($address['fits']);
-        $this->assertSame('Unit 20, Sample Street, Sample Barangay, Santa Maria, Bulacan', implode(' ', $address['lines']));
+        $this->assertSame('UNIT 20, SAMPLE STREET, SAMPLE BARANGAY, SANTA MARIA, BULACAN', implode(' ', $address['lines']));
         $this->assertGreaterThanOrEqual(4.5, $address['fontSize']);
     }
 
     #[TestWith(['Sample Middle Citizen', '123 Sample Street', false])]
+    #[TestWith(['Sample Middle Citizen', '123 Sample Street', false, true])]
     #[TestWith(['Sample Additional Middle Family Citizen', '123 Sample Street', false])]
     #[TestWith(['Sample First Middle Additional Given Family Names Citizen', '123 Sample Street', false])]
     #[TestWith(['Sample María Ñandú Citizen', 'Unit 12, Sample Street', false])]
     #[TestWith(['Sample Given Names With Several Middle Names And An Extended Family Name', 'Unit 20, Block 10, Sample Residences, Sample Subdivision, Sample Road', true])]
     #[TestWith(['Sample Given Names With Several Additional Middle Names And An Extended Family Name With Additional Family Names', 'Unit 20, Block 10, Sample Residences, Sample Subdivision, Sample Road, Near the Sample Community Center', true])]
     #[TestWith(['Sample Middle Citizen', 'Unit 20 Block 10, Sample Residences, Sample Subdivision, Sample Road, Near the Sample Community Center and Municipal Health Center', false])]
-    public function test_printed_details_do_not_overlap_or_escape_the_card(string $name, string $address, bool $signatures): void
+    public function test_printed_details_do_not_overlap_or_escape_the_card(string $name, string $address, bool $signatures, bool $draft = false): void
     {
         $senior = new SeniorCitizen;
         $senior->forceFill(['first_name' => $name, 'last_name' => '', 'address' => $address,
             'birth_date' => '1950-04-18', 'sex' => 'FEMALE', 'contact_number' => '+639170000000',
-            'osca_id_number' => '26-0001', 'id_generated_at' => '2026-10-15']);
+            'osca_id_number' => $draft ? null : '26-0001', 'id_generated_at' => $draft ? null : '2026-10-15']);
         $senior->setRelation('barangay', new Barangay(['name' => 'Sample Barangay']));
         $image = 'data:image/jpeg;base64,'.base64_encode(file_get_contents(base_path('tests/Fixtures/id-photo.jpg')));
-        $card = ['senior' => $senior, 'draft' => false, 'age' => 76, 'seal' => $image, 'qr' => $image,
+        $card = ['senior' => $senior, 'draft' => $draft, 'age' => 76, 'seal' => $image, 'qr' => $image,
             'address' => app(IdCardAddress::class)->format($address, 'Sample Barangay', ['municipality' => 'Santa Maria', 'province' => 'Bulacan']),
             'office' => ['office_name' => 'Office for Senior Citizens Affairs', 'organization_name' => 'Municipality of Santa Maria'],
             'headSignature' => $signatures ? $image : null, 'mayorSignature' => $signatures ? $image : null,
@@ -72,20 +73,25 @@ class IdCardLayoutTest extends TestCase
 
         $pdf->render();
 
-        $this->assertGreaterThanOrEqual(1 * 72 / 25.4, $boxes['id-thumbprint']['y'] - ($boxes['id-validity']['y'] + $boxes['id-validity']['h']));
+        $this->assertGreaterThanOrEqual(2.5 * 72 / 25.4, $boxes['id-thumbprint']['y'] - ($boxes['id-validity']['y'] + $boxes['id-validity']['h']));
+        $this->assertGreaterThanOrEqual(0.5 * 72 / 25.4, $boxes['id-validity']['y'] - ($boxes['id-issuance']['y'] + $boxes['id-issuance']['h']));
 
         foreach ($textBoxes as $text) {
             $outer = $boxes[$text['side']];
             $this->assertGreaterThanOrEqual($outer['x'], $text['box']['x'], $text['text'].' exceeds the left edge');
             $this->assertLessThanOrEqual($outer['x'] + $outer['w'], $text['box']['x'] + $text['box']['w'], $text['text'].' exceeds the right edge');
         }
-        foreach ([['id-number', 'id-photo'], ['id-photo', 'id-personal'], ['id-heading', 'id-personal'], ['id-personal', 'id-address'], ['id-address', 'id-contact'], ['address', 'id-contact'], ['id-contact', 'id-dates'], ['id-personal', 'id-dates'], ['id-dates', 'id-validity'], ['id-validity', 'id-thumbprint'],
+        if ($draft) {
+            $this->assertLessThanOrEqual($boxes['id-number']['y'], $boxes['id-draft']['y'] + $boxes['id-draft']['h']);
+        }
+        $this->assertSame($boxes['id-personal']['x'], $boxes['id-number']['x']);
+        foreach ([['id-heading', 'id-number'], ['id-number', 'id-personal'], ['id-photo', 'id-personal'], ['id-heading', 'id-personal'], ['id-personal', 'id-address'], ['id-address', 'id-contact'], ['address', 'id-contact'], ['id-contact', 'id-dates'], ['id-personal', 'id-dates'], ['id-dates', 'id-validity'], ['id-validity', 'id-thumbprint'],
             ['id-birth', 'id-validity'], ['id-age', 'id-validity'], ['id-sex', 'id-validity'], ['id-issuance', 'id-validity'], ['id-holder-name', 'id-thumbprint-label'],
             ['id-back-heading', 'id-benefits'], ['id-benefits', 'id-warning'], ['id-benefits', 'id-qr'],
             ['id-warning', 'id-officials'], ['id-qr', 'id-qr-label']] as [$above, $below]) {
             $this->assertLessThanOrEqual($boxes[$below]['y'], $boxes[$above]['y'] + $boxes[$above]['h'], $above.' overlaps '.$below);
         }
-        foreach ([['id-seal', 'id-heading'], ['id-heading', 'id-photo'], ['id-contact-label', 'id-contact-value'], ['id-birth', 'id-age'], ['id-age', 'id-sex'], ['id-sex', 'id-issuance'], ['id-officials', 'id-qr']] as [$left, $right]) {
+        foreach ([['id-seal', 'id-heading'], ['id-heading', 'id-photo'], ['id-number', 'id-photo'], ['id-contact-label', 'id-contact-value'], ['id-birth', 'id-age'], ['id-age', 'id-sex'], ['id-sex', 'id-issuance'], ['id-officials', 'id-qr']] as [$left, $right]) {
             $this->assertLessThanOrEqual($boxes[$right]['x'], $boxes[$left]['x'] + $boxes[$left]['w'], $left.' overlaps '.$right);
         }
         foreach (['Front of senior citizen ID' => ['id-seal', 'id-heading', 'id-photo', 'id-personal', 'id-address', 'id-contact', 'id-contact-label', 'id-contact-value', 'id-birth', 'id-age', 'id-sex', 'id-issuance', 'id-number', 'id-thumbprint', 'id-holder-name', 'id-thumbprint-label', 'id-validity'],

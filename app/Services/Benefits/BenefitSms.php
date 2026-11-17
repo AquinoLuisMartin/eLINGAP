@@ -23,7 +23,7 @@ class BenefitSms
         $office = $this->settings->values();
         $heading = implode("\n", array_filter([$office['office_name'], $office['organization_name']]));
 
-        return ($heading === '' ? '' : $heading."\n\n")."Program: {$name}\nBenefit period: [PERIOD]\nAmount: PHP [AMOUNT]\nPayout: {$schedule->scheduled_at->format('M j, Y g:i A')}\nLocation: {$schedule->location}"
+        return ($heading === '' ? '' : $heading."\n\n")."Program: {$name}\nBenefit period: [PERIOD]\nAmount: PHP [AMOUNT]\nPayout: {$schedule->payoutWindow()}\nLocation: {$schedule->location}"
             .($schedule->requirements ? "\nRequirements: {$schedule->requirements}" : '')
             .($schedule->allow_representative ? "\nAn authorized representative may claim." : "\nPersonal claiming only.");
     }

@@ -1,4 +1,4 @@
-<div class="mx-auto max-w-5xl space-y-6">
+<div class="w-full min-w-0 max-w-full space-y-6">
     @if (!$embedded)<header><a href="{{ route('registrations.index') }}" class="text-button text-sm">Back to registrations</a><h2 class="mt-3 text-3xl font-medium text-osca-primary dark:text-slate-100">Official names and card assets</h2><p class="mt-2 text-slate-500">These settings apply to future ID prints, including reprints. Changes are recorded in the audit trail.</p></header>@else<header><h3 class="text-lg font-semibold">Official card settings</h3><p class="mt-1 text-sm text-slate-500">Changes apply to future prints for all seniors.</p></header>@endif
     @if($notice)<x-feedback>{{ $notice }}</x-feedback>@endif
     <x-benefit-errors />

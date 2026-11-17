@@ -9,7 +9,7 @@
                 </div>
             </div>
             <button type="button" data-close-modal="login" class="absolute top-4 right-4 inline-flex size-10 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-osca-muted hover:text-osca-ink sm:top-6 sm:right-6" aria-label="Close login dialog">
-                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                <x-lucide-x class="size-5" aria-hidden="true" />
             </button>
         </header>
 
@@ -27,23 +27,21 @@
                 <input id="login-identity" name="employee_id" type="text" value="{{ is_string(old('employee_id')) ? old('employee_id') : '' }}" autocomplete="username" minlength="9" maxlength="9" pattern="[0-9]{4}-[0-9]{4}" placeholder="2026-0001" autocapitalize="none" spellcheck="false" data-focus required class="login-input min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-osca-ink placeholder:text-sm placeholder:text-slate-400 transition-colors hover:border-slate-400" @error('employee_id') aria-invalid="true" aria-describedby="login-error" @enderror>
             </div>
 
-            <div class="space-y-2">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                    <label for="login-password" class="text-sm font-medium text-osca-ink">Password</label>
-                    <a href="{{ route('password.request') }}" class="rounded py-1 text-sm text-osca-primary hover:text-osca-primary-dark">Forgot password?</a>
-                </div>
-                <div class="relative">
+            <div class="grid grid-cols-2 items-center gap-2">
+                <label for="login-password" class="col-start-1 row-start-1 text-sm font-medium text-osca-ink">Password</label>
+                <div class="relative col-span-2 row-start-2">
                     <input id="login-password" name="password" type="password" autocomplete="current-password" required class="login-input min-h-11 w-full rounded-lg border border-slate-300 bg-white py-2.5 pr-12 pl-3 text-base text-osca-ink placeholder:text-sm placeholder:text-slate-400 transition-colors hover:border-slate-400" placeholder="Enter your password" @error('password') aria-invalid="true" aria-describedby="login-error" @enderror>
                     <button type="button" data-toggle-password="login-password" class="absolute inset-y-0 right-1 inline-flex w-11 items-center justify-center rounded-lg text-osca-body transition-colors hover:bg-osca-muted hover:text-osca-ink" aria-label="Show password" aria-controls="login-password" aria-pressed="false">
-                        <svg data-eye-icon class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7C3.32 8.07 7.26 5 12 5s8.68 3.07 9.94 6.65a1 1 0 0 1 0 .7C20.68 15.93 16.74 19 12 19s-8.68-3.07-9.94-6.65Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <x-lucide-eye data-eye-icon class="size-5" aria-hidden="true" />
                     </button>
                 </div>
+                <a href="{{ route('password.request') }}" class="col-start-2 row-start-1 justify-self-end rounded py-1 text-sm text-osca-primary hover:text-osca-primary-dark">Forgot password?</a>
             </div>
 
             <button id="login-submit" type="submit" class="flex min-h-11 w-full items-center justify-center rounded-lg bg-osca-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-osca-primary-dark disabled:cursor-wait disabled:opacity-70">
                 <span data-login-label>Sign in</span>
                 <span data-login-loading role="status" class="hidden items-center justify-center gap-2">
-                    <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z"/></svg>
+                    <x-lucide-loader-circle class="size-4 animate-spin" aria-hidden="true" />
                     <span>Signing in...</span>
                 </span>
             </button>

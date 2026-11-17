@@ -21,7 +21,7 @@
         <p class="name" style="font-size: {{ $typography->fontSize($senior->full_name, 71.2, 7.2, 3.5) }}pt">{{ $senior->full_name }}</p>
     </section>
     <div class="id-details">
-        <div class="id-address"><p class="id-label">ADDRESS:</p><p class="address" style="font-size: {{ $address['fontSize'] }}pt">@if ($address['fits'])@foreach ($address['lines'] as $line){{ $line }}@if (!$loop->last)<br>@endif@endforeach @else Address needs review before printing. @endif</p></div>
+        <div class="id-address"><p class="id-label">ADDRESS:</p><p class="address" style="font-size: {{ $address['fontSize'] }}pt">@if ($address['fits'])@foreach ($address['lines'] as $line)<span class="id-address-line">{{ $line }}</span>@endforeach @else Address needs review before printing. @endif</p></div>
         <div class="id-contact"><span class="id-contact-label">Contact No.:</span><strong class="id-contact-value" style="font-size: {{ $address['fontSize'] }}pt">{{ $contact }}</strong></div>
     </div>
     <div class="id-dates">

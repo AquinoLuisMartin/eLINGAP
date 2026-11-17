@@ -38,6 +38,11 @@ class SeniorCitizenPolicy
         return $user->is_active && $user->isOscaStaff();
     }
 
+    public function approveIdReprints(User $user): bool
+    {
+        return $user->is_active && $user->isOscaStaff();
+    }
+
     public function update(User $user, SeniorCitizen $seniorCitizen): bool
     {
         return $this->viewAny($user) && ! in_array($seniorCitizen->status, [SeniorCitizenStatus::Deceased, SeniorCitizenStatus::Transferred], true);

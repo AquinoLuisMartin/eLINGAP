@@ -1,3 +1,8 @@
+@php
+    $officeAddress = $officeDetails['office_address'] ?? 'Santa Maria Municipal Hall, R. Mercado Street (J.C. De Jesus St. / Poblacion area), Santa Maria, Bulacan';
+    $officePhone = $officeDetails['support_phone'] ?? '+63 44 288 2604';
+    $officeHours = $officeDetails['office_hours'] ?? 'Monday to Friday: 8:00 AM – 5:00 PM';
+@endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="scroll-smooth motion-reduce:scroll-auto">
 <head>
@@ -25,8 +30,8 @@
             <div class="flex items-center gap-2 sm:gap-4">
                 <button type="button" data-open-modal="login" aria-haspopup="dialog" aria-controls="login-modal" class="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg bg-osca-primary px-3 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-osca-primary-dark sm:px-5 sm:text-sm">Sign In</button>
                 <button type="button" id="mobile-menu-btn" class="inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-slate-200 text-osca-ink hover:bg-slate-50 lg:hidden" aria-label="Toggle menu" aria-controls="mobile-menu" aria-expanded="false">
-                    <svg id="menu-icon-bars" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    <svg id="menu-icon-close" class="hidden size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg>
+                    <x-lucide-menu id="menu-icon-bars" class="size-5" aria-hidden="true" />
+                    <x-lucide-x id="menu-icon-close" class="hidden size-5" aria-hidden="true" />
                 </button>
             </div>
         </div>
@@ -51,7 +56,7 @@
                                 <br><span class="text-osca-ink">in {{ $officeDetails['municipality'] }}</span>
                             @endif
                         </h1>
-                        <p class="max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">Find senior citizen programs, learn about available assistance, and plan your visit to {{ $officeDetails['office_name'] ?? 'the issuing office' }}.</p>
+                        <p class="max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">Find senior citizen programs, learn about available assistance, and plan your visit to the issuing office.</p>
                     </div>
                     <aside class="min-w-0" aria-label="Your OSCA office">
                         <div class="public-card relative flex h-full flex-col overflow-hidden">
@@ -62,7 +67,6 @@
                             <div class="flex flex-1 flex-col gap-5 p-6 sm:p-8">
                                 <h2 class="text-2xl leading-snug font-semibold tracking-tight text-osca-ink">{{ $officeDetails['office_name'] ?? 'Office of the Senior Citizen Affairs' }}</h2>
                                 <p class="text-sm leading-relaxed">Program information and registration guidance, with assistance from your municipal OSCA team.</p>
-                                <p class="border-t border-slate-100 pt-5 text-sm font-medium text-slate-700">{{ $officeDetails['office_name'] ?? 'Office of the Senior Citizen Affairs' }}<br><span class="font-normal text-slate-600">{{ $officeDetails['office_address'] ?? 'Address not configured' }}</span></p>
                             </div>
                         </div>
                     </aside>
@@ -79,20 +83,28 @@
                     </div>
                     <div class="flex flex-col gap-6">
                         <div class="public-card flex w-full flex-col gap-6 p-6 text-osca-ink sm:p-8">
-                            <h3 class="text-xl font-semibold tracking-tight">Operating hours</h3>
-                            <dl class="text-sm">
-                                <div class="flex flex-col gap-2"><dt class="font-semibold text-slate-800">Office schedule</dt><dd class="text-lg font-semibold leading-relaxed">{{ $officeDetails['office_hours'] ?? 'Office hours not configured' }}</dd></div>
-                            </dl>
+                            <div class="grid gap-8 lg:grid-cols-2">
+                                <div class="flex min-w-0 flex-col gap-6">
+                                    <h3 class="text-xl font-semibold tracking-tight">Address</h3>
+                                    <dl class="flex flex-col gap-4 text-sm">
+                                        <div class="flex flex-col gap-2"><dt class="font-semibold text-slate-800">Location</dt><dd class="leading-relaxed text-slate-600">{{ $officeAddress }}</dd></div>
+                                        <div class="flex flex-col gap-2"><dt class="font-semibold text-slate-800">Contact number</dt><dd class="font-semibold">{{ $officePhone }}</dd></div>
+                                    </dl>
+                                </div>
+                                <div class="flex min-w-0 flex-col gap-6">
+                                    <h3 class="text-xl font-semibold tracking-tight">Operating hours</h3>
+                                    <dl class="text-sm">
+                                        <div class="flex flex-col gap-2"><dt class="font-semibold text-slate-800">Office schedule</dt><dd class="text-lg font-semibold leading-relaxed">{{ $officeHours }}</dd></div>
+                                    </dl>
+                                    <p class="text-sm leading-relaxed text-slate-600">Closed on weekends and public holidays.</p>
+                                </div>
+                            </div>
                             <p class="border-t border-slate-100 pt-6 text-sm leading-relaxed text-slate-600">Please call ahead for holiday schedules and any changes to office hours.</p>
                         </div>
-                        @if ($officeDetails['support_email'] || $officeDetails['office_address'])
-                            <div class="flex flex-wrap items-center gap-6">
-                                @if ($officeDetails['support_email'])<dl class="text-sm"><dt class="font-semibold text-slate-800">Email</dt><dd class="mt-2 break-words">{{ $officeDetails['support_email'] }}</dd></dl>@endif
-                                @if ($officeDetails['office_address'])
-                                    <a href="{{ 'https://www.google.com/maps/search/?'.http_build_query(['api' => 1, 'query' => $officeDetails['office_address']]) }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center self-start rounded-lg border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-osca-ink hover:border-slate-400 hover:bg-slate-50">View location on Google Maps<span class="sr-only"> (opens in a new tab)</span></a>
-                                @endif
-                            </div>
-                        @endif
+                        <div class="flex flex-wrap items-center gap-6">
+                            @if ($officeDetails['support_email'])<dl class="text-sm"><dt class="font-semibold text-slate-800">Email</dt><dd class="mt-2 break-words">{{ $officeDetails['support_email'] }}</dd></dl>@endif
+                            <a href="{{ 'https://www.google.com/maps/search/?'.http_build_query(['api' => 1, 'query' => $officeAddress]) }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center self-start rounded-lg border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-osca-ink hover:border-slate-400 hover:bg-slate-50">View location on Google Maps<span class="sr-only"> (opens in a new tab)</span></a>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -103,7 +115,7 @@
 
     <footer class="border-t border-slate-200 bg-slate-50">
         <div class="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-            <div><p class="font-semibold text-osca-ink">eLINGAP <span class="font-normal text-slate-600">{{ $officeDetails['office_name'] }}</span></p><p class="mt-2 text-sm leading-relaxed text-slate-600">&copy; {{ date('Y') }} {{ $officeDetails['organization_name'] }}. All rights reserved.</p></div>
+            <div><p class="font-semibold text-osca-ink">eLINGAP</p><p class="mt-2 text-sm leading-relaxed text-slate-600">&copy; {{ date('Y') }} {{ $officeDetails['organization_name'] }}. All rights reserved.</p></div>
             <nav class="flex items-center text-sm" aria-label="Footer navigation">
                 <button type="button" data-back-to-top class="inline-flex min-h-11 cursor-pointer items-center rounded text-osca-ink hover:underline">Back to top</button>
             </nav>

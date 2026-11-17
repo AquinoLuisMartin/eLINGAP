@@ -62,12 +62,12 @@ class SeniorRegistrationInput
         return $input;
     }
 
-    public static function representativeRules(array $input, ?SeniorCitizen $senior = null): array
+    public static function representativeRules(array $input, ?SeniorCitizen $senior = null, bool $requireAuthorizationFile = true): array
     {
         $representative = ($input['applicant_type'] ?? 'SELF') === 'REPRESENTATIVE' || filled($input['representative_contact'] ?? null) || filled($input['representative_name'] ?? null);
         $existing = $senior ? self::normalize($senior->only(['representative_name', 'representative_relationship', 'representative_contact'])) : [];
         $changed = ! $senior || collect(['representative_name', 'representative_relationship', 'representative_contact'])->contains(fn ($field) => ($input[$field] ?? null) !== ($existing[$field] ?? null));
-        $proofRequired = $representative && ($changed || ! $senior?->documents()->where('document_type', 'AUTHORIZATION')->exists());
+        $proofRequired = $requireAuthorizationFile && $representative && ($changed || ! $senior?->documents()->where('document_type', 'AUTHORIZATION')->exists());
 
         return [
             'contact_number' => ['required', 'string', 'regex:/^\+639\d{9}$/'],
@@ -79,7 +79,7 @@ class SeniorRegistrationInput
         ];
     }
 
-    public static function rules(array $input): array
+    public static function rules(array $input, bool $requireAuthorizationFile = true): array
     {
         return [
             ...self::requirementsRules($input),
@@ -91,7 +91,7 @@ class SeniorRegistrationInput
             'osca_id_number' => ['missing'],
             'photo' => ['prohibited'],
             'identification_file' => ['nullable', File::types(['pdf', 'jpg', 'jpeg', 'png'])->max(5120)],
-            ...self::representativeRules($input),
+            ...self::representativeRules($input, requireAuthorizationFile: $requireAuthorizationFile),
         ];
     }
 
@@ -116,9 +116,9 @@ class SeniorRegistrationInput
             ->whereRaw('lower(last_name) = ?', [mb_strtolower($input['last_name'])]);
     }
 
-    public static function validator(array $input, ?array $fields = null): InputValidator
+    public static function validator(array $input, ?array $fields = null, bool $requireAuthorizationFile = true): InputValidator
     {
-        $rules = self::rules($input);
+        $rules = self::rules($input, $requireAuthorizationFile);
         if ($fields !== null) {
             $rules = array_intersect_key($rules, array_flip($fields));
         }

@@ -41,3 +41,13 @@ export function formatSeniorMobile(value) {
     return [digits.slice(0, 3), digits.slice(3, 6), digits.slice(6)]
         .filter(Boolean).join('-');
 }
+
+export function formatRegistrationMobile(value) {
+    let digits = String(value ?? '').replace(/\D/g, '');
+    if (digits.startsWith('639') && digits.length >= 12) digits = digits.slice(2);
+    else if (digits.startsWith('09') && digits.length >= 11) digits = digits.slice(1);
+    if (!digits.startsWith('9')) digits = '9' + digits;
+    digits = digits.slice(0, 10);
+
+    return formatSeniorMobile(digits);
+}

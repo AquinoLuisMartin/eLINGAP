@@ -15,7 +15,7 @@
                     <label class="field-label mt-0! sm:col-span-2">Type {{ $seniorCitizen->osca_id_number ?: $seniorCitizen->full_name }} to confirm
                         <input name="confirmation" required autocomplete="off">
                     </label>
-                    <div class="sm:col-span-2"><button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-osca-danger px-4 py-3 text-sm text-white hover:bg-osca-danger/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-osca-danger"><x-admin.icon name="alert-triangle" size="16" /> Record declaration</button></div>
+                    <div class="sm:col-span-2"><button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-osca-danger px-4 py-3 text-sm text-white hover:bg-osca-danger/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-osca-danger">Record declaration</button></div>
                 </form>
             </details>
         </x-benefit-panel>
@@ -45,7 +45,7 @@
             <form method="POST" action="{{ route('administration.senior-citizens.destroy', $seniorCitizen) }}" data-confirm="The record moves out of the active masterlist." data-confirm-title="Archive this senior citizen record?" data-confirm-label="Archive record" data-confirm-tone="danger">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="secondary-button w-full text-osca-danger! dark:text-red-300! sm:w-auto"><x-admin.icon name="archive" size="16" /> Archive record</button>
+                <button type="submit" class="secondary-button w-full text-osca-danger! dark:text-red-300! sm:w-auto">Archive record</button>
             </form>
         </div>
     </x-benefit-panel>

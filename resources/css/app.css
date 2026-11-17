@@ -43,13 +43,10 @@
 
 .staff-shell .admin-content {
     width: 100%;
-    max-width: 1440px;
+    max-width: 100%;
     margin-inline: auto;
     min-width: 0;
-}
-
-.staff-shell .admin-content > form:not([method='GET']) {
-    max-width: 56rem;
+    padding-inline: clamp(16px, 1.5vw, 24px);
 }
 
 .staff-shell .admin-content :where(nav:not([aria-label$='progress']), .filter-pills) {
@@ -238,6 +235,35 @@
 .staff-shell .admin-content .senior-mobile-field input {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
+}
+
+.schedule-form .field-label { margin: 0; gap: 6px; }
+.schedule-card { container: payout-schedule / inline-size; }
+.schedule-editor { min-width: 0; }
+.schedule-fields .field-label { max-width: 27.5rem; }
+.schedule-barangays { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }
+.schedule-barangays label { display: flex; align-items: flex-start; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.schedule-barangays input { flex-shrink: 0; margin-top: 5px; }
+.schedule-editor .schedule-actions { grid-column: 1 / -1; }
+
+@container payout-schedule (min-width: 64rem) {
+    .schedule-editor { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; }
+    .schedule-audience { padding-top: 0; padding-left: 24px; border-top: 0; border-left: 1px solid var(--line); }
+}
+
+.schedule-form .payout-time-input legend {
+    margin-bottom: 6px;
+    padding: 0;
+    font-size: var(--font-body);
+    font-weight: 400;
+    line-height: 1.5;
+}
+.schedule-form .field-label :is(input:not([type=checkbox]):not([type=radio]), select),
+.schedule-form .payout-time-input input {
+    height: 44px;
+    min-height: 44px;
+    font-size: var(--font-body);
+    line-height: 20px;
 }
 
 .staff-shell :where(a, button, input, select, textarea):focus-visible {

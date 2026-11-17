@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="mx-auto max-w-3xl">
+<div class="w-full min-w-0 max-w-full">
     <x-staff.page-header title="Create program" description="Enter the program details and available budget.">
         <a class="secondary-button" href="{{ route('programs.index') }}">Back to programs</a>
     </x-staff.page-header>

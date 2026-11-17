@@ -9,6 +9,7 @@ use App\Models\Barangay;
 use App\Models\SeniorCitizen;
 use App\Models\SystemConfiguration;
 use App\Models\User;
+use App\Services\SeniorCitizens\IdOfficials;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
@@ -36,7 +37,7 @@ class IdApplicationTest extends TestCase
             ->call('next')->assertSet('step', 2)
             ->set('form.barangay_id', $input['barangay_id'])->set('form.contact_number', $input['contact_number'])
             ->set('form.address', $input['address'])->call('next')
-            ->assertHasNoErrors()->assertSet('step', 3)->assertSee('Application summary')->assertSee('Save and prepare ID');
+            ->assertHasNoErrors()->assertSet('step', 3)->assertSee('Application summary')->assertSee('Save Registration')->assertSee('Save & Prepare ID');
 
         $this->assertDatabaseEmpty('senior_citizens');
         $component->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
@@ -56,7 +57,73 @@ class IdApplicationTest extends TestCase
 
         $this->application()->set('form', $this->input())->call('next')
             ->assertSeeHtml('id="locality-municipality" value="Santa Maria" readonly')
-            ->assertSeeHtml('id="locality-province" value="Bulacan" readonly');
+            ->assertSeeHtml('id="locality-province" value="Bulacan" readonly')
+            ->assertSeeHtml('readonly disabled tabindex="-1"')
+            ->assertDontSee('Enter 10 digits starting with 9. The +63 country code is included.');
+    }
+
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function test_confirmation_displays_all_entered_details_and_complete_address(bool $modal): void
+    {
+        $this->actingAs(User::factory()->create());
+        SystemConfiguration::forceCreate(['key' => 'municipality', 'value' => 'Synthetic Municipality']);
+        SystemConfiguration::forceCreate(['key' => 'province', 'value' => 'Synthetic Province']);
+        $input = [...$this->input(), 'middle_name' => 'Middle', 'name_suffix' => 'III', 'civil_status' => 'MARRIED',
+            'address' => 'Unit 123 Synthetic Street, Purok Four, Synthetic Subdivision'];
+
+        Livewire::test(IdApplication::class, ['modal' => $modal])->set('form', $input)
+            ->call('next')->call('next')->call('next')->assertHasNoErrors()->assertSet('step', 3)
+            ->assertSee('SYNTHETIC')->assertSee('APPLICANT')->assertSee('MIDDLE')->assertSee('III')
+            ->assertSee('1950-01-01')->assertSee('FEMALE')->assertSee('MARRIED')->assertSee('Mobile number')->assertSee('(+63) 917-123-4567')
+            ->assertDontSee('Senior mobile number')
+            ->assertSee('UNIT 123 SYNTHETIC STREET, PUROK FOUR, SYNTHETIC SUBDIVISION, SYNTHETIC BARANGAY, SYNTHETIC MUNICIPALITY, SYNTHETIC PROVINCE')
+            ->assertSee('Birth Certificate / Proof of Age')->assertSee('Valid Government-Issued ID')
+            ->assertSee('Checked')->assertSee('Not applicable')->assertDontSee('Authorized Representative Information');
+
+        $this->assertDatabaseEmpty('senior_citizens');
+    }
+
+    public function test_confirmation_shows_missing_optional_values_and_escapes_address_text(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $input = [...$this->input(), 'address' => '<script>alert("synthetic")</script>'];
+
+        $this->application()->set('form', $input)->call('next')->call('next')->assertHasNoErrors()->assertSet('step', 3)
+            ->assertSee('Not provided')->assertSee('Not configured')
+            ->assertSee('&lt;SCRIPT&gt;ALERT(&quot;SYNTHETIC&quot;)&lt;/SCRIPT&gt;', false)
+            ->assertDontSee('<SCRIPT>', false);
+    }
+
+    #[TestWith(['917-123-4567'])]
+    #[TestWith(['9171234567'])]
+    #[TestWith(['+639171234567'])]
+    public function test_confirmation_includes_the_country_code_for_supported_mobile_formats(string $number): void
+    {
+        $this->actingAs(User::factory()->create());
+        $input = [...$this->input(), 'contact_number' => $number];
+
+        $this->application()->set('form', $input)->call('next')->assertSet('step', 2)
+            ->assertSee('Mobile number')->assertDontSee('Senior mobile number')
+            ->call('next')->assertHasNoErrors()->assertSet('step', 3)
+            ->assertSee('(+63) 917-123-4567')->assertSet('form.contact_number', $number);
+    }
+
+    public function test_invalid_mobile_fields_preserve_all_entered_registration_details(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $input = [...$this->input(), 'requirements_checks' => ['identity' => true, 'residency' => true, 'authorization' => true],
+            'contact_number' => '917-12', 'representative_name' => 'Synthetic Representative',
+            'representative_relationship' => 'Child', 'representative_contact' => '918-12'];
+
+        $this->application()->set('form', $input)->call('next')->call('next')
+            ->assertSet('step', 2)->assertHasErrors(['form.contact_number', 'form.representative_contact'])
+            ->assertSet('form.contact_number', '917-12')->assertSet('form.representative_contact', '918-12')
+            ->assertSet('form.first_name', 'SYNTHETIC')->assertSet('form.address', 'SYNTHETIC ADDRESS')
+            ->assertSet('form.barangay_id', $input['barangay_id'])->assertSet('form.representative_name', 'SYNTHETIC REPRESENTATIVE')
+            ->assertSet('form.representative_relationship', 'CHILD');
+
+        $this->assertDatabaseEmpty('senior_citizens');
     }
 
     #[TestWith(['first_name', 'Test123'])]
@@ -161,15 +228,80 @@ class IdApplicationTest extends TestCase
         $this->assertDatabaseCount('senior_citizens', 1);
     }
 
-    public function test_representative_details_are_checked_before_document_step_and_authorization_is_required(): void
+    #[TestWith([false, false])]
+    #[TestWith([true, false])]
+    #[TestWith([true, true])]
+    public function test_save_actions_share_validation_and_save_once_without_issuing_an_id(bool $modal, bool $prepareId): void
+    {
+        $this->actingAs(User::factory()->create());
+        $input = $this->input();
+        $component = Livewire::test(IdApplication::class, ['modal' => $modal])
+            ->set('form', $input)->call('next')->call('next')->call('next')->assertSet('step', 3);
+
+        $component->call('submit', $prepareId)->assertHasErrors('informationReviewed')
+            ->assertSet('form.first_name', 'SYNTHETIC')->assertSet('form.address', 'SYNTHETIC ADDRESS');
+        $this->assertDatabaseEmpty('senior_citizens');
+        $component->set('informationReviewed', true)->call('submit', $prepareId)->assertHasNoErrors();
+
+        $senior = SeniorCitizen::sole();
+        $destination = $prepareId ? route('senior-id.show', [$senior, 'from' => 'registry']) : route('registrations.index');
+        $component->assertRedirect($destination)->call('submit', $prepareId)->assertRedirect($destination);
+        $this->assertSame('Registration saved successfully.', session('status'));
+        $this->assertSame('VERIFIED', $senior->status->value);
+        $this->assertNotNull($senior->verified_at);
+        $this->assertNull($senior->osca_id_number);
+        $this->assertNull($senior->id_generated_at);
+        $this->assertDatabaseCount('senior_citizens', 1);
+        $this->assertDatabaseEmpty('senior_citizen_id_credentials');
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'senior_citizen.id_print_generated']);
+        $this->get(route('registrations.index'))->assertSee($senior->last_name)->assertSee('Prepare ID');
+    }
+
+    public function test_saved_registrations_can_be_issued_and_printed_together_without_individual_preparation(): void
     {
         Storage::fake('local');
         $this->actingAs(User::factory()->create());
-        $component = $this->application()->set('form', [...$this->input(), 'representative_name' => 'Synthetic Representative'])
+        $input = $this->input();
+        foreach (['First', 'Second'] as $lastName) {
+            $this->application()->set('form', [...$input, 'last_name' => $lastName])
+                ->call('next')->call('next')->set('informationReviewed', true)->call('submit', false)
+                ->assertHasNoErrors()->assertRedirect(route('registrations.index'));
+        }
+        $seniors = SeniorCitizen::orderBy('id')->get();
+        $this->assertCount(2, $seniors);
+        foreach ($seniors as $senior) {
+            $this->assertNull($senior->osca_id_number);
+            $this->assertNull($senior->id_generated_at);
+        }
+        app(IdOfficials::class)->save(
+            ['osca_head_name' => 'Synthetic Head', 'municipal_mayor_name' => 'Synthetic Mayor'],
+            ['municipal_seal' => UploadedFile::fake()->createWithContent('synthetic.jpg', file_get_contents(base_path('tests/Fixtures/id-photo.jpg')))]
+        );
+
+        $this->post(route('senior-id.batch-print'), ['senior_ids' => $seniors->modelKeys(), 'paper' => 'a4', 'purpose' => 'FIRST_PRINT', 'reviewed' => true])
+            ->assertOk()->assertHeader('Content-Type', 'application/pdf');
+
+        foreach ($seniors as $senior) {
+            $senior->refresh();
+            $this->assertSame('VERIFIED', $senior->status->value);
+            $this->assertNotNull($senior->id_generated_at);
+            $this->assertNotNull($senior->osca_id_number);
+            $this->assertSame(1, $senior->idPrints()->count());
+        }
+        $this->assertDatabaseCount('senior_citizens', 2);
+        $this->assertDatabaseCount('senior_citizen_id_credentials', 2);
+        $this->assertNotSame($seniors[0]->osca_id_number, $seniors[1]->osca_id_number);
+    }
+
+    public function test_representative_details_are_checked_before_document_step_and_optional_authorization_is_stored(): void
+    {
+        Storage::fake('local');
+        $this->actingAs(User::factory()->create());
+        $component = $this->application()->set('form', [...$this->input(), 'requirements_checks' => ['identity' => true, 'residency' => true, 'authorization' => true], 'representative_name' => 'Synthetic Representative'])
             ->call('next')->call('next')->assertSet('step', 2)->assertHasErrors(['form.representative_relationship', 'form.representative_contact'])
             ->set('form.representative_name', 'Synthetic Representative')->set('form.representative_relationship', 'Child')->set('form.representative_contact', '917-123-4567')
             ->call('next')->assertSet('step', 3)->assertHasNoErrors()
-            ->set('informationReviewed', true)->call('submit')->assertHasErrors('authorizationFile')
+            ->assertDontSee('Proof of authorization')->set('informationReviewed', true)
             ->set('authorizationFile', UploadedFile::fake()->createWithContent('proof.pdf', "%PDF-1.4\nSynthetic proof"))
             ->call('submit')->assertHasNoErrors();
         $senior = SeniorCitizen::sole();
@@ -177,9 +309,38 @@ class IdApplicationTest extends TestCase
         $this->assertSame('+639171234567', $senior->representative_contact);
         $this->assertSame('SYNTHETIC REPRESENTATIVE', $senior->representative_name);
         $this->assertSame('CHILD', $senior->representative_relationship);
+        $this->assertSame('REPRESENTATIVE', $senior->applicant_type);
         $document = $senior->documents()->sole();
         $this->assertSame('AUTHORIZATION', $document->document_type);
         Storage::disk('local')->assertExists($document->path);
+    }
+
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function test_representative_application_saves_without_authorization_upload(bool $modal): void
+    {
+        $this->actingAs(User::factory()->create());
+        $component = Livewire::test(IdApplication::class, ['modal' => $modal])
+            ->set('form', [...$this->input(), 'requirements_checks' => ['identity' => true, 'residency' => true, 'authorization' => true],
+                'representative_name' => 'Synthetic Representative', 'representative_relationship' => 'Child', 'representative_contact' => '917-000-0002'])
+            ->call('next')->call('next')->call('next')->assertSet('step', 3)
+            ->assertSee('Authorized Representative Information')->assertSee('SYNTHETIC REPRESENTATIVE')->assertSee('CHILD')
+            ->assertSee('Authorization Letter & Representative ID')->assertSee('Checked')
+            ->assertDontSee('Proof of authorization')->assertDontSeeHtml('type="file"');
+
+        $component->call('submit')->assertHasErrors('informationReviewed');
+        $this->assertDatabaseEmpty('senior_citizens');
+        $component->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
+
+        $senior = SeniorCitizen::sole();
+        $component->assertRedirect(route('senior-id.show', [$senior, 'from' => 'registry']));
+        $this->assertSame('REPRESENTATIVE', $senior->applicant_type);
+        $this->assertSame('SYNTHETIC REPRESENTATIVE', $senior->representative_name);
+        $this->assertSame('CHILD', $senior->representative_relationship);
+        $this->assertSame('+639170000002', $senior->representative_contact);
+        $this->assertTrue($senior->requirements_checks['authorization']);
+        $this->assertSame('VERIFIED', $senior->status->value);
+        $this->assertSame(0, $senior->documents()->count());
     }
 
     public function test_identification_uploads_are_private_and_unexpected_authoritative_fields_are_ignored(): void
@@ -243,12 +404,146 @@ class IdApplicationTest extends TestCase
         $this->assertDatabaseCount('senior_citizens', 0);
     }
 
-    public function test_removing_optional_representative_clears_their_details(): void
+    public function test_hiding_optional_representative_preserves_their_unsaved_details(): void
     {
         $this->actingAs(User::factory()->create());
-        $this->application()->set('form', $this->input())->set('representativeContact', true)
+        $this->application()->set('form', $this->input())->set('form.requirements_checks.authorization', true)
             ->set('form.representative_name', 'Synthetic Representative')->set('form.representative_contact', '09171234567')
-            ->set('representativeContact', false)->assertSet('form.representative_name', '')->assertSet('form.representative_contact', '')->assertSet('authorizationFile', null);
+            ->set('form.requirements_checks.authorization', false)->assertSet('form.representative_name', 'Synthetic Representative')->assertSet('form.representative_contact', '09171234567')
+            ->set('form.requirements_checks.authorization', true)->assertSet('form.representative_name', 'Synthetic Representative');
+    }
+
+    public function test_launcher_starts_each_new_application_with_a_distinct_component_session(): void
+    {
+        $this->actingAs(User::factory()->create());
+        session()->flash('status', 'Previous registration saved.');
+        $launcher = Livewire::test(ApplicationLauncher::class)->call('apply')
+            ->assertSet('applicationOpen', true)->assertSet('applicationSession', 1)
+            ->assertSeeLivewire(IdApplication::class)->assertDontSee('restoreNames')->assertDontSee('sessionStorage.getItem', false);
+        $this->assertFalse(session()->has('status'));
+
+        $launcher->call('apply')->assertSet('applicationSession', 1)
+            ->dispatch('registration-cancelled')->assertSet('applicationOpen', false)
+            ->call('apply')->assertSet('applicationOpen', true)->assertSet('applicationSession', 2);
+
+        $this->assertDatabaseEmpty('senior_citizens');
+    }
+
+    public function test_new_application_after_cancellation_has_no_previous_values_files_errors_or_completed_steps(): void
+    {
+        Storage::fake('local');
+        $this->actingAs(User::factory()->create());
+        $this->application()->set('form', [...$this->input(),
+            'requirements_checks' => ['identity' => true, 'residency' => true, 'authorization' => true],
+            'representative_name' => 'Synthetic Representative', 'representative_relationship' => 'Child', 'representative_contact' => '917-000-0002',
+        ])->call('next')->call('next')
+            ->set('identificationFile', UploadedFile::fake()->createWithContent('previous.pdf', "%PDF-1.4\nSynthetic prior upload"))
+            ->set('authorizationFile', UploadedFile::fake()->createWithContent('previous-authorization.pdf', "%PDF-1.4\nSynthetic prior proof"))
+            ->call('submit')->assertHasErrors('informationReviewed')->call('cancel')->assertDispatched('registration-cancelled');
+
+        $this->assertFreshApplication(Livewire::test(IdApplication::class, ['modal' => true]));
+        $this->assertDatabaseEmpty('senior_citizens');
+    }
+
+    public function test_new_application_after_saving_starts_blank_and_keeps_the_saved_record(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->application()->set('form', $this->input())->call('next')->call('next')
+            ->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
+        $saved = SeniorCitizen::sole();
+        $original = $saved->getAttributes();
+
+        $this->assertFreshApplication(Livewire::test(IdApplication::class, ['modal' => true]));
+
+        $this->assertSame($original, $saved->fresh()->getAttributes());
+        $this->assertDatabaseCount('senior_citizens', 1);
+    }
+
+    private function assertFreshApplication(Testable $component): void
+    {
+        $component->assertSet('step', 0)->assertSet('completedSteps', [])->assertSet('registeredSeniorId', null)
+            ->assertSet('informationReviewed', false)->assertSet('authorizationFile', null)->assertSet('identificationFile', null)
+            ->assertSet('form.requirements_checks', ['identity' => false, 'residency' => false, 'authorization' => false])
+            ->assertSet('form.contact_number', '9')->assertSet('form.representative_contact', '9')->assertHasNoErrors()
+            ->assertDontSee('Authorized Representative Information');
+        foreach (['first_name', 'last_name', 'middle_name', 'name_suffix', 'birth_date', 'sex', 'civil_status', 'barangay_id', 'address', 'representative_name', 'representative_relationship'] as $field) {
+            $component->assertSet('form.'.$field, '');
+        }
+        $component->call('goToStep', 3)->assertSet('step', 0);
+    }
+
+    public function test_authorization_check_is_the_only_trigger_for_required_representative_fields_and_summary(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $input = $this->input();
+        $component = $this->application()->set('form', $input)
+            ->set('form.requirements_checks.authorization', true)->call('next')
+            ->assertSet('step', 2)->assertSee('Authorized Representative Information')
+            ->assertSee('Representative full name')->assertSee('Representative mobile number')
+            ->assertDontSee('Add an authorized representative for SMS or future claiming')
+            ->assertDontSee('Applicant type')->call('next')->assertSet('step', 2)
+            ->assertHasErrors(['form.representative_name', 'form.representative_relationship', 'form.representative_contact']);
+
+        $component->set('form.representative_name', 'Synthetic Representative')->set('form.representative_relationship', 'Child')
+            ->set('form.representative_contact', '917-000-0002')->call('next')->assertSet('step', 3)->assertHasNoErrors()
+            ->assertSee('Authorized Representative Information')->assertSee('SYNTHETIC REPRESENTATIVE')->assertSee('CHILD');
+        $this->assertDatabaseEmpty('senior_citizens');
+    }
+
+    public function test_unchecked_authorization_excludes_hidden_representative_fields_and_proof_from_saving(): void
+    {
+        Storage::fake('local');
+        $this->actingAs(User::factory()->create());
+        $component = $this->application()->set('form', [...$this->input(), 'applicant_type' => 'REPRESENTATIVE',
+            'representative_name' => 'Stale Representative', 'representative_relationship' => 'Child', 'representative_contact' => 'invalid'])
+            ->call('next')->assertSet('step', 2)->assertDontSee('Authorized Representative Information')
+            ->call('next')->assertSet('step', 3)->assertDontSee('Authorized Representative Information')
+            ->assertDontSee('Proof of authorization')->assertHasNoErrors();
+
+        $component->set('authorizationFile', UploadedFile::fake()->createWithContent('stale.pdf', "%PDF-1.4\nSynthetic stale proof"))
+            ->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
+
+        $senior = SeniorCitizen::sole();
+        $this->assertSame('SELF', $senior->applicant_type);
+        $this->assertNull($senior->representative_name);
+        $this->assertNull($senior->representative_relationship);
+        $this->assertNull($senior->representative_contact);
+        $this->assertDatabaseEmpty('senior_citizen_documents');
+    }
+
+    public function test_step_navigation_only_allows_validated_steps_and_preserves_values(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $input = $this->input();
+        $component = Livewire::test(IdApplication::class)->call('goToStep', 3)->assertSet('step', 0)
+            ->set('form', $input)->call('next')->assertSet('completedSteps.0', true)
+            ->call('next')->assertSet('completedSteps.1', true)->assertSet('step', 2)
+            ->call('goToStep', 3)->assertSet('step', 2)
+            ->call('next')->assertSet('step', 3)->assertSet('completedSteps.2', true)
+            ->call('goToStep', 0)->assertSet('step', 0)->assertSet('form.address', 'SYNTHETIC ADDRESS')
+            ->call('goToStep', 2)->assertSet('step', 2)->assertSet('form.first_name', 'SYNTHETIC');
+
+        $component->set('form.address', '')->assertSet('completedSteps', [0 => true, 1 => true])
+            ->call('goToStep', 3)->assertSet('step', 2)->call('next')->assertHasErrors('form.address');
+        $this->assertDatabaseEmpty('senior_citizens');
+    }
+
+    public function test_authorization_changes_invalidate_step_completion_and_require_revalidation(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $component = Livewire::test(IdApplication::class)->set('form', $this->input())
+            ->call('next')->call('next')->call('next')->assertSet('step', 3)
+            ->set('informationReviewed', true)->call('goToStep', 0)->assertSet('informationReviewed', false)
+            ->set('form.requirements_checks.authorization', true)->assertSet('completedSteps', [])
+            ->call('goToStep', 3)->assertSet('step', 0)
+            ->call('next')->call('next')->assertSet('step', 2)->assertSee('Authorized Representative Information')
+            ->call('next')->assertSet('step', 2)->assertHasErrors('form.representative_name')
+            ->call('goToStep', 0)->set('form.requirements_checks.authorization', false)
+            ->call('next')->call('next')->assertDontSee('Authorized Representative Information')
+            ->call('next')->assertSet('step', 3)->assertHasNoErrors();
+
+        $component->assertDontSee('Proof of authorization');
+        $this->assertDatabaseEmpty('senior_citizens');
     }
 
     #[TestWith(['ARCHIVED'])]
@@ -427,7 +722,7 @@ class IdApplicationTest extends TestCase
     public function test_both_registration_entry_points_reject_invalid_senior_and_representative_numbers(mixed $number): void
     {
         $this->actingAs(User::factory()->create());
-        $input = [...$this->input(), 'contact_number' => $number, 'applicant_type' => 'REPRESENTATIVE',
+        $input = [...$this->input(), 'contact_number' => $number, 'requirements_checks' => ['identity' => true, 'residency' => true, 'authorization' => true], 'applicant_type' => 'REPRESENTATIVE',
             'representative_name' => 'Synthetic Representative', 'representative_relationship' => 'Child', 'representative_contact' => $number];
 
         $this->application()->set('form', $input)->call('next')->call('next')->assertSet('step', 2)
@@ -500,6 +795,6 @@ class IdApplicationTest extends TestCase
     {
         $barangay = Barangay::create(['name' => 'Synthetic Barangay', 'code' => 'SYN']);
 
-        return ['requirements_status' => 'CHECKED', 'requirements_checks' => ['identity' => true, 'residency' => true, 'authorization' => true], 'review_reason' => '', 'first_name' => 'Synthetic', 'middle_name' => '', 'last_name' => 'Applicant', 'name_suffix' => '', 'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'civil_status' => '', 'barangay_id' => $barangay->id, 'address' => 'Synthetic address', 'contact_number' => '09171234567', 'applicant_type' => 'SELF', 'representative_name' => '', 'representative_relationship' => '', 'representative_contact' => ''];
+        return ['requirements_status' => 'CHECKED', 'requirements_checks' => ['identity' => true, 'residency' => true, 'authorization' => false], 'review_reason' => '', 'first_name' => 'Synthetic', 'middle_name' => '', 'last_name' => 'Applicant', 'name_suffix' => '', 'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'civil_status' => '', 'barangay_id' => $barangay->id, 'address' => 'Synthetic address', 'contact_number' => '09171234567', 'applicant_type' => 'SELF', 'representative_name' => '', 'representative_relationship' => '', 'representative_contact' => ''];
     }
 }

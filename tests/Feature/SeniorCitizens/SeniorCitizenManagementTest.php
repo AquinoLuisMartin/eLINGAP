@@ -84,7 +84,7 @@ class SeniorCitizenManagementTest extends TestCase
             'original_name' => 'synthetic-proof.pdf', 'mime_type' => 'application/pdf', 'size' => 100, 'uploaded_by' => $staff->id]);
 
         $this->actingAs($staff)->get(route('senior-citizens.edit', $senior))->assertOk()
-            ->assertSee('967-234-8976')->assertSee('+63');
+            ->assertSee('+63')->assertDontSee('name="representative_contact"', false);
         $this->put(route('senior-citizens.update', $senior), [
             ...$senior->only(['barangay_id', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'sex', 'address', 'applicant_type', 'representative_name', 'representative_relationship']),
             'birth_date' => $senior->birth_date->format('Y-m-d'), 'contact_number' => '967-234-8976', 'representative_contact' => '967-234-8976',

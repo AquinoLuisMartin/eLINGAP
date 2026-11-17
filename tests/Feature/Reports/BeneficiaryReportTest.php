@@ -48,7 +48,8 @@ class BeneficiaryReportTest extends TestCase
         $filters = ['type' => 'beneficiaries', 'program_id' => $program->id, 'barangay_id' => $barangay->id, 'age_min' => 60, 'age_max' => 64];
 
         $preview = $this->get(route('reports.workspace', $filters))->assertOk();
-        $csv = $this->get(route('reports.export', $filters))->assertOk()->streamedContent();
+        $csv = $this->get(route('reports.export', $filters))->assertOk()
+            ->assertDownload('Synthetic North - Synthetic assistance - Program beneficiaries - 2026-11-11.csv')->streamedContent();
 
         $this->assertSame(array_reverse($included), $preview->viewData('records')->pluck('id')->all());
         $rows = $this->csvRows($csv);
@@ -173,6 +174,19 @@ class BeneficiaryReportTest extends TestCase
         $response = $this->get(route('reports.export', ['type' => 'beneficiaries', 'format' => 'pdf']))->assertOk();
 
         $this->assertStringStartsWith('%PDF-', $response->getContent());
+    }
+
+    public function test_population_pdf_embeds_system_fonts_and_the_logo(): void
+    {
+        Barangay::create(['name' => 'Synthetic North', 'code' => 'N']);
+        $this->actingAs(User::factory()->create());
+
+        $response = $this->get(route('reports.export', ['type' => 'population', 'format' => 'pdf']))
+            ->assertOk()->assertHeader('Content-Type', 'application/pdf');
+
+        $this->assertStringContainsString('Inter-Regular', $response->getContent());
+        $this->assertStringContainsString('Inter-Bold', $response->getContent());
+        $this->assertStringContainsString('/Subtype /Image', $response->getContent());
     }
 
     public function test_guests_cannot_preview_or_download_reports(): void

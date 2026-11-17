@@ -11,9 +11,11 @@ use App\Models\Barangay;
 use App\Models\Program;
 use App\Services\Reports\StaffReport;
 use App\Services\Reports\StaffReportPdf;
+use App\Services\Reports\StaffReportSpreadsheet;
 use App\Support\CsvCell;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -43,12 +45,12 @@ class StaffReportController extends Controller
         ]);
     }
 
-    public function export(Request $request, string $type, StaffReport $report, StaffReportPdf $pdf): Response
+    public function export(Request $request, string $type, StaffReport $report, StaffReportPdf $pdf, StaffReportSpreadsheet $spreadsheet): Response
     {
         Gate::authorize('viewAny', StaffReport::class);
         abort_unless(isset(StaffReport::TYPES[$type]), 404);
         $filters = $this->filters($request, $type, $report);
-        $format = $request->validate(['format' => ['sometimes', 'required', Rule::in(['csv', 'pdf'])]])['format'] ?? 'csv';
+        $format = $request->validate(['format' => ['sometimes', 'required', Rule::in(['csv', 'pdf', 'xlsx'])]])['format'] ?? 'csv';
         $generatedAt = now();
         $population = $report->populationQuery()->orderBy('name')->get();
         $filterLabels = $report->filterLabels($filters);
@@ -57,7 +59,17 @@ class StaffReportController extends Controller
         if ($format === 'pdf' && $total > StaffReportPdf::MAX_RECORDS) {
             throw ValidationException::withMessages(['format' => 'PDF exports support up to '.StaffReportPdf::MAX_RECORDS.' records. Narrow the filters or export CSV for the complete report.']);
         }
-        $filename = $type.'-'.$generatedAt->format('Y-m-d').'.'.$format;
+        $description = match ($type) {
+            'masterlist' => 'Senior citizens',
+            'beneficiaries' => 'Program beneficiaries',
+            default => StaffReport::TYPES[$type],
+        };
+        $filename = collect([$filterLabels['Barangay'] ?? 'All Barangays', $filterLabels['Program'] ?? null, $description])
+            ->filter()
+            ->map(fn (string $part) => Str::of(Str::ascii($part))
+                ->replaceMatches('/[<>:"\/\\\\|?*%\x00-\x1F\x7F]/', ' ')
+                ->squish()->limit(60, '')->trim(' .')->toString())
+            ->filter()->push($generatedAt->format('Y-m-d'))->implode(' - ').'.'.$format;
         if ($format === 'pdf') {
             $content = $pdf->render([
                 'title' => StaffReport::TYPES[$type], 'type' => $type, 'report' => $report,
@@ -69,6 +81,16 @@ class StaffReportController extends Controller
 
         if ($format === 'pdf') {
             return response($content, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'attachment; filename="'.$filename.'"', 'Cache-Control' => 'private, no-store']);
+        }
+
+        if ($format === 'xlsx') {
+            return response()->streamDownload(function () use ($spreadsheet, $report, $type, $query, $generatedAt, $population, $filterLabels): void {
+                $spreadsheet->write([
+                    'title' => StaffReport::TYPES[$type], 'type' => $type, 'report' => $report,
+                    'headings' => $report->headings($type), 'records' => $query->lazy(200),
+                    'generatedAt' => $generatedAt, 'population' => $population, 'filterLabels' => $filterLabels,
+                ]);
+            }, $filename, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Cache-Control' => 'private, no-store']);
         }
 
         return response()->streamDownload(function () use ($report, $type, $query, $generatedAt, $population, $filterLabels, $total): void {

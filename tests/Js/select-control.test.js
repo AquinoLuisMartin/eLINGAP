@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import uiSelect, { filterOptions, menuPosition, readOptions, scrollToFit, visibleText } from '../../resources/js/select-control.js';
+import uiSelect, { filterOptions, menuPosition, readOptions, visibleText } from '../../resources/js/select-control.js';
 
 function control() {
     const attributes = new Map();
@@ -255,16 +255,7 @@ test('short menus open below when their options fit', () => {
     assert.equal(position.bottom, 'auto');
 });
 
-test('long menus scroll the page just enough to open below without hiding the field', () => {
-    const rect = { top: 251, bottom: 283 };
-
-    assert.equal(scrollToFit(rect, 340, 1000, 500), 171);
-    assert.equal(scrollToFit(rect, 340, 1000, 100), 100);
-    assert.equal(scrollToFit(rect, 340, 1000, 0), 0);
-    assert.equal(scrollToFit(rect, 800, 1000, 500), 0);
-});
-
-test('the page scroll made for a menu keeps it open while other scrolling closes it', () => {
+test('menus flip above without scrolling the page and follow subsequent scrolls', () => {
     const { state } = control();
     let scrolledBy = 0;
     state.$refs.menu = { contains: () => false };
@@ -275,14 +266,37 @@ test('the page scroll made for a menu keeps it open while other scrolling closes
     state.show();
     state.scrolled({ target: {} });
 
-    assert.ok(scrolledBy > 0);
+    assert.equal(scrolledBy, 0);
+    assert.equal(state.position.top, 'auto');
     assert.equal(state.open, true);
 
     const other = control().state;
     other.$refs.menu = { contains: () => false };
     other.open = true;
     other.scrolled({ target: {} });
+    assert.equal(other.open, true);
+    other.$refs.trigger.getBoundingClientRect = () => ({ top: -100, bottom: -56, left: 10, width: 240 });
+    other.scrolled({ target: {} });
     assert.equal(other.open, false);
+});
+
+test('an open menu tracks a sidebar transition and stops tracking when closed', () => {
+    const { state } = control();
+    let nextFrame;
+    let cancelled;
+    globalThis.window.requestAnimationFrame = callback => { nextFrame = callback; return 1; };
+    globalThis.window.cancelAnimationFrame = id => { cancelled = id; };
+    state.$refs.trigger.getBoundingClientRect = () => ({ top: 40, bottom: 84, left: 80, width: 240 });
+    state.show();
+    assert.equal(state.position.left, '80px');
+    state.$refs.trigger.getBoundingClientRect = () => ({ top: 40, bottom: 84, left: 120, width: 200 });
+
+    nextFrame();
+
+    assert.equal(state.position.left, '120px');
+    assert.equal(state.position.width, '200px');
+    state.close();
+    assert.equal(cancelled, 1);
 });
 
 test('short menus still open above when their options do not fit below', () => {

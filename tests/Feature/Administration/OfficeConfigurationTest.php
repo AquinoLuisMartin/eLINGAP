@@ -31,12 +31,12 @@ class OfficeConfigurationTest extends TestCase
 
     #[TestWith(['/'])]
     #[TestWith(['/login'])]
-    public function test_public_pages_have_empty_states_instead_of_fixed_office_information(string $path): void
+    public function test_public_pages_use_default_office_information_when_settings_are_missing(string $path): void
     {
         $this->get($path)->assertOk()->assertSee('Office of the Senior Citizen Affairs')
-            ->assertSee('Address not configured')->assertDontSee('Contact number not configured')
-            ->assertSee('Office hours not configured')->assertDontSee('Santa Maria')
-            ->assertDontSee('+63 44 288 2604')->assertDontSee('google.com/maps/search')
+            ->assertDontSee('Address not configured')->assertDontSee('Contact number not configured')
+            ->assertDontSee('Office hours not configured')->assertSee('Santa Maria Municipal Hall')
+            ->assertSee('+63 44 288 2604')->assertSee('google.com/maps/search')
             ->assertDontSee('Saturday &amp; Sunday', false);
     }
 
@@ -51,12 +51,12 @@ class OfficeConfigurationTest extends TestCase
         $this->get('/')->assertSee('in Revised town')->assertDontSee('in Synthetic town');
     }
 
-    public function test_missing_settings_table_keeps_login_available_without_fabricated_information(): void
+    public function test_missing_settings_table_keeps_login_available_with_default_office_information(): void
     {
         DB::statement('ALTER TABLE system_configurations RENAME TO temporarily_unavailable_settings');
         Log::shouldReceive('warning')->once()->with('Office settings are unavailable.', ['failure_type' => QueryException::class]);
 
-        $this->get('/login')->assertOk()->assertSee('Office of the Senior Citizen Affairs')->assertDontSee('+63 44 288 2604');
+        $this->get('/login')->assertOk()->assertSee('Office of the Senior Citizen Affairs')->assertSee('+63 44 288 2604');
     }
 
     public function test_administrator_can_save_settings_and_only_actual_changes_are_audited(): void
@@ -270,10 +270,10 @@ class OfficeConfigurationTest extends TestCase
         $senior = $this->senior();
         $card = app(IdCardLayout::class)->data($senior, draft: true);
 
-        $this->assertSame('Synthetic street, Synthetic barangay, Synthetic town, Synthetic province', $card['address']['text']);
+        $this->assertSame('SYNTHETIC STREET, SYNTHETIC BARANGAY, SYNTHETIC TOWN, SYNTHETIC PROVINCE', $card['address']['text']);
         $this->assertSame('Synthetic office', $card['office']['office_name']);
         $this->assertStringContainsString('SYNTHETIC MUNICIPALITY', view('components.senior-id.front', ['card' => $card])->render());
-        $this->assertSame('Synthetic street, Synthetic barangay, Synthetic town, Synthetic province',
+        $this->assertSame('SYNTHETIC STREET, SYNTHETIC BARANGAY, SYNTHETIC TOWN, SYNTHETIC PROVINCE',
             app(IdCardAddress::class)->format('Synthetic street, Synthetic town, Synthetic province', 'Synthetic barangay')['text']);
     }
 

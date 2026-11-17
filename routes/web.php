@@ -80,7 +80,10 @@ Route::middleware(['auth', 'auth.session', 'active', EnsureCurrentCredentials::c
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
     Route::get('senior-id/officials', [SeniorCitizenIdController::class, 'officials'])->name('senior-id.officials');
+    Route::view('senior-id/reprint-approvals', 'senior-citizens.ids.reprint-approvals')->middleware('can:approveIdReprints,App\Models\SeniorCitizen')->name('senior-id.reprint-approvals');
     Route::post('senior-id/batch-print', [SeniorCitizenIdController::class, 'batchPrint'])->middleware('throttle:20,1,id-print')->name('senior-id.batch-print');
+    Route::get('senior-id/printing/pending', [SeniorCitizenIdController::class, 'pendingPrints'])->name('senior-id.printing.pending');
+    Route::post('senior-id/printing/complete', [SeniorCitizenIdController::class, 'completePrinting'])->middleware('throttle:20,1,id-print')->name('senior-id.printing.complete');
     Route::get('senior-citizens/{senior_citizen}/identification', [SeniorCitizenIdController::class, 'show'])->name('senior-id.show');
     Route::get('senior-citizens/{senior_citizen}/identification/preview', [SeniorCitizenIdController::class, 'preview'])->name('senior-id.preview');
     Route::post('senior-citizens/{senior_citizen}/identification/print', [SeniorCitizenIdController::class, 'print'])->middleware('throttle:20,1,id-print')->name('senior-id.print');

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\SeniorCitizens;
 
 use App\Http\Controllers\Controller;
+use App\Models\IdPrintAttempt;
 use App\Models\SeniorCitizen;
-use App\Services\Benefits\BenefitAudit;
 use App\Services\SeniorCitizens\IdCardLayout;
+use App\Services\SeniorCitizens\IdPrinting;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -30,14 +32,13 @@ class SeniorCitizenIdController extends Controller
         return view('senior-citizens.ids.preview', ['card' => $layout->data($seniorCitizen, true)]);
     }
 
-    public function print(Request $request, SeniorCitizen $seniorCitizen, IdCardLayout $layout): Response
+    public function print(Request $request, SeniorCitizen $seniorCitizen, IdPrinting $printing): Response
     {
         Gate::authorize('manageId', $seniorCitizen);
-        $data = $request->validate(['paper' => ['required', Rule::in(array_keys(IdCardLayout::PAPERS))], 'purpose' => ['required', Rule::in(['FIRST_PRINT', 'REPRINT', 'REPLACEMENT'])]]);
-        $pdf = $layout->pdf($layout->data($seniorCitizen), $data['paper']);
-        BenefitAudit::record('senior_citizen.id_print_generated', $seniorCitizen, [...$data, 'generated_at' => now()->toIso8601String()]);
+        $data = $request->validate(['paper' => ['required', Rule::in(array_keys(IdCardLayout::PAPERS))]]);
+        [, $pdf, $attempts] = $printing->generate([$seniorCitizen->id], $data['paper']);
 
-        return response($pdf, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="'.$this->filename($seniorCitizen->last_name).'"', 'Cache-Control' => 'private, no-store']);
+        return response($pdf, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="'.$this->filename($seniorCitizen->last_name).'"', 'Cache-Control' => 'private, no-store', 'X-ID-Print-Attempts' => json_encode(array_column($attempts, 'id'))]);
     }
 
     public function officials(): View
@@ -47,33 +48,50 @@ class SeniorCitizenIdController extends Controller
         return view('senior-citizens.ids.officials');
     }
 
-    public function batchPrint(Request $request, IdCardLayout $layout): Response
+    public function batchPrint(Request $request, IdPrinting $printing): Response
     {
         Gate::authorize('configureId', SeniorCitizen::class);
         $data = $request->validate([
             'senior_ids' => ['required', 'array', 'min:1', 'max:4'],
             'senior_ids.*' => ['required', 'integer', 'distinct', 'exists:senior_citizens,id'],
             'paper' => ['required', Rule::in(array_keys(IdCardLayout::PAPERS))],
-            'purpose' => ['required', Rule::in(['FIRST_PRINT', 'REPRINT', 'REPLACEMENT'])],
+            'reviewed' => ['required', 'accepted'],
             'layout' => ['sometimes', 'required', 'in:single,batch'],
         ]);
         if (($data['layout'] ?? 'batch') === 'single' && count($data['senior_ids']) !== 1) {
             throw ValidationException::withMessages(['senior_ids' => 'Select exactly one ID for the Single ID layout.']);
         }
-        $seniors = SeniorCitizen::query()->whereIn('id', $data['senior_ids'])->orderBy('id')->get();
-        $cards = $seniors->map(function ($senior) use ($layout) {
-            Gate::authorize('manageId', $senior);
-
-            return $layout->data($senior);
-        })->all();
-        $pdf = $layout->sheetPdf($cards, $data['paper'], $data['layout'] ?? 'batch');
-        foreach ($seniors as $senior) {
-            BenefitAudit::record('senior_citizen.id_print_generated', $senior, ['paper' => $data['paper'], 'purpose' => $data['purpose'], 'batch_size' => count($cards), 'generated_at' => now()->toIso8601String()]);
-        }
+        [$seniors, $pdf, $attempts] = $printing->generate($data['senior_ids'], $data['paper'], $data['layout'] ?? 'batch', issuePending: true);
 
         $filename = $seniors->count() === 1 ? $this->filename($seniors->first()->last_name) : 'senior-ids.pdf';
 
-        return response($pdf, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="'.$filename.'"', 'Cache-Control' => 'private, no-store']);
+        return response($pdf, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="'.$filename.'"', 'Cache-Control' => 'private, no-store', 'X-ID-Print-Attempts' => json_encode(array_column($attempts, 'id'))]);
+    }
+
+    public function pendingPrints(): JsonResponse
+    {
+        Gate::authorize('configureId', SeniorCitizen::class);
+        $attempts = IdPrintAttempt::query()->where('status', 'GENERATED')
+            ->where(fn ($query) => $query->where('generated_by', auth()->id())->orWhereNotNull('legacy_audit_id'))
+            ->with('seniorCitizen:id,first_name,middle_name,last_name,name_suffix,osca_id_number')->orderBy('id')->get();
+
+        return response()->json(['attempts' => $attempts->map(fn ($attempt) => [
+            'id' => $attempt->id, 'name' => $attempt->seniorCitizen->full_name, 'osca_id' => $attempt->seniorCitizen->osca_id_number,
+        ])])->header('Cache-Control', 'private, no-store');
+    }
+
+    public function completePrinting(Request $request, IdPrinting $printing): JsonResponse
+    {
+        Gate::authorize('configureId', SeniorCitizen::class);
+        $data = $request->validate([
+            'results' => ['required', 'array', 'min:1', 'max:4'],
+            'results.*' => ['required', 'array:attempt_id,result'],
+            'results.*.attempt_id' => ['required', 'integer', 'distinct'],
+            'results.*.result' => ['required', 'in:PRINTED,NOT_PRINTED'],
+        ]);
+        $printing->complete($data['results']);
+
+        return response()->json(['message' => 'Printing results saved. Successfully printed IDs are retained in the Senior Masterlist and registration history.']);
     }
 
     private function filename(?string $lastName): string

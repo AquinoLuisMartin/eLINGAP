@@ -27,7 +27,7 @@
             :aria-describedby="description" :aria-required="required" :aria-invalid="invalidState" :disabled="disabled"
             @click.prevent="open ? close() : show()" @keydown="triggerKey($event)">
             <span class="min-w-0 truncate text-left" x-text="selectedLabel"></span>
-            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
+            <x-lucide-chevron-down aria-hidden="true" width="16" height="16" />
         </button>
         <span x-ref="menu" x-show="open" class="ui-select-menu" :style="position" @keydown="menuKey($event)">
             <span x-show="searchEnabled" class="ui-select-search">

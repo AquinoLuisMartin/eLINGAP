@@ -517,11 +517,15 @@ class BenefitWorkflowTest extends TestCase
 
     public function test_deceased_identity_cannot_be_registered_again(): void
     {
-        $senior = $this->senior(['status' => 'DECEASED']);
+        $senior = $this->senior(['status' => 'DECEASED', 'last_name' => 'Applicant']);
+
         $this->post(route('senior-citizens.store'), [
+            'requirements_status' => 'CHECKED', 'requirements_checks' => ['identity' => true, 'residency' => true, 'authorization' => false],
             'barangay_id' => $senior->barangay_id, 'first_name' => $senior->first_name, 'last_name' => $senior->last_name,
             'birth_date' => $senior->birth_date->toDateString(), 'sex' => 'FEMALE', 'address' => 'Synthetic address', 'contact_number' => '+639171234567',
-        ])->assertSessionHasErrors('first_name');
+        ])->assertSessionHasErrors(['first_name' => 'A senior citizen with this name and birth date already exists.'])
+            ->assertSessionDoesntHaveErrors(['last_name', 'requirements_status', 'requirements_checks', 'requirements_checks.identity', 'requirements_checks.residency', 'requirements_checks.authorization']);
+
         $this->assertDatabaseCount('senior_citizens', 1);
     }
 
@@ -581,7 +585,7 @@ class BenefitWorkflowTest extends TestCase
         $component = Livewire::test(Workspace::class)
             ->assertSee('Annual December Senior Assistance (Upcoming)')
             ->set('form.program_id', (string) $program->id)
-            ->set('form.location', 'Synthetic payout venue')
+            ->set('form.location', 'Synthetic payout venue')->set('form.ends_at', '2026-12-10T17:00')
             ->call('createSchedule')->assertHasErrors('historicalClaimsChecked');
 
         $this->assertSame('UPCOMING', $program->fresh()->status);
@@ -609,7 +613,7 @@ class BenefitWorkflowTest extends TestCase
             ->set('newProgram.government_level', 'PROVINCIAL')
             ->set('newProgram.cadence', 'QUARTERLY')
             ->assertSet('form.period_key', '2026-Q4')
-            ->set('form.location', 'Synthetic payout venue')
+            ->set('form.location', 'Synthetic payout venue')->set('form.ends_at', '2026-12-10T17:00')
             ->set('form.amount', '250')
             ->set('historicalClaimsChecked', true)
             ->call('createSchedule')->assertHasNoErrors();
@@ -629,7 +633,7 @@ class BenefitWorkflowTest extends TestCase
             ->set('form.program_id', (string) $program->id)
             ->assertSet('form.amount', '250.00')
             ->assertSet('form.period_key', '2026-Q4')
-            ->set('form.location', 'Synthetic second venue')
+            ->set('form.location', 'Synthetic second venue')->set('form.ends_at', '2026-12-10T17:00')
             ->call('createSchedule')->assertHasNoErrors();
 
         $this->assertDatabaseCount('programs', 10);
@@ -640,7 +644,7 @@ class BenefitWorkflowTest extends TestCase
     {
         $component = Livewire::test(Workspace::class)
             ->set('form.program_id', 'other')
-            ->set('form.location', 'Synthetic payout venue')
+            ->set('form.location', 'Synthetic payout venue')->set('form.ends_at', '2026-12-10T17:00')
             ->set('newProgram.government_level', 'INVALID')
             ->call('createSchedule')->assertHasErrors(['newProgram.name', 'newProgram.government_level']);
 
@@ -657,7 +661,7 @@ class BenefitWorkflowTest extends TestCase
     {
         Livewire::test(Workspace::class)
             ->set('form.program_id', 'other')
-            ->set('form.location', 'Synthetic payout venue')
+            ->set('form.location', 'Synthetic payout venue')->set('form.ends_at', '2026-12-10T17:00')
             ->set('newProgram.name', ' annual december senior assistance ')
             ->set('newProgram.agency', 'Synthetic agency')
             ->set('historicalClaimsChecked', true)
@@ -673,9 +677,9 @@ class BenefitWorkflowTest extends TestCase
 
         Livewire::test(Workspace::class)
             ->set('form.program_id', (string) $program->id)
-            ->set('form.location', 'Synthetic payout venue')
+            ->set('form.location', 'Synthetic payout venue')->set('form.ends_at', '2026-12-10T17:00')
             ->set('form.eligibility_on', '2026-10-01')
-            ->set('form.scheduled_at', '2026-10-20T12:00')
+            ->set('form.scheduled_at', '2026-10-20T12:00')->set('form.ends_at', '2026-10-20T17:00')
             ->set('historicalClaimsChecked', true)
             ->call('createSchedule')->assertHasErrors('scheduled_at');
 
@@ -684,7 +688,7 @@ class BenefitWorkflowTest extends TestCase
 
         Livewire::test(Workspace::class)
             ->set('form.program_id', 'other')
-            ->set('form.location', 'Synthetic payout venue')
+            ->set('form.location', 'Synthetic payout venue')->set('form.ends_at', '2026-12-10T17:00')
             ->set('newProgram.name', 'Synthetic custom aid')
             ->set('newProgram.agency', 'Synthetic agency')
             ->set('form.period_key', 'invalid')
@@ -702,7 +706,7 @@ class BenefitWorkflowTest extends TestCase
         $component = Livewire::test(Workspace::class)->set('form.program_id', (string) $program->id);
         $program->update(['status' => 'INACTIVE']);
 
-        $component->set('form.location', 'Synthetic payout venue')->call('createSchedule')->assertHasErrors('form.program_id');
+        $component->set('form.location', 'Synthetic payout venue')->set('form.ends_at', '2026-12-10T17:00')->call('createSchedule')->assertHasErrors('form.program_id');
 
         $this->assertDatabaseCount('benefit_schedules', 0);
     }

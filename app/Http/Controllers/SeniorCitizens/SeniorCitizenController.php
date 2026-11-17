@@ -51,9 +51,11 @@ class SeniorCitizenController extends Controller
         Gate::authorize('view', $seniorCitizen);
 
         $seniorCitizen->loadMissing('milestoneClaims:id,senior_citizen_id,milestone_age');
+        $seniorCitizen->load(['barangay', 'histories.changedBy', 'beneficiaries.program', 'transfers.recorder']);
 
         return view('senior-citizens.show', [
-            'seniorCitizen' => $seniorCitizen->load(['barangay', 'histories.changedBy', 'beneficiaries.program', 'transfers.recorder']),
+            'seniorCitizen' => $seniorCitizen,
+            'registrationApplicant' => $seniorCitizen->registrationApplicantDetails(),
             'photo' => $seniorCitizen->documents()->where('document_type', 'PHOTO')->latest('id')->first(),
             'documents' => $seniorCitizen->documents()->where('document_type', '!=', 'PHOTO')->latest('id')->get(['id', 'document_type', 'created_at']),
             'milestoneAges' => Program::query()->whereNotNull('benefit_code')->get(['benefit_rules'])->flatMap(fn ($program) => array_keys($program->benefit_rules['milestones'] ?? []))->unique()->sort()->values(),

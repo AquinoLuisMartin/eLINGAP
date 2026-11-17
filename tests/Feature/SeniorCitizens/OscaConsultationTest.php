@@ -28,6 +28,21 @@ class OscaConsultationTest extends TestCase
 {
     use RefreshDatabase;
 
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function test_milestones_tab_keeps_registration_milestones_and_history_in_reading_order(bool $admin): void
+    {
+        $senior = $this->senior();
+        $this->actingAs($admin ? User::factory()->admin()->create() : User::factory()->create());
+
+        $this->get(route('senior-citizens.show', [$senior, 'section' => 'milestones']))->assertOk()
+            ->assertSeeInOrder(['Senior Eligibility &amp; Benefits', 'Age Milestones', 'Benefit and Payment History'], false)
+            ->assertDontSee('Registration & Benefits')->assertDontSee('Historical program enrollments')
+            ->assertDontSee('TSS office request and verification note')->assertDontSee('Assign benefit')
+            ->assertSee('No benefit entitlements prepared yet.')
+            ->assertSee('Original period')->assertSee('Payment references');
+    }
+
     public function test_registration_requires_contact_even_with_a_representative_number(): void
     {
         $senior = $this->senior();
@@ -132,7 +147,76 @@ class OscaConsultationTest extends TestCase
         $this->actingAs(User::factory()->create());
         $senior = $this->senior(['id_generated_at' => null]);
 
-        Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])->call('saveClassifications')->assertStatus(422);
+        Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])->call('reviewClassifications')->call('saveClassifications')->assertStatus(422);
+
+        $this->assertNull($senior->fresh()->classification_verified_at);
+    }
+
+    public function test_classification_review_and_cancel_do_not_save_the_selected_changes(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = $this->senior();
+
+        $component = Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])
+            ->set('classifications.is_indigent', true)->call('reviewClassifications')
+            ->assertSee('Confirm Classifications')->assertSee('Confirm & Save');
+        $this->assertFalse($senior->fresh()->is_indigent);
+        $component->call('cancelClassificationReview')->assertDontSee('Confirm Classifications')
+            ->assertSet('classifications.is_indigent', true);
+
+        $this->assertFalse($senior->fresh()->is_indigent);
+        $this->assertNull($senior->fresh()->classification_verified_at);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'senior_citizen.classifications_verified']);
+    }
+
+    public function test_confirming_classifications_saves_reviewed_values_and_preserves_hidden_tss_verification(): void
+    {
+        $staff = User::factory()->create();
+        $this->actingAs($staff);
+        $senior = $this->senior(['tss_request' => 'Synthetic existing office verification.',
+            'tss_verified_at' => '2026-10-01 09:00:00', 'tss_verified_by' => $staff->id]);
+
+        Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])
+            ->set('classifications.is_bedridden', true)->set('classifications.has_local_pension', true)
+            ->set('classifications.tss_request', 'Synthetic forged hidden note.')
+            ->call('reviewClassifications')->call('saveClassifications')->assertHasNoErrors()
+            ->assertDontSee('Confirm Classifications')->assertSee('Classifications saved successfully.');
+
+        $senior->refresh();
+        $this->assertTrue($senior->is_bedridden);
+        $this->assertTrue($senior->has_local_pension);
+        $this->assertFalse($senior->is_indigent);
+        $this->assertSame('Synthetic existing office verification.', $senior->tss_request);
+        $this->assertSame('2026-10-01 09:00:00', $senior->tss_verified_at->toDateTimeString());
+        $this->assertSame($staff->id, $senior->tss_verified_by);
+        $this->assertSame($staff->id, $senior->classification_verified_by);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'senior_citizen.classifications_verified', 'auditable_id' => $senior->id]);
+    }
+
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function test_classifications_cannot_save_without_a_current_review(bool $changeAfterReview): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = $this->senior();
+        $component = Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id]);
+        if ($changeAfterReview) {
+            $component->call('reviewClassifications')->assertSee('No classifications selected.')
+                ->set('classifications.is_indigent', true);
+        }
+
+        $component->call('saveClassifications')->assertStatus(422);
+
+        $this->assertFalse($senior->fresh()->is_indigent);
+        $this->assertNull($senior->fresh()->classification_verified_at);
+    }
+
+    public function test_read_only_admin_cannot_open_classification_review(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $senior = $this->senior();
+
+        Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])->call('reviewClassifications')->assertForbidden();
 
         $this->assertNull($senior->fresh()->classification_verified_at);
     }
@@ -177,18 +261,55 @@ class OscaConsultationTest extends TestCase
         $this->assertSame($senior->full_name, $first->requester_name);
         $this->assertSame('Synthetic street, Synthetic origin, Santa Maria, Bulacan', $first->fresh()->previous_location);
         $this->assertDatabaseCount('senior_citizen_transfers', 2);
-        $response = $this->get(route('senior-citizens.show', [$senior, 'section' => 'transfers']))->assertSee('Transfer history');
+        $response = $this->get(route('senior-citizens.show', [$senior, 'section' => 'transfers']))
+            ->assertSee('Transfer history')->assertSee('Previous location</dt>', false)
+            ->assertSee('Synthetic street, Synthetic origin, Santa Maria, Bulacan');
         $this->assertSame(1, substr_count($response->getContent(), 'id="transfers"'));
         $this->assertSame(1, substr_count($response->getContent(), 'action="'.route('senior-citizens.transfers.store', $senior).'"'));
     }
 
-    public function test_transfer_rejects_missing_destination_requester_and_future_date(): void
+    #[TestWith(['Synthetic street', 'Synthetic street, Synthetic origin, Santa Maria, Bulacan'])]
+    #[TestWith(['Synthetic street, SYNTHETIC ORIGIN, santa maria, BULACAN', 'Synthetic street, Synthetic origin, Santa Maria, Bulacan'])]
+    #[TestWith(['123-SYNTHETIC ORIGIN', '123-SYNTHETIC ORIGIN, Synthetic origin, Santa Maria, Bulacan'])]
+    #[TestWith([', , Synthetic street, , Santa   Maria, Bulacan,', 'Synthetic street, Synthetic origin, Santa Maria, Bulacan'])]
+    #[TestWith(['', 'Synthetic origin, Santa Maria, Bulacan'])]
+    public function test_transfer_form_displays_complete_current_location_without_duplicate_locality(string $address, string $expected): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = $this->senior(['address' => $address]);
+
+        $this->get(route('senior-citizens.show', [$senior, 'section' => 'transfers']))
+            ->assertSee('Current location: '.$expected.'</p>', false)
+            ->assertSee('Current location</dt>', false)
+            ->assertSee('Confirm record transfer')
+            ->assertSee('Confirm transfer')
+            ->assertSee('Transfer date')
+            ->assertSee(':required="type === \'EXTERNAL\'"', false);
+
+        $this->assertSame($address, $senior->fresh()->address);
+        $this->assertDatabaseCount('senior_citizen_transfers', 0);
+    }
+
+    public function test_current_location_omits_missing_office_components_without_extra_commas(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = $this->senior(['address' => 'Synthetic street']);
+        SystemConfiguration::query()->whereIn('key', ['municipality', 'province'])->delete();
+
+        $this->get(route('senior-citizens.show', [$senior, 'section' => 'transfers']))
+            ->assertSee('Current location: Synthetic street, Synthetic origin</p>', false);
+
+        $this->assertSame('Synthetic street', $senior->fresh()->address);
+        $this->assertDatabaseCount('senior_citizen_transfers', 0);
+    }
+
+    public function test_transfer_rejects_missing_destination_and_requester(): void
     {
         $this->actingAs(User::factory()->create());
         $senior = $this->senior();
 
         $this->post(route('senior-citizens.transfers.store', $senior), ['type' => 'EXTERNAL', 'requested_by' => 'OTHER', 'transferred_on' => today()->addDay()->toDateString()])
-            ->assertSessionHasErrors(['requester_name', 'requester_relationship', 'destination_address', 'destination_barangay', 'destination_municipality', 'destination_province', 'transferred_on']);
+            ->assertSessionHasErrors(['requester_name', 'requester_relationship', 'destination_address', 'destination_barangay', 'destination_municipality', 'destination_province']);
 
         $this->assertDatabaseCount('senior_citizen_transfers', 0);
         $this->assertSame('VERIFIED', $senior->fresh()->status->value);
@@ -291,9 +412,39 @@ class OscaConsultationTest extends TestCase
         $input = ['type' => 'INTERNAL', 'requested_by' => 'SELF', 'barangay_id' => $senior->barangay_id, 'destination_address' => 'Synthetic next street', 'transferred_on' => '2026-10-03'];
         $this->post(route('senior-citizens.transfers.store', $senior), $input)->assertSessionHasNoErrors();
 
-        $this->post(route('senior-citizens.transfers.store', $senior), [...$input, 'transferred_on' => '2026-10-02'])->assertSessionHasErrors('transferred_on');
+        $this->travelBack();
+        $this->travelTo(now()->setDate(2026, 10, 2));
+        $this->post(route('senior-citizens.transfers.store', $senior), $input)->assertSessionHasErrors('transferred_on');
 
         $this->assertDatabaseCount('senior_citizen_transfers', 1);
+    }
+
+    #[TestWith(['INTERNAL', null])]
+    #[TestWith(['EXTERNAL', null])]
+    #[TestWith(['INTERNAL', '2000-01-01'])]
+    #[TestWith(['EXTERNAL', '2099-01-01'])]
+    public function test_transfer_date_is_recorded_automatically_and_cannot_be_overridden(string $type, ?string $submittedDate): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 12)->setTime(14, 30));
+        $staff = User::factory()->create();
+        $this->actingAs($staff);
+        $senior = $this->senior();
+        $input = [...$this->externalTransfer(), 'type' => $type, 'barangay_id' => $senior->barangay_id];
+        unset($input['transferred_on']);
+        if ($submittedDate !== null) {
+            $input['transferred_on'] = $submittedDate;
+        }
+        $this->get(route('senior-citizens.show', [$senior, 'section' => 'transfers']))
+            ->assertDontSee('name="transferred_on"', false);
+
+        $this->post(route('senior-citizens.transfers.store', $senior), $input)->assertSessionHasNoErrors();
+
+        $transfer = $senior->transfers()->sole();
+        $this->assertSame('2026-11-12', $transfer->transferred_on->toDateString());
+        $this->assertSame('2026-11-12 14:30:00', $transfer->created_at->format('Y-m-d H:i:s'));
+        $this->assertSame($staff->id, $transfer->recorded_by);
+        $this->assertDatabaseHas('senior_citizen_histories', ['senior_citizen_id' => $senior->id, 'action' => 'transferred']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'senior_citizen.transferred', 'auditable_id' => $senior->id]);
     }
 
     public function test_legacy_enrollment_cannot_bypass_staff_role_or_id_issuance(): void
@@ -383,17 +534,17 @@ class OscaConsultationTest extends TestCase
         $this->assertSame(8, $sides);
         $this->assertSame(4, $photos);
         $this->assertSame(1, $pdf->getCanvas()->get_page_count());
-        $this->post(route('senior-id.batch-print'), ['senior_ids' => $ids, 'paper' => $paper, 'purpose' => 'FIRST_PRINT'])->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->post(route('senior-id.batch-print'), ['senior_ids' => $ids, 'paper' => $paper, 'purpose' => 'FIRST_PRINT', 'reviewed' => true])->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertSame(4, AuditLog::where('action', 'senior_citizen.id_print_generated')->count());
     }
 
-    public function test_batch_print_rejects_unissued_ids_and_duplicate_selection(): void
+    public function test_batch_print_requires_review_and_rejects_duplicate_selection(): void
     {
         $this->actingAs(User::factory()->create());
         $senior = $this->senior(['id_generated_at' => null]);
         $input = ['senior_ids' => [$senior->id], 'paper' => 'a4', 'purpose' => 'FIRST_PRINT'];
 
-        $this->post(route('senior-id.batch-print'), $input)->assertStatus(422);
+        $this->post(route('senior-id.batch-print'), $input)->assertSessionHasErrors('reviewed');
         $this->post(route('senior-id.batch-print'), [...$input, 'senior_ids' => [$senior->id, $senior->id]])->assertSessionHasErrors('senior_ids.0');
         $this->post(route('senior-id.batch-print'), [...$input, 'senior_ids' => array_fill(0, 5, $senior->id)])->assertSessionHasErrors('senior_ids');
         $this->assertDatabaseMissing('audit_logs', ['action' => 'senior_citizen.id_print_generated']);

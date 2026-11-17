@@ -27,6 +27,13 @@ class BenefitScheduling
             $program = Program::query()->lockForUpdate()->findOrFail($program->id);
             abort_unless($program->benefit_rules && $program->status === 'ACTIVE', 422, 'Activate and configure the program first.');
             $on = Carbon::parse($data['eligibility_on']);
+            if (filled($data['ends_at'] ?? null)) {
+                $start = Carbon::parse($data['scheduled_at']);
+                $end = Carbon::parse($data['ends_at']);
+                if ($end->lte($start) || ! $end->isSameDay($start)) {
+                    throw ValidationException::withMessages(['form.ends_at' => 'Choose an end time after the start time on the same payout date.']);
+                }
+            }
             $this->eligibility->periods($program->benefit_rules, $on, $data['period_key']);
             if (isset($program->benefit_rules['payout_month']) && (int) Carbon::parse($data['scheduled_at'])->month !== (int) $program->benefit_rules['payout_month']) {
                 throw ValidationException::withMessages(['scheduled_at' => 'Schedule this program in its configured payout month.']);

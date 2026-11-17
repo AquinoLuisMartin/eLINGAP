@@ -1,0 +1,122 @@
+<?php
+
+namespace Tests\Feature\Reports;
+
+use App\Models\Barangay;
+use App\Models\SeniorCitizen;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PHPUnit\Framework\Attributes\TestWith;
+use Tests\TestCase;
+
+class SpreadsheetReportTest extends TestCase
+{
+    use RefreshDatabase;
+
+    #[TestWith(['05-2037'])]
+    #[TestWith(['01-0037'])]
+    #[TestWith(['0000001234567890'])]
+    #[TestWith(['24-8937'])]
+    #[TestWith(['=1+1'])]
+    public function test_excel_preserves_identifiers_and_formula_like_names_as_literal_text(string $identifier): void
+    {
+        $barangay = Barangay::create(['name' => 'Synthetic area', 'code' => 'SYN']);
+        SeniorCitizen::create([
+            'barangay_id' => $barangay->id, 'osca_id_number' => $identifier, 'first_name' => '=1+1', 'last_name' => 'Synthetic',
+            'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED',
+        ]);
+        $this->actingAs(User::factory()->create());
+
+        $response = $this->get(route('reports.export', ['type' => 'masterlist', 'format' => 'xlsx']))
+            ->assertOk()->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $book = $this->workbook($response->streamedContent());
+
+        try {
+            $sheet = $book->getSheetByName('Records');
+            $this->assertSame($identifier, $sheet->getCell('A2')->getValue());
+            $this->assertSame(DataType::TYPE_STRING, $sheet->getCell('A2')->getDataType());
+            $this->assertSame('@', $sheet->getStyle('A2')->getNumberFormat()->getFormatCode());
+            $this->assertSame('=1+1', $sheet->getCell('C2')->getValue());
+            $this->assertSame(DataType::TYPE_STRING, $sheet->getCell('C2')->getDataType());
+            $this->assertSame('1950-01-01', $sheet->getCell('F2')->getValue());
+            $this->assertSame(DataType::TYPE_STRING, $sheet->getCell('F2')->getDataType());
+        } finally {
+            $book->disconnectWorksheets();
+        }
+        $this->assertDatabaseHas('senior_citizens', ['osca_id_number' => $identifier]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'report.exported', 'new_values->format' => 'xlsx']);
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+    }
+
+    public function test_excel_exports_all_filtered_rows_and_separates_population_and_generation_details(): void
+    {
+        $this->travelTo('2026-11-11 10:30:00');
+        $first = Barangay::create(['name' => 'Synthetic North', 'code' => 'N']);
+        $second = Barangay::create(['name' => 'Synthetic South', 'code' => 'S']);
+        foreach (range(1, 26) as $index) {
+            SeniorCitizen::create([
+                'barangay_id' => $index === 26 ? $second->id : $first->id,
+                'osca_id_number' => 'SYN-'.$index, 'first_name' => 'Synthetic', 'last_name' => sprintf('Record %02d', $index),
+                'birth_date' => '1966-11-11', 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED',
+            ]);
+        }
+        $this->actingAs(User::factory()->create());
+
+        $response = $this->get(route('reports.export', ['type' => 'masterlist', 'format' => 'xlsx', 'barangay_id' => $first->id, 'age_min' => 60, 'age_max' => 60]))
+            ->assertOk()->assertDownload('Synthetic North - Senior citizens - 2026-11-11.xlsx');
+        $book = $this->workbook($response->streamedContent());
+
+        try {
+            $records = $book->getSheetByName('Records');
+            $details = $book->getSheetByName('Report details');
+            $this->assertSame(26, $records->getHighestDataRow());
+            $this->assertSame('SYN-1', $records->getCell('A2')->getValue());
+            $this->assertSame('SYN-25', $records->getCell('A26')->getValue());
+            $this->assertSame(60, $records->getCell('G2')->getValue());
+            $this->assertSame('A2', $records->getFreezePane());
+            $this->assertSame('A1:I26', $records->getAutoFilter()->getRange());
+            $this->assertSame('2026-11-11 10:30:00 Asia/Manila', $details->getCell('B2')->getValue());
+            $this->assertSame(25, $details->getCell('B3')->getValue());
+            $this->assertSame('Synthetic North', $details->getCell('B4')->getValue());
+            $this->assertSame(26, $details->getCell('B'.$details->getHighestDataRow())->getValue());
+        } finally {
+            $book->disconnectWorksheets();
+        }
+    }
+
+    public function test_population_excel_keeps_counts_numeric_including_empty_barangays(): void
+    {
+        Barangay::create(['name' => 'Synthetic empty area', 'code' => 'SYN']);
+        $this->actingAs(User::factory()->create());
+
+        $response = $this->get(route('reports.export', ['type' => 'population', 'format' => 'xlsx']))->assertOk();
+        $book = $this->workbook($response->streamedContent());
+
+        try {
+            $this->assertSame(0, $book->getSheetByName('Records')->getCell('B2')->getValue());
+            $this->assertSame(DataType::TYPE_NUMERIC, $book->getSheetByName('Records')->getCell('B2')->getDataType());
+        } finally {
+            $book->disconnectWorksheets();
+        }
+    }
+
+    public function test_excel_download_requires_authentication(): void
+    {
+        $this->get(route('reports.export', ['type' => 'masterlist', 'format' => 'xlsx']))->assertRedirectToRoute('login');
+    }
+
+    private function workbook(string $content): Spreadsheet
+    {
+        $path = tempnam(storage_path('framework/testing'), 'report-xlsx-');
+        try {
+            file_put_contents($path, $content);
+
+            return IOFactory::load($path);
+        } finally {
+            unlink($path);
+        }
+    }
+}

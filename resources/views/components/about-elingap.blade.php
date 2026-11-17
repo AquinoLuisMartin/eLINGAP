@@ -1,5 +1,5 @@
 <section id="about-view" class="hidden min-h-[65vh] bg-slate-50 text-osca-ink" aria-labelledby="about-elingap-title">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+    <div class="w-full max-w-full px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
         <div class="max-w-4xl">
             <img src="{{ asset('images/eLINGAP.png') }}" alt="eLINGAP logo" class="mb-5 size-24 object-contain" width="96" height="96" loading="lazy">
             <h1 id="about-elingap-title" class="text-osca-ink text-3xl sm:text-4xl font-semibold tracking-tight">About eLINGAP</h1>

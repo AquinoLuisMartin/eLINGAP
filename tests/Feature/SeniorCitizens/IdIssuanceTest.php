@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\SeniorCitizens;
 
+use App\Livewire\Administration\Dashboard;
 use App\Livewire\SeniorCitizens\IdManager;
 use App\Livewire\SeniorCitizens\IdOfficialSettings;
 use App\Models\AuditLog;
@@ -29,6 +30,24 @@ class IdIssuanceTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_id_activity_is_kept_in_admin_logs_without_appearing_in_the_staff_workspace(): void
+    {
+        $staff = User::factory()->create();
+        $this->actingAs($staff);
+        $senior = $this->senior();
+        $event = AuditLog::create([
+            'user_id' => $staff->id, 'action' => 'senior_citizen.id_print_generated',
+            'auditable_type' => SeniorCitizen::class, 'auditable_id' => $senior->id,
+        ]);
+
+        Livewire::test(IdManager::class, ['seniorId' => $senior->id])
+            ->assertDontSee('ID activity')->assertDontSee('Generated an ID print document');
+
+        Livewire::actingAs(User::factory()->admin()->create())->test(Dashboard::class)
+            ->call('navigate', 'system-logs')->assertSee('Generated an ID print document');
+        $this->assertDatabaseHas('audit_logs', ['id' => $event->id, 'action' => 'senior_citizen.id_print_generated']);
+    }
+
     #[TestWith(['+639170000001', '+639180000002', '0917-000-0001'])]
     #[TestWith(['09170000001', null, '0917-000-0001'])]
     #[TestWith([null, '+639180000002', '0918-000-0002'])]
@@ -39,7 +58,7 @@ class IdIssuanceTest extends TestCase
 
         $response = $this->get(route('senior-id.preview', $senior));
 
-        $response->assertSeeTextInOrder(['Synthetic office', 'MUNICIPALITY OF SANTA MARIA', 'NAME:', 'ADDRESS:', 'Synthetic street', 'Contact No.:', $expected, 'Date of Birth']);
+        $response->assertSeeTextInOrder(['Synthetic office', 'MUNICIPALITY OF SANTA MARIA', 'NAME:', 'ADDRESS:', 'SYNTHETIC STREET', 'Contact No.:', $expected, 'Date of Birth']);
         $this->assertSame($contact, $senior->fresh()->contact_number);
     }
 
@@ -84,7 +103,10 @@ class IdIssuanceTest extends TestCase
         $this->assertNull($senior->fresh()->id_generated_at);
 
         Livewire::test(IdManager::class, ['seniorId' => $senior->id])->call('next')->assertSet('step', 2)->call('issue')->assertHasErrors('reviewed')
-            ->set('reviewed', true)->call('issue')->assertHasNoErrors()->assertSet('step', 3);
+            ->assertNotDispatched('id-ready-to-print')
+            ->set('reviewed', true)->call('issue')->assertHasNoErrors()->assertSet('step', 3)
+            ->assertSet('notice', '')
+            ->assertDispatched('id-ready-to-print', message: 'The ID has been issued. Open the print-ready PDF, then record the physical printing result.');
         $this->assertNotNull($senior->fresh()->id_generated_at);
         $this->assertMatchesRegularExpression('/^26-\d{4,}$/', $senior->fresh()->osca_id_number);
         $this->assertDatabaseHas('audit_logs', ['action' => 'senior_citizen.id_generated', 'auditable_id' => $senior->id]);
@@ -262,7 +284,10 @@ class IdIssuanceTest extends TestCase
         $this->actingAs(User::factory()->create());
         $senior = $this->senior(['status' => 'ARCHIVED', 'osca_id_number' => '26-0031', 'id_generated_at' => '2026-03-01']);
         Livewire::test(IdManager::class, ['seniorId' => $senior->id])
-            ->call('next')->set('reviewed', true)->call('prepareExisting')->assertHasNoErrors()->assertSet('step', 3);
+            ->call('next')->call('prepareExisting')->assertHasErrors('reviewed')->assertNotDispatched('id-ready-to-print')
+            ->set('reviewed', true)->call('prepareExisting')->assertHasNoErrors()->assertSet('step', 3)
+            ->assertSet('notice', '')
+            ->assertDispatched('id-ready-to-print', message: 'The existing ID number and original issuance date are unchanged. Open the print-ready PDF, then record the physical printing result.');
         $this->assertSame('ARCHIVED', $senior->fresh()->status->value);
         $this->assertSame('26-0031', $senior->fresh()->osca_id_number);
         $this->assertSame('2026-03-01', $senior->fresh()->id_generated_at->toDateString());
@@ -305,7 +330,7 @@ class IdIssuanceTest extends TestCase
     }
 
     #[TestWith(['VERIFIED', false, false])]
-    #[TestWith(['VERIFIED', true, true])]
+    #[TestWith(['VERIFIED', true, false])]
     #[TestWith(['ARCHIVED', true, true])]
     #[TestWith(['DECEASED', true, true])]
     #[TestWith(['TRANSFERRED', false, true])]
@@ -328,11 +353,70 @@ class IdIssuanceTest extends TestCase
         $this->actingAs(User::factory()->create());
         $first = $this->senior();
         $second = $this->senior();
-        $input = ['senior_ids' => [$first->id, $second->id], 'paper' => 'a4', 'purpose' => 'FIRST_PRINT'];
+        $input = ['senior_ids' => [$first->id, $second->id], 'paper' => 'a4', 'purpose' => 'FIRST_PRINT', 'reviewed' => true];
 
         $this->post(route('senior-id.batch-print'), [...$input, 'layout' => 'single'])->assertSessionHasErrors('senior_ids');
         $this->post(route('senior-id.batch-print'), [...$input, 'layout' => 'unknown'])->assertSessionHasErrors('layout');
         $this->assertDatabaseCount('senior_citizen_id_credentials', 0);
+    }
+
+    public function test_batch_print_preserves_existing_numbers_and_rejects_repeated_first_prints(): void
+    {
+        Storage::fake('local');
+        $this->actingAs(User::factory()->create());
+        $this->configureOfficials();
+        $senior = $this->senior(['osca_id_number' => '26-0031', 'id_generated_at' => now()]);
+        app(IdCredential::class)->createForIssued($senior);
+        $issuedAt = $senior->id_generated_at->toDateTimeString();
+        $input = ['senior_ids' => [$senior->id], 'paper' => 'a4', 'purpose' => 'FIRST_PRINT', 'reviewed' => true];
+
+        $this->post(route('senior-id.batch-print'), $input)->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->post(route('senior-id.batch-print'), $input)->assertSessionHasErrors('printing');
+        $this->post(route('senior-id.batch-print'), [...$input, 'purpose' => 'REPLACEMENT'])->assertSessionHasErrors('printing');
+        $this->post(route('senior-id.print', $senior), ['paper' => 'a4', 'purpose' => 'FIRST_PRINT'])->assertSessionHasErrors('printing');
+
+        $senior->refresh();
+        $this->assertSame('26-0031', $senior->osca_id_number);
+        $this->assertSame($issuedAt, $senior->id_generated_at->toDateTimeString());
+        $this->assertSame(1, $senior->idPrints()->count());
+        $response = $this->get(route('registrations.index'))->assertSee('Pending printing');
+        $document = new \DOMDocument;
+        @$document->loadHTML($response->getContent());
+        $checkbox = (new \DOMXPath($document))->query('//input[@name="senior_ids[]" and @value="'.$senior->id.'"]')->item(0);
+        $this->assertTrue($checkbox->hasAttribute('disabled'));
+    }
+
+    #[TestWith(['PENDING'])]
+    #[TestWith(['DECEASED'])]
+    #[TestWith(['TRANSFERRED'])]
+    public function test_invalid_batch_record_rolls_back_issuance_for_the_entire_selection(string $status): void
+    {
+        $this->actingAs(User::factory()->create());
+        $first = $this->senior();
+        $second = $this->senior(['status' => $status]);
+
+        $this->post(route('senior-id.batch-print'), ['senior_ids' => [$first->id, $second->id], 'paper' => 'a4', 'purpose' => 'FIRST_PRINT', 'reviewed' => true])
+            ->assertStatus(422);
+
+        $this->assertNull($first->fresh()->id_generated_at);
+        $this->assertNull($first->fresh()->osca_id_number);
+        $this->assertDatabaseEmpty('senior_citizen_id_credentials');
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'senior_citizen.id_generated']);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'senior_citizen.id_print_generated']);
+    }
+
+    public function test_failed_batch_pdf_validation_does_not_issue_ids(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = $this->senior();
+
+        $this->post(route('senior-id.batch-print'), ['senior_ids' => [$senior->id], 'paper' => 'a4', 'purpose' => 'FIRST_PRINT', 'reviewed' => true])
+            ->assertSessionHasErrors('officials');
+
+        $this->assertNull($senior->fresh()->id_generated_at);
+        $this->assertNull($senior->fresh()->osca_id_number);
+        $this->assertDatabaseEmpty('senior_citizen_id_credentials');
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'senior_citizen.id_print_generated']);
     }
 
     public function test_step_navigation_does_not_issue_an_id_and_clears_review_confirmation(): void
@@ -432,11 +516,11 @@ class IdIssuanceTest extends TestCase
         $this->assertDatabaseMissing('audit_logs', ['action' => 'senior_citizen.id_print_generated']);
     }
 
-    public function test_printing_rejects_unsupported_paper_and_purpose(): void
+    public function test_printing_rejects_unsupported_paper(): void
     {
         $this->actingAs(User::factory()->create());
         $senior = $this->senior();
-        $this->post(route('senior-id.print', $senior), ['paper' => 'legal', 'purpose' => 'OTHER'])->assertSessionHasErrors(['paper', 'purpose']);
+        $this->post(route('senior-id.print', $senior), ['paper' => 'legal', 'purpose' => 'OTHER'])->assertSessionHasErrors('paper');
     }
 
     public function test_preview_uses_the_included_seal_without_an_uploaded_replacement(): void
@@ -531,7 +615,7 @@ class IdIssuanceTest extends TestCase
         $this->get(route('senior-id.preview', $senior))->assertSee('Address needs review before printing.');
         $this->get(route('senior-id.show', $senior))->assertSee('The address is too long to fit legibly on the ID.');
         $this->post($batch ? route('senior-id.batch-print') : route('senior-id.print', $senior), [
-            'paper' => 'a4', 'purpose' => 'FIRST_PRINT', ...($batch ? ['senior_ids' => [$senior->id]] : []),
+            'paper' => 'a4', 'purpose' => 'FIRST_PRINT', ...($batch ? ['senior_ids' => [$senior->id], 'reviewed' => true] : []),
         ])->assertSessionHasErrors(['address' => 'The address is too long to fit legibly on the ID. Review the address in the senior record before printing.']);
 
         $this->assertSame($address, $senior->fresh()->address);

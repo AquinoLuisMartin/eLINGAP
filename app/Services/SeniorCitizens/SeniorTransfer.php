@@ -24,6 +24,7 @@ class SeniorTransfer
         return DB::transaction(function () use ($senior, $data, $office) {
             $senior = SeniorCitizen::query()->lockForUpdate()->findOrFail($senior->id);
             Gate::authorize('transfer', $senior);
+            $data['transferred_on'] = today()->toDateString();
             $last = $senior->transfers()->latest('id')->first();
             if ($last && $data['transferred_on'] < $last->transferred_on->toDateString()) {
                 throw ValidationException::withMessages(['transferred_on' => 'The transfer date cannot precede the previous transfer.']);

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['barangay_id', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'sex', 'civil_status', 'address', 'contact_number', 'osca_id_number', 'status', 'verified_at', 'verified_by', 'died_on', 'death_declared_at', 'death_declared_by', 'applicant_type', 'representative_name', 'representative_relationship', 'representative_contact', 'requirements_checks', 'review_reason'])]
 class SeniorCitizen extends Model
@@ -72,6 +73,67 @@ class SeniorCitizen extends Model
     public function histories(): HasMany
     {
         return $this->hasMany(SeniorCitizenHistory::class);
+    }
+
+    public function idPrints(): HasMany
+    {
+        return $this->hasMany(AuditLog::class, 'auditable_id')
+            ->where('auditable_type', self::class)->where('action', 'senior_citizen.id_print_generated');
+    }
+
+    public function idPrintAttempts(): HasMany
+    {
+        return $this->hasMany(IdPrintAttempt::class);
+    }
+
+    public function latestIdPrintAttempt(): HasOne
+    {
+        return $this->hasOne(IdPrintAttempt::class)->latestOfMany();
+    }
+
+    public function lastConfirmedIdPrint(): HasOne
+    {
+        return $this->hasOne(IdPrintAttempt::class)->ofMany(['id' => 'max'], fn (Builder $query) => $query->where('status', 'CONFIRMED'));
+    }
+
+    public function idReprintRequests(): HasMany
+    {
+        return $this->hasMany(IdReprintRequest::class);
+    }
+
+    public function latestIdReprintRequest(): HasOne
+    {
+        return $this->hasOne(IdReprintRequest::class)->latestOfMany();
+    }
+
+    public function idPrintingStatus(): string
+    {
+        if ($this->latestIdPrintAttempt?->status === 'GENERATED') {
+            return 'Pending Printing';
+        }
+
+        return match ($this->latestIdReprintRequest?->status) {
+            'PENDING' => 'Pending Approval',
+            'APPROVED' => 'Approved',
+            'REJECTED' => 'Rejected',
+            default => $this->lastConfirmedIdPrint ? 'Printed' : 'Pending Printing',
+        };
+    }
+
+    public function canGenerateIdPrint(): bool
+    {
+        return $this->latestIdPrintAttempt?->status !== 'GENERATED'
+            && (! $this->lastConfirmedIdPrint || $this->latestIdReprintRequest?->status === 'APPROVED');
+    }
+
+    public function registrationApplicantDetails(): array
+    {
+        $details = $this->only(['applicant_type', 'representative_name', 'representative_relationship', 'representative_contact']);
+        foreach ($this->histories->where('action', 'updated')->sortByDesc('id') as $history) {
+            $details = array_replace($details, array_intersect_key($history->getAttribute('changes')['from'] ?? [], $details));
+        }
+
+        return $details;
     }
 
     public function documents(): HasMany

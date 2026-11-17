@@ -26,7 +26,6 @@ class StoreTransferRequest extends FormRequest
             'destination_province' => ['exclude_unless:type,EXTERNAL', 'required', 'string', 'max:100'],
             'destination_barangay' => ['exclude_unless:type,EXTERNAL', 'required', 'string', 'max:100'],
             'destination_address' => ['required', 'string', 'max:1000'],
-            'transferred_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:'.$this->route('senior_citizen')->created_at->toDateString()],
             'reason' => ['nullable', 'string', 'max:1000'],
         ];
     }

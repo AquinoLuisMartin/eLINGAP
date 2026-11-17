@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="mx-auto max-w-6xl space-y-4" x-data="{
+    <div class="w-full min-w-0 max-w-full space-y-5" x-data="{
         tab: {{ \Illuminate\Support\Js::from(in_array(request('section'), ['profile', 'id-card', 'milestones', 'transfers'], true) ? request('section') : 'profile') }},
         tabs: ['profile', 'id-card', 'milestones', 'transfers'],
         selectTab(index) {
@@ -9,48 +9,46 @@
             this.$nextTick(() => document.getElementById('tab-' + this.tab).focus());
         }
     }" @registration-verified.window="window.location.reload()">
-        <header class="space-y-3">
-            <div class="flex items-center justify-between gap-3">
-                <a href="{{ route('senior-citizens.index', request()->only(['search', 'search_by', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])) }}" x-on:click="if (window.history.length > 1) { $event.preventDefault(); window.history.back(); }" class="text-button text-sm">&larr; Back</a>
+        <header class="space-y-4">
+            <a href="{{ route(request('from') === 'registrations' ? 'registrations.index' : 'senior-citizens.index', request()->only(['search', 'search_by', 'stage', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])) }}" class="text-button inline-flex min-h-11 items-center text-sm">&larr; Back to {{ request('from') === 'registrations' ? 'registrations' : 'masterlist' }}</a>
+            <div class="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div class="min-w-0 space-y-2">
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Senior citizen record</p>
+                    <h1 class="break-words text-2xl font-semibold sm:text-3xl">{{ $seniorCitizen->full_name }}</h1>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <x-badge :status="$seniorCitizen->status" />
+                        <x-milestone-badge :senior="$seniorCitizen" />
+                    </div>
+                </div>
                 @can('update', $seniorCitizen)
-                    <a href="{{ route('senior-citizens.edit', [$seniorCitizen, ...request()->only(['from', 'search', 'search_by', 'stage', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])]) }}" class="primary-button shrink-0"><x-admin.icon name="pencil" size="16" /> Edit profile</a>
+                    <a href="{{ route('senior-citizens.edit', [$seniorCitizen, ...request()->only(['from', 'search', 'search_by', 'stage', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])]) }}" class="primary-button shrink-0 self-start">Edit profile</a>
                 @endcan
-            </div>
-            <div class="flex min-w-0 items-center gap-3">
-                    <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-osca-primary/10 text-osca-primary dark:bg-blue-400/10 dark:text-blue-300" aria-hidden="true">
-                        <x-admin.icon name="users" size="20" />
-                    </div>
-                    <div class="min-w-0 space-y-1">
-                        <h2 class="break-words text-xl font-semibold sm:text-2xl">{{ $seniorCitizen->full_name }}</h2>
-                        <div class="flex flex-wrap items-center gap-2">
-                            <span class="text-sm text-slate-500">{{ implode(', ', array_filter([$seniorCitizen->barangay->name, $officeDetails['municipality']])) }}</span>
-                            <x-badge :status="$seniorCitizen->status" />
-                            <x-milestone-badge :senior="$seniorCitizen" />
-                        </div>
-                    </div>
             </div>
         </header>
 
-        <nav role="tablist" aria-label="Profile sections" class="flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900"
+        <div class="border-b border-slate-200 dark:border-slate-700">
+        <nav role="tablist" aria-label="Profile sections" class="grid w-full! grid-cols-2 gap-x-4 sm:flex sm:w-fit! sm:gap-7"
             @keydown.arrow-right.prevent="selectTab(tabs.indexOf(tab) + 1)" @keydown.arrow-left.prevent="selectTab(tabs.indexOf(tab) - 1)"
             @keydown.home.prevent="selectTab(0)" @keydown.end.prevent="selectTab(tabs.length - 1)">
-            @foreach (['profile' => ['Profile', 'users'], 'id-card' => ['ID card', 'clipboard-list'], 'milestones' => ['Milestones & benefits', 'heart-pulse'], 'transfers' => ['Transfers', 'file-text']] as $key => [$label, $icon])
+            @foreach (['profile' => 'Profile', 'id-card' => 'ID card', 'milestones' => 'Milestones & benefits', 'transfers' => 'Transfers'] as $key => $label)
                 <button type="button" id="tab-{{ $key }}" role="tab" aria-controls="{{ $key }}" :aria-selected="tab === '{{ $key }}'" :tabindex="tab === '{{ $key }}' ? 0 : -1" @click="tab = '{{ $key }}'"
-                    class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-osca-primary"
-                    :class="tab === '{{ $key }}' ? 'bg-osca-primary text-white' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'">
-                    <x-admin.icon :name="$icon" size="17" /> {{ $label }}
+                    class="inline-flex min-h-11 shrink-0 items-center justify-center border-b-2 px-1 py-3 text-sm transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-osca-primary dark:focus-visible:outline-blue-300"
+                    :class="tab === '{{ $key }}' ? 'border-osca-primary text-osca-primary dark:border-blue-300 dark:text-blue-300' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800 dark:text-slate-400 dark:hover:border-slate-500 dark:hover:text-slate-100'">
+                    {{ $label }}
                 </button>
             @endforeach
         </nav>
+        </div>
 
-        <div id="profile" role="tabpanel" aria-labelledby="tab-profile" tabindex="0" x-show="tab === 'profile'" class="space-y-4">
+        <div id="profile" role="tabpanel" aria-labelledby="tab-profile" tabindex="0" x-show="tab === 'profile'" x-cloak class="space-y-4">
             <livewire:senior-citizens.requirements-review :senior-id="$seniorCitizen->id" />
             <div class="grid items-start gap-4 lg:grid-cols-3">
-                <x-benefit-panel class="p-4! lg:col-span-2">
+                <div class="flex min-w-0 flex-col gap-4 lg:col-span-2">
+                <x-benefit-panel class="p-5!">
                     <div class="mb-4 border-b border-slate-200 pb-3 dark:border-slate-700">
                         <h3 class="text-base font-semibold">Profile</h3>
                     </div>
-                    <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                    <dl class="grid gap-x-8 gap-y-4 sm:grid-cols-2">
                         @foreach ([
                             'OSCA ID No.' => $seniorCitizen->osca_id_number ?: 'Not issued',
                             'Birth date' => $seniorCitizen->birth_date->format('F j, Y'),
@@ -58,10 +56,12 @@
                             'Sex' => ucfirst(strtolower($seniorCitizen->sex)),
                             'Barangay' => $seniorCitizen->barangay->name,
                             'Contact number' => $seniorCitizen->contact_number ?: 'Not provided',
-                            'Address' => $seniorCitizen->address,
+                            'Municipality' => $officeDetails['municipality'] ?: 'Not configured',
+                            'Province' => $officeDetails['province'] ?: 'Not configured',
+                            'House No. / Street / Purok / Sitio / Subdivision' => $seniorCitizen->address,
                         ] as $label => $value)
-                            <div class="space-y-0.5">
-                                <dt class="text-xs text-slate-500">{{ $label }}</dt>
+                            <div @class(['space-y-0.5 min-w-0', 'sm:col-span-2' => $label === 'House No. / Street / Purok / Sitio / Subdivision'])>
+                                <dt class="text-xs text-slate-500 dark:text-slate-400">{{ $label }}</dt>
                                 <dd class="break-words text-sm font-medium text-slate-800 dark:text-slate-100">{{ $value }}</dd>
                             </div>
                         @endforeach
@@ -70,40 +70,49 @@
                         @endif
                     </dl>
                 </x-benefit-panel>
-                <aside class="space-y-4" aria-label="Supporting information">
+                @if ($registrationApplicant['applicant_type'] === 'REPRESENTATIVE')
                     <x-benefit-panel class="p-4!">
-                        <div class="mb-3 flex items-center justify-between gap-3">
+                        <div class="mb-4 border-b border-slate-200 pb-3 dark:border-slate-700">
+                            <h3 class="text-base font-semibold">Authorized Representative Details</h3>
+                        </div>
+                        <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                            @foreach ([
+                                'Representative name' => $registrationApplicant['representative_name'],
+                                'Relationship to senior' => $registrationApplicant['representative_relationship'],
+                                'Contact number' => $registrationApplicant['representative_contact'],
+                            ] as $label => $value)
+                                <div class="space-y-0.5">
+                                    <dt class="text-xs text-slate-500">{{ $label }}</dt>
+                                    <dd class="break-words text-sm font-medium text-slate-800 dark:text-slate-100">{{ filled($value) ? $value : 'Not recorded' }}</dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                    </x-benefit-panel>
+                @endif
+            <x-benefit-panel class="p-4!">
+                <details>
+                    <summary class="cursor-pointer text-sm font-semibold">Record actions</summary>
+                    <div class="mt-4 space-y-4">@include('senior-citizens._record-actions')</div>
+                </details>
+            </x-benefit-panel>
+                </div>
+                <aside class="space-y-4" aria-label="Supporting information">
+                    <x-benefit-panel class="p-5!">
+                        <div class="mb-4 flex items-center justify-between gap-3 border-b border-slate-200 pb-3 dark:border-slate-700">
                             <h3 class="text-base font-semibold">Supporting Documents</h3>
-                            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600 dark:bg-slate-800">{{ $documents->count() }}</span>
+                            <span class="shrink-0 text-xs text-slate-500 dark:text-slate-400">{{ $documents->count() }} {{ \Illuminate\Support\Str::plural('file', $documents->count()) }}</span>
                         </div>
                         <div class="space-y-3">
                             @forelse ($documents as $document)
-                                <form method="GET" action="{{ route('senior-citizens.document', [$seniorCitizen, $document->id]) }}">
-                                    <button type="submit" class="flex w-full items-center gap-3 rounded-lg border border-slate-200 p-3 text-left transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-osca-primary dark:border-slate-700 dark:hover:bg-slate-800">
-                                        <span class="text-osca-primary dark:text-blue-300"><x-admin.icon name="file-text" size="20" /></span>
+                                <a href="{{ route('senior-citizens.document', [$seniorCitizen, $document->id]) }}" class="flex min-h-11 w-full items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-osca-primary dark:hover:bg-slate-800 dark:focus-visible:outline-blue-300">
                                         <span class="min-w-0 flex-1"><span class="block break-words text-sm text-slate-800 dark:text-slate-100">{{ str_replace('_', ' ', ucfirst(strtolower($document->document_type))) }}</span><span class="block text-xs text-slate-500">{{ $document->created_at->format('M j, Y') }}</span></span>
-                                        <span class="text-slate-500"><x-admin.icon name="arrow-up-right" size="16" /></span>
-                                    </button>
-                                </form>
+                                        <span class="text-sm text-osca-primary underline underline-offset-4 dark:text-blue-300">View<span class="sr-only"> {{ str_replace('_', ' ', strtolower($document->document_type)) }}</span></span>
+                                </a>
                             @empty
-                                <div class="flex items-center gap-2 rounded-lg bg-slate-50 p-3 dark:bg-slate-800">
-                                    <span class="shrink-0 text-slate-400"><x-admin.icon name="file-text" size="18" /></span>
-                                    <p class="text-sm text-slate-500">No supporting documents uploaded.</p>
-                                </div>
+                                <p class="text-sm leading-relaxed text-slate-500 dark:text-slate-400">No supporting documents uploaded.</p>
                             @endforelse
                         </div>
                     </x-benefit-panel>
-                    @if ($seniorCitizen->representative_name)
-                        <x-benefit-panel class="p-4!">
-                            <h3 class="mb-3 text-base font-semibold">Authorized Representative</h3>
-                            <p class="text-sm font-medium text-slate-800 dark:text-slate-100">{{ $seniorCitizen->representative_name }}</p>
-                            <p class="mt-1 text-sm text-slate-500">{{ $seniorCitizen->representative_relationship }}</p>
-                            <p class="mt-3 text-sm text-slate-800 dark:text-slate-100">{{ $seniorCitizen->representative_contact ?: 'No contact number provided' }}</p>
-                        </x-benefit-panel>
-                    @endif
-                </aside>
-            </div>
-            <div class="grid items-start gap-4 lg:grid-cols-2">
             <x-benefit-panel class="p-4!">
                 <details>
                     <summary class="cursor-pointer text-sm font-semibold">Record activity <span class="ml-2 text-xs font-normal text-slate-500">{{ $seniorCitizen->histories->count() }} entries</span></summary>
@@ -116,12 +125,7 @@
                     </ol>
                 </details>
             </x-benefit-panel>
-            <x-benefit-panel class="p-4!">
-                <details>
-                    <summary class="cursor-pointer text-sm font-semibold">Record actions</summary>
-                    <div class="mt-4 space-y-4">@include('senior-citizens._record-actions')</div>
-                </details>
-            </x-benefit-panel>
+                </aside>
             </div>
         </div>
 
@@ -130,7 +134,7 @@
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div class="space-y-2"><h3 class="text-lg font-semibold">Digital ID details</h3><p class="max-w-xl text-sm text-slate-500">Review issuance details before preparing the official card. Attach a physical photo and collect the thumbprint after printing.</p></div>
                     @can('manageId', $seniorCitizen)
-                        <a href="{{ route('senior-id.show', [$seniorCitizen, ...request()->only(['from', 'search', 'search_by', 'stage', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])]) }}" class="primary-button w-full lg:w-auto"><x-admin.icon name="clipboard-list" size="17" /> Prepare and print ID</a>
+                        <a href="{{ route('senior-id.show', [$seniorCitizen, ...request()->only(['from', 'search', 'search_by', 'stage', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])]) }}" class="primary-button w-full lg:w-auto">Prepare and print ID</a>
                     @endcan
                 </div>
                 <div class="mt-4 flex flex-col gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800 sm:flex-row sm:items-center">
@@ -144,32 +148,25 @@
         </section>
 
         <div id="milestones" role="tabpanel" aria-labelledby="tab-milestones" tabindex="0" x-show="tab === 'milestones'" x-cloak class="space-y-4">
-            <x-benefit-panel class="p-4!">
-                <h3 class="text-lg font-semibold">Milestones and benefits</h3>
-                <p class="mt-1 text-sm text-slate-500">Age milestones based on the recorded birth date. Eligibility is reviewed separately.</p>
-                <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    @forelse ($milestoneAges as $age)
-                        @php($achieved = $seniorCitizen->birth_date->age >= $age)
-                        <div class="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
-                            <div class="flex items-center justify-between gap-2"><span class="text-2xl font-semibold text-osca-primary dark:text-blue-300">{{ $age }}+</span><span class="ui-label">{{ $achieved ? 'Achieved' : 'Upcoming' }}</span></div>
-                            <p class="flex items-center gap-2 text-sm text-slate-500"><x-admin.icon name="calendar-days" size="15" /> {{ $seniorCitizen->birth_date->copy()->addYears($age)->format('M j, Y') }}</p>
-                        </div>
-                    @empty
-                        <p class="text-sm text-slate-500 sm:col-span-2 lg:col-span-4">No age milestones configured.</p>
-                    @endforelse
-                </div>
-                <div class="mt-6 border-t border-slate-200 pt-5 dark:border-slate-700">
-                    <h4 class="font-semibold">Historical program enrollments</h4>
-                    <div class="mt-3 space-y-3">
-                        @forelse ($seniorCitizen->beneficiaries as $beneficiary)
-                            <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-800"><span class="text-sm text-slate-800 dark:text-slate-100">{{ $beneficiary->program->name }}</span><x-badge :status="$beneficiary->status" /></div>
-                        @empty
-                            <p class="text-sm text-slate-500">OSCA Staff assign programs after registration and ID issuance.</p>
-                        @endforelse
-                    </div>
-                </div>
-            </x-benefit-panel>
-            <div><h3 class="text-lg font-semibold">Registration and Benefits</h3><livewire:benefits.senior-record :senior-id="$seniorCitizen->id" /></div>
+            <livewire:benefits.senior-record :senior-id="$seniorCitizen->id">
+                <livewire:slot name="milestones">
+                    <x-benefit-panel class="p-4!">
+                        <h3 class="text-lg font-semibold text-(--navy) dark:text-slate-100">Age Milestones</h3>
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Milestone dates based on the senior's birth date.</p>
+                        <ul class="mt-3 flex flex-col gap-2">
+                            @forelse ($milestoneAges as $age)
+                                @php($achieved = $seniorCitizen->birth_date->age >= $age)
+                                <li class="flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+                                    <div class="flex items-start justify-between gap-3"><span class="text-2xl font-semibold text-osca-primary dark:text-blue-300">{{ $age }}+</span><span class="ui-label shrink-0">{{ $achieved ? 'Achieved' : 'Upcoming' }}</span></div>
+                                    <p class="text-sm text-slate-500 dark:text-slate-400">{{ $seniorCitizen->birth_date->copy()->addYears($age)->format('M j, Y') }}</p>
+                                </li>
+                            @empty
+                                <li class="text-sm text-slate-500">No age milestones configured.</li>
+                            @endforelse
+                        </ul>
+                    </x-benefit-panel>
+                </livewire:slot>
+            </livewire:benefits.senior-record>
         </div>
         <section id="transfers" role="tabpanel" aria-labelledby="tab-transfers" tabindex="0" x-show="tab === 'transfers'" x-cloak class="space-y-4">
             @include('senior-citizens.transfers.panel')

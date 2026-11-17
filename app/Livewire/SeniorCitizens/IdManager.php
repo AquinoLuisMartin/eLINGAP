@@ -3,12 +3,12 @@
 namespace App\Livewire\SeniorCitizens;
 
 use App\Enums\SeniorCitizenStatus;
-use App\Models\AuditLog;
 use App\Models\SeniorCitizen;
 use App\Models\SeniorCitizenIdCredential;
 use App\Services\Benefits\SeniorEligibilityRecord;
 use App\Services\SeniorCitizens\IdCardLayout;
 use App\Services\SeniorCitizens\IdCredential;
+use App\Services\SeniorCitizens\IdPrinting;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
@@ -46,10 +46,20 @@ class IdManager extends Component
         $this->notice = 'Official settings saved. Review the updated card before printing.';
     }
 
-    public function mount(int $seniorId): void
+    public function mount(IdPrinting $printing, int $seniorId): void
     {
         $this->seniorId = $seniorId;
         $this->existingId = (bool) $this->senior()->id_generated_at;
+        $printing->synchronizeLegacy($this->senior());
+    }
+
+    #[On('id-print-updated')]
+    public function refreshPrinting(): void {}
+
+    #[On('id-reprint-requested')]
+    public function reprintRequested(): void
+    {
+        $this->notice = 'Reprint request submitted. Printing remains locked until approval.';
     }
 
     public function boot(): void
@@ -84,7 +94,8 @@ class IdManager extends Component
         abort_unless($this->step === 2, 422);
         $records->issueId($this->senior());
         $this->step = 3;
-        $this->notice = 'ID issued. The OSCA number, original issuance date and QR are now permanent.';
+        $this->notice = '';
+        $this->dispatch('id-ready-to-print', message: 'The ID has been issued. Open the print-ready PDF, then record the physical printing result.');
     }
 
     public function prepareExisting(IdCredential $credentials): void
@@ -94,7 +105,8 @@ class IdManager extends Component
         $senior = $this->senior();
         $credentials->createForIssued($senior);
         $this->step = 3;
-        $this->notice = 'Ready to print. The existing ID number and original issuance date were preserved.';
+        $this->notice = '';
+        $this->dispatch('id-ready-to-print', message: 'The existing ID number and original issuance date are unchanged. Open the print-ready PDF, then record the physical printing result.');
     }
 
     private function senior(): SeniorCitizen
@@ -107,16 +119,14 @@ class IdManager extends Component
 
     public function render(IdCardLayout $layout)
     {
-        $senior = $this->senior();
+        $senior = $this->senior()->load(['latestIdPrintAttempt', 'lastConfirmedIdPrint', 'latestIdReprintRequest']);
 
         return view('livewire.senior-citizens.id-manager', [
             'senior' => $senior,
+            'printingLocked' => ! $senior->canGenerateIdPrint(),
             'documents' => $senior->documents()->where('document_type', '!=', 'PHOTO')->latest('id')->get(['id', 'document_type']),
             'card' => ! in_array($senior->status, [SeniorCitizenStatus::Deceased, SeniorCitizenStatus::Transferred], true) && ! $senior->died_on && ! $senior->death_declared_at ? $layout->data($senior, true) : null,
             'credentialExists' => SeniorCitizenIdCredential::query()->where('senior_citizen_id', $senior->id)->exists(),
-            'history' => AuditLog::query()->where('auditable_type', SeniorCitizen::class)->where('auditable_id', $senior->id)
-                ->whereIn('action', ['senior_citizen.id_generated', 'senior_citizen.qr_enabled', 'senior_citizen.id_print_generated', 'senior_citizen.id_asset_updated', 'senior_citizen.wet_signature_selected'])
-                ->with('user')->latest('id')->limit(20)->get(),
         ]);
     }
 }

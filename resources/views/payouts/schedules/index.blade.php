@@ -9,7 +9,7 @@
     <h3 class="mb-4 mt-8 text-xl font-semibold">Reviewed benefit schedules</h3>
     <x-staff.table label="Payout schedules" class=""><table><thead><tr><th scope="col">Reference</th><th scope="col">Program</th><th scope="col">Date and location</th><th scope="col">Status</th></tr></thead><tbody>
         @foreach ($benefitSchedules as $schedule)
-            <tr><td><a class="text-button" href="{{ route('payout-schedules.create', ['program_id' => $schedule->program_id, 'schedule_id' => $schedule->id]) }}">{{ $schedule->reference_number }}</a></td><td>{{ $schedule->program->name }}</td><td>{{ $schedule->scheduled_at->format('M j, Y g:i A') }}<p class="text-sm text-slate-500">{{ $schedule->location }}</p></td><td><x-badge :status="$schedule->status" /></td></tr>
+            <tr><td><a class="text-button" href="{{ route('payout-schedules.create', ['program_id' => $schedule->program_id, 'schedule_id' => $schedule->id]) }}">{{ $schedule->reference_number }}</a></td><td>{{ $schedule->program->name }}</td><td>{{ $schedule->payoutWindow() }}<p class="text-sm text-slate-500">{{ $schedule->location }}</p></td><td><x-badge :status="$schedule->status" /></td></tr>
         @endforeach
     </tbody></table></x-staff.table>
     <div class="mt-4">{{ $benefitSchedules->links() }}</div>

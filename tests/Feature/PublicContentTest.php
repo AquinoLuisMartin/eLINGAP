@@ -40,7 +40,7 @@ class PublicContentTest extends TestCase
 
         $this->get($path)->assertOk()
             ->assertSee('No programs are currently published.')
-            ->assertSee('Synthetic office address')->assertDontSee('Synthetic office contact')
+            ->assertSee('Synthetic office address')->assertSee('Synthetic office contact')
             ->assertSee('Synthetic working days and hours')->assertDontSee('Saturday &amp; Sunday', false);
     }
 
@@ -58,7 +58,7 @@ class PublicContentTest extends TestCase
 
         $response = $this->get($path)->assertOk()->assertSee('Annual December Senior Assistance')
             ->assertDontSee('Synthetic public description')->assertDontSee('1,250.00')
-            ->assertSee('office@example.test')->assertDontSee('Synthetic office contact')
+            ->assertSee('office@example.test')->assertSee('Synthetic office contact')
             ->assertSee('Synthetic office address')->assertSee('Synthetic office hours')
             ->assertSee('LGU Age 90 Cash Gift')
             ->assertDontSee('T.S.S. - Tulong sa Senior')->assertDontSee('PRIVATE-SETTING-MARKER')
@@ -76,6 +76,17 @@ class PublicContentTest extends TestCase
         SystemConfiguration::forceCreate(['key' => 'office_hours', 'value' => $unsafe]);
 
         $this->get('/')->assertOk()->assertSee($unsafe)->assertDontSee($unsafe, false);
+    }
+
+    public function test_visit_section_displays_supplied_office_information_when_settings_are_missing(): void
+    {
+        $this->get('/')->assertOk()
+            ->assertSee('Santa Maria Municipal Hall, R. Mercado Street (J.C. De Jesus St. / Poblacion area), Santa Maria, Bulacan')
+            ->assertSee('+63 44 288 2604')
+            ->assertSee('Monday to Friday: 8:00 AM – 5:00 PM')
+            ->assertSee('Closed on weekends and public holidays.')
+            ->assertSee('query=Santa+Maria+Municipal+Hall', false)
+            ->assertDontSee('Address not configured')->assertDontSee('Office hours not configured');
     }
 
     public function test_program_directory_does_not_display_amounts(): void

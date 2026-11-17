@@ -7,12 +7,19 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['program_id', 'reference_number', 'period_key', 'eligibility_on', 'scheduled_at', 'location', 'batch_name', 'barangay_ids', 'requirements', 'allow_representative', 'amount', 'available_funds', 'rule_snapshot', 'status', 'created_by', 'approved_by', 'approved_at', 'closed_at'])]
+#[Fillable(['program_id', 'reference_number', 'period_key', 'eligibility_on', 'scheduled_at', 'ends_at', 'location', 'batch_name', 'barangay_ids', 'requirements', 'allow_representative', 'amount', 'available_funds', 'rule_snapshot', 'status', 'created_by', 'approved_by', 'approved_at', 'closed_at'])]
 class BenefitSchedule extends Model
 {
     protected function casts(): array
     {
-        return ['eligibility_on' => 'date', 'scheduled_at' => 'datetime', 'approved_at' => 'datetime', 'closed_at' => 'datetime', 'barangay_ids' => 'array', 'rule_snapshot' => 'array', 'allow_representative' => 'boolean', 'amount' => 'decimal:2', 'available_funds' => 'decimal:2'];
+        return ['eligibility_on' => 'date', 'scheduled_at' => 'datetime', 'ends_at' => 'datetime', 'approved_at' => 'datetime', 'closed_at' => 'datetime', 'barangay_ids' => 'array', 'rule_snapshot' => 'array', 'allow_representative' => 'boolean', 'amount' => 'decimal:2', 'available_funds' => 'decimal:2'];
+    }
+
+    public function payoutWindow(): string
+    {
+        return $this->scheduled_at->format('M j, Y g:i A')
+            .($this->ends_at ? ' - '.$this->ends_at->format('g:i A') : '')
+            .' (Philippine time)';
     }
 
     public function program(): BelongsTo

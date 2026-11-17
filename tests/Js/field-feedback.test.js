@@ -48,6 +48,105 @@ test('required markers are added once and removed when a conditional field is di
     }
 });
 
+test('required markers share the label text wrapper instead of becoming a separate field row', () => {
+    const originalDocument = globalThis.document;
+    function element() {
+        return {
+            children: [], dataset: {}, parent: null,
+            get firstChild() { return this.children[0] || null; },
+            contains(node) { return this === node || this.children.some(child => child.contains(node)); },
+            append(child) {
+                child.remove();
+                child.parent = this;
+                this.children.push(child);
+            },
+            insertBefore(child, before) {
+                child.parent = this;
+                this.children.splice(this.children.indexOf(before), 0, child);
+            },
+            remove() {
+                if (this.parent) this.parent.children.splice(this.parent.children.indexOf(this), 1);
+                this.parent = null;
+            },
+            setAttribute() {},
+            querySelector(selector) {
+                const nodes = this.children.flatMap(child => [child, ...(child.children || [])]);
+                if (selector === '[data-required-marker]') return nodes.find(node => 'requiredMarker' in node.dataset) || null;
+                if (selector === '.field-required') return nodes.find(node => node.className === 'field-required') || null;
+                return nodes.find(node => node.className === 'field-label-text') || null;
+            },
+        };
+    }
+    const label = element();
+    const text = Object.assign(element(), { textContent: 'Date of death' });
+    const control = Object.assign(element(), {
+        attributes: [], name: 'died_on', type: 'date', required: true, disabled: false, labels: [label],
+        getAttribute: () => null, hasAttribute: () => false, closest: () => null,
+    });
+    label.append(text);
+    label.append(control);
+    globalThis.document = { getElementById: () => null, createElement: element };
+    const scope = { children: [], querySelectorAll: () => [control], hasAttribute: () => false };
+
+    try {
+        syncFields(scope);
+        const wrapper = label.firstChild;
+        const marker = wrapper.children[1];
+        assert.equal(wrapper.className, 'field-label-text');
+        assert.equal(wrapper.firstChild, text);
+        assert.equal(marker.textContent, '*');
+        assert.equal(label.children[1], control);
+        syncFields(scope);
+        assert.deepEqual(wrapper.children, [text, marker]);
+
+        control.disabled = true;
+        syncFields(scope);
+        assert.deepEqual(wrapper.children, [text]);
+        control.disabled = false;
+        syncFields(scope);
+        assert.equal(label.firstChild, wrapper);
+        assert.equal(wrapper.children[1].textContent, '*');
+        assert.equal(label.children.length, 2);
+
+        const externalLabel = element();
+        externalLabel.append(Object.assign(element(), { textContent: 'Supporting document' }));
+        control.labels = [externalLabel];
+        syncFields(scope);
+        assert.equal(externalLabel.children.length, 1);
+        assert.equal(externalLabel.firstChild.className, 'field-label-text');
+        assert.equal(externalLabel.firstChild.children[1].textContent, '*');
+    } finally {
+        globalThis.document = originalDocument;
+    }
+});
+
+test('required radio results share one group marker instead of marking each choice', () => {
+    const originalDocument = globalThis.document;
+    const legend = {
+        marker: null,
+        querySelector(selector) { return selector.includes('required') ? this.marker : null; },
+        append(marker) { this.marker = marker; },
+    };
+    const group = { querySelector: () => legend };
+    const controls = ['PRINTED', 'NOT_PRINTED'].map(value => ({
+        attributes: [], dataset: {}, type: 'radio', name: 'printing-result-10', value, required: true,
+        labels: [{ querySelector() { assert.fail('The result label must not receive a required marker.'); } }],
+        getAttribute: () => null, hasAttribute: () => false,
+        closest: selector => selector === '[data-required-group]' ? group : null,
+    }));
+    globalThis.document = { getElementById: () => null, createElement: () => ({ dataset: {}, setAttribute() {} }) };
+    try {
+        const scope = { children: [], querySelectorAll: () => controls, hasAttribute: () => false };
+        syncFields(scope);
+        const marker = legend.marker;
+        assert.equal(marker.textContent, '*');
+        syncFields(scope);
+        assert.equal(legend.marker, marker);
+    } finally {
+        globalThis.document = originalDocument;
+    }
+});
+
 test('server validation adds accessible field feedback and process alerts and clears resolved errors', () => {
     const nodes = new Map();
     function element() {

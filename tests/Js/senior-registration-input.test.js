@@ -1,6 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { formatSeniorMobile, formatSeniorName, initSeniorNameInputs } from '../../resources/js/senior-registration-input.js';
+import { formatRegistrationMobile, formatSeniorMobile, formatSeniorName, initSeniorNameInputs } from '../../resources/js/senior-registration-input.js';
+
+test('registration mobile input retains a fixed nine and formats at most ten digits', () => {
+    for (const [input, expected] of [
+        ['', '9'], [null, '9'], ['letters!@', '9'], ['123', '912-3'],
+        ['917abc000!0001', '917-000-0001'], ['+63 917 000 0001', '917-000-0001'],
+        ['09170000001', '917-000-0001'], ['917000000199999', '917-000-0001'],
+        ['9', '9'], ['91', '91'], ['9170', '917-0'],
+    ]) {
+        assert.equal(formatRegistrationMobile(input), expected);
+        assert.equal(formatRegistrationMobile(expected), expected);
+    }
+});
 
 test('name inputs retain Unicode letters and spaces while rejecting digits and special characters', () => {
     for (const name of ['SYNTHETIC', 'DE LA TEST', 'ÑAME ÉXAMPLE', 'N\u0303AME', 'JR', 'III']) {

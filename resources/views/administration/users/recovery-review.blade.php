@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="mx-auto max-w-3xl">
+<div class="w-full min-w-0 max-w-full">
     <x-staff.page-header :title="'Recovery request #'.$reset->id" description="Verify the employee personally before approving recovery.">
         <a class="secondary-button" href="{{ route('administration.password-reset-requests.index') }}">Back to requests</a>
     </x-staff.page-header>

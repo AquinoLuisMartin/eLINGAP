@@ -3,8 +3,9 @@ import Alpine from 'alpinejs';
 import collapse from '@alpinejs/collapse';
 import idImageEditor from './id-image-editor';
 import initApplicationWizard from './application-wizard';
-import { formatSeniorMobile, formatSeniorName, initSeniorNameInputs } from './senior-registration-input';
+import { formatRegistrationMobile, formatSeniorMobile, formatSeniorName, initSeniorNameInputs } from './senior-registration-input';
 import uiSelect from './select-control';
+import { anchoredDropdown } from './menu-position';
 import initFormFeedback from './form-feedback';
 import initFieldFeedback from './field-feedback';
 import initAccountSecurity from './account-security';
@@ -14,15 +15,24 @@ import broadcastComposer from './broadcast-composer';
 import smsTemplateEditor from './sms-template-editor';
 import smsMessages from './sms-messages';
 import initConfirmDialogs, { confirmSubmit } from './confirm-dialog';
+import initPrintingCompletion from './printing-completion';
+import transferConfirmation from './transfer-confirmation';
+import profileConfirmation from './profile-confirmation';
+import payoutDateTime from './payout-date-time';
 
 window.idImageEditor = idImageEditor;
 window.formatSeniorMobile = formatSeniorMobile;
+window.formatRegistrationMobile = formatRegistrationMobile;
 window.formatSeniorName = formatSeniorName;
 window.uiSelect = uiSelect;
+window.anchoredDropdown = anchoredDropdown;
 window.workspaceTheme = workspaceTheme;
 window.broadcastComposer = broadcastComposer;
 window.smsTemplateEditor = smsTemplateEditor;
 window.smsMessages = smsMessages;
+window.transferConfirmation = transferConfirmation;
+window.profileConfirmation = profileConfirmation;
+window.payoutDateTime = payoutDateTime;
 const modalTriggers = new WeakMap();
 
 // Landing page interactions
@@ -38,11 +48,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initConfirmDialogs();
+    initPrintingCompletion();
     initStaffControls();
     initApplicationWizard(document.getElementById('application-wizard'));
     initMobileMenu();
     initModal('search');
-    initModal('login');
+    initModal('login', false);
     initPasswordToggle();
     initLoginSubmission();
     initBackToTop();
@@ -149,7 +160,7 @@ function closeMobileMenu(menu, bars, close, btn) {
 }
 
 // Reusable modal open/close wiring by prefix
-function initModal(prefix) {
+function initModal(prefix, closeOnBackdrop = true) {
     const modal = document.getElementById(prefix + '-modal');
     if (!modal) return;
 
@@ -161,7 +172,7 @@ function initModal(prefix) {
     closers.forEach(btn => btn.addEventListener('click', () => closeModal(modal)));
 
     modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal(modal);
+        if (closeOnBackdrop && e.target === modal) closeModal(modal);
     });
     modal.addEventListener('keydown', event => {
         if (event.key !== 'Tab') return;

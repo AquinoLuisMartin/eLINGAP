@@ -5,6 +5,7 @@ namespace App\Livewire\Registrations;
 use App\Models\Barangay;
 use App\Models\SeniorCitizen;
 use Illuminate\Support\Facades\Gate;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -40,12 +41,17 @@ class Index extends Component
         }
     }
 
+    #[On('id-print-updated')]
+    public function refreshPrinting(): void {}
+
     public function render()
     {
         $query = SeniorCitizen::query()->where('status', '!=', 'PENDING')->with(['barangay:id,name', 'milestoneClaims:id,senior_citizen_id,milestone_age'])
+            ->when(! in_array($this->stage, ['HISTORY', 'INACTIVE'], true), fn ($q) => $q->whereDoesntHave('lastConfirmedIdPrint'))
             ->when(trim($this->search) !== '', fn ($q) => $q->searchable(mb_substr(trim($this->search), 0, 100), $this->searchBy))
             ->when($this->barangayId !== '', fn ($q) => $q->where('barangay_id', (int) $this->barangayId));
         match ($this->stage) {
+            'HISTORY' => $query->whereHas('lastConfirmedIdPrint'),
             'INACTIVE' => $query->whereIn('status', ['ARCHIVED', 'DECEASED', 'TRANSFERRED']),
             'VERIFIED' => $query->where('status', 'VERIFIED')->whereNull('id_generated_at'),
             'ISSUED' => $query->where('status', 'VERIFIED')->whereNotNull('id_generated_at'),
@@ -53,9 +59,10 @@ class Index extends Component
         };
 
         return view('livewire.registrations.index', [
-            'registrations' => $query->select(['id', 'barangay_id', 'osca_id_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'created_at', 'status', 'id_generated_at', 'verified_at'])->latest('id')->paginate(15),
+            'registrations' => $query->select(['id', 'barangay_id', 'osca_id_number', 'first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'created_at', 'status', 'id_generated_at', 'verified_at', 'died_on', 'death_declared_at'])
+                ->with(['latestIdPrintAttempt', 'lastConfirmedIdPrint.confirmedBy', 'latestIdReprintRequest'])->withExists('idPrints')->latest('id')->paginate(15),
             'barangays' => Barangay::query()->orderBy('name')->get(['id', 'name']),
-            'counts' => SeniorCitizen::query()->selectRaw("sum(case when status in ('ARCHIVED', 'DECEASED', 'TRANSFERRED') then 1 else 0 end) as inactive, sum(case when status = 'VERIFIED' and id_generated_at is null then 1 else 0 end) as verified, sum(case when status = 'VERIFIED' and id_generated_at is not null then 1 else 0 end) as issued")->toBase()->first(),
+            'counts' => SeniorCitizen::query()->whereDoesntHave('lastConfirmedIdPrint')->selectRaw("sum(case when status in ('ARCHIVED', 'DECEASED', 'TRANSFERRED') then 1 else 0 end) as inactive, sum(case when status = 'VERIFIED' and id_generated_at is null then 1 else 0 end) as verified, sum(case when status = 'VERIFIED' and id_generated_at is not null then 1 else 0 end) as issued")->toBase()->first(),
         ]);
     }
 }

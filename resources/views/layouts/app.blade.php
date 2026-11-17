@@ -60,12 +60,12 @@
                 <p class="nav-label">Workspace</p>
                 @foreach ([
                     ['Dashboard', 'dashboard', 'layout-dashboard', 'dashboard'],
-                    ['Senior Masterlist', 'senior-citizens.index', 'users', 'senior-citizens.*'],
-                    ['Registrations', 'registrations.index', 'clipboard-list', 'registrations.*'],
-                    ['Payouts', 'payouts.index', 'archive', 'payouts.*'],
-                    ['Messaging', 'sms.blasts.create', 'message-square', 'sms.*'],
-                    ['Reports', 'reports.index', 'bar-chart-3', 'reports.*'],
-                    ['Benefits Workspace', 'benefits.workspace', 'heart-pulse', 'benefits.*'],
+                    ['Senior Masterlist', 'senior-citizens.index', 'contact-round', 'senior-citizens.*'],
+                    ['Registrations', 'registrations.index', 'clipboard-pen-line', 'registrations.*'],
+                    ['Payouts', 'payouts.index', 'banknote', 'payouts.*'],
+                    ['Messaging', 'sms.blasts.create', 'messages-square', 'sms.*'],
+                    ['Reports', 'reports.index', 'chart-no-axes-combined', 'reports.*'],
+                    ['Benefits Workspace', 'benefits.workspace', 'hand-heart', 'benefits.*'],
                 ] as [$label, $route, $icon, $pattern])
                     @php($isActive = in_array($route, ['senior-citizens.index', 'registrations.index'])
                         ? (request()->routeIs('senior-citizens.*', 'senior-id.*', 'registrations.*') && ($route === 'registrations.index') === ($recordsSection === 'registrations'))
@@ -103,19 +103,20 @@
                     <livewire:task-notifications />
                     <div class="header-account" @click.outside="profileOpen = false">
                         <button type="button" class="profile-avatar" @click="profileTrigger = $event.currentTarget; profileOpen = !profileOpen" aria-label="Open account menu" aria-controls="osca-account-panel" :aria-expanded="profileOpen"><x-profile-photo :user="$user" /></button>
-                        <aside id="osca-account-panel" class="profile-menu" x-trap.inert.noscroll="profileOpen" aria-label="Account details" x-show="profileOpen" x-transition @click.stop style="display: none;">
+                        <aside id="osca-account-panel" class="profile-menu" x-data="anchoredDropdown()" x-effect="profileOpen ? show() : close()" :style="position" x-trap.inert.noscroll="profileOpen" aria-label="Account details" x-show="profileOpen" x-transition @click.stop style="display: none;">
                             <x-account-menu :user="$user" :office="$officeDetails['office_name'] ?? 'Office of the Senior Citizen Affairs'" :last-login="$lastLoginAt" />
                     </aside>
                     </div>
                 </div>
             </header>
 
-            <main id="main-content" @class(['admin-content', 'admin-content-wide' => request()->routeIs('senior-id.show', 'sms.messages.index', 'sms.blasts.show')]) tabindex="-1">
+            <main id="main-content" @class(['admin-content', 'admin-content-wide' => request()->routeIs('sms.messages.index', 'sms.blasts.show')]) tabindex="-1">
                 @include('components.alert')
                 @yield('content')
             </main>
         </div>
         <x-confirm-dialog />
+        <x-printing-completion />
     </div>
     @livewireScripts
 </body>

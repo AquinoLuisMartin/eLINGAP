@@ -4,7 +4,7 @@ import { confirmAction, confirmSubmit, optionsFrom } from '../../resources/js/co
 
 function page() {
     const node = () => ({ textContent: '', hidden: false, className: '', replaceChildren(...children) { this.children = children; } });
-    const parts = { '[data-confirm-title]': node(), '[data-confirm-message]': node(), '[data-confirm-details]': node(), '[data-confirm-accept]': node() };
+    const parts = { '[data-confirm-title]': node(), '[data-confirm-message]': node(), '[data-confirm-details]': node(), '[data-confirm-accept]': node(), '[data-confirm-review-field]': node(), '[data-confirm-review-checkbox]': node() };
     const listeners = [];
     const dialog = {
         open: false,
@@ -85,4 +85,35 @@ test('declarative attributes map to dialog options', () => {
     const options = optionsFrom({ dataset: { confirm: 'Stops releases.', confirmTitle: 'Declare?', confirmLabel: 'Record', confirmTone: 'danger' } });
 
     assert.deepEqual(options, { title: 'Declare?', message: 'Stops releases.', confirmLabel: 'Record', danger: true });
+});
+
+test('review confirmation requires a fresh checkbox before proceeding', async () => {
+    const { root, dialog, parts } = page();
+    const result = confirmAction({ reviewRequired: true }, root);
+    const checkbox = parts['[data-confirm-review-checkbox]'];
+    const accept = parts['[data-confirm-accept]'];
+    assert.equal(accept.disabled, true);
+    checkbox.checked = true;
+    checkbox.onchange();
+    assert.equal(accept.disabled, false);
+    dialog.close('confirm');
+    assert.equal(await result, true);
+
+    const second = confirmAction({ reviewRequired: true }, root);
+    assert.equal(checkbox.checked, false);
+    dialog.close('confirm');
+    assert.equal(await second, false);
+});
+
+test('batch action review lists only selected records and their count', () => {
+    const options = optionsFrom({
+        hasAttribute: () => true, dataset: { confirmAction: 'Print selected IDs' },
+        elements: [
+            { name: 'senior_ids[]', checked: true, dataset: { seniorName: 'Synthetic One' } },
+            { name: 'senior_ids[]', checked: false, dataset: { seniorName: 'Synthetic Two' } },
+        ],
+    });
+    assert.equal(options.title, 'Confirm Action');
+    assert.equal(options.reviewRequired, true);
+    assert.deepEqual(options.details, [['Action', 'Print selected IDs'], ['Selected records', '1'], ['Senior citizen', 'Synthetic One']]);
 });

@@ -22,6 +22,11 @@ class IdApplication extends Component
 
     private const PERSONAL_FIELDS = ['first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'sex', 'civil_status'];
 
+    private const REPRESENTATIVE_FIELDS = ['representative_name', 'representative_relationship', 'representative_contact'];
+
+    #[Locked]
+    public array $completedSteps = [];
+
     #[Locked]
     public int $step = 0;
 
@@ -42,8 +47,6 @@ class IdApplication extends Component
 
     public bool $informationReviewed = false;
 
-    public bool $representativeContact = false;
-
     #[Computed]
     public function age(): ?int
     {
@@ -57,27 +60,34 @@ class IdApplication extends Component
 
     public function updatedForm(mixed $value, ?string $key = null): void
     {
+        $affected = match (true) {
+            $key === null, str_starts_with($key, 'requirements_checks') => 0,
+            in_array($key, self::PERSONAL_FIELDS, true) => 1,
+            default => 2,
+        };
+        $this->completedSteps = array_filter($this->completedSteps, fn ($step) => $step < $affected, ARRAY_FILTER_USE_KEY);
+        $this->informationReviewed = false;
+        if (! $this->needsRepresentative()) {
+            foreach (self::REPRESENTATIVE_FIELDS as $field) {
+                $this->resetValidation('form.'.$field);
+            }
+            $this->resetValidation('authorizationFile');
+        }
         if ($key === 'birth_date') {
             $this->resetValidation('form.birth_date');
             $this->validateInput(['birth_date']);
         }
     }
 
-    public function updatedRepresentativeContact(bool $enabled): void
-    {
-        if (! $enabled) {
-            foreach (['representative_name', 'representative_relationship', 'representative_contact'] as $field) {
-                $this->form[$field] = '';
-            }
-            $this->authorizationFile = null;
-            $this->resetValidation();
-        }
-    }
-
     public function mount(bool $modal = false): void
     {
+        $this->reset('form', 'step', 'completedSteps', 'registeredSeniorId', 'authorizationFile', 'identificationFile', 'informationReviewed');
+        $this->form['contact_number'] = '9';
+        $this->form['representative_contact'] = '9';
+        $this->resetValidation();
+        unset($this->age);
         $this->modal = $modal;
-        $this->returnContext = ['from' => 'registry', ...request()->only(['search', 'search_by', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])];
+        $this->returnContext = ['from' => request()->routeIs('registrations.index') ? 'registrations' : 'registry', ...request()->only(['search', 'search_by', 'stage', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])];
     }
 
     public function boot(): void
@@ -87,12 +97,17 @@ class IdApplication extends Component
 
     public function needsRepresentative(): bool
     {
-        return filled($this->form['representative_contact']) || filled($this->form['representative_name']);
+        return filter_var($this->form['requirements_checks']['authorization'] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 
     private function input(): array
     {
-        return SeniorRegistrationInput::normalize([...$this->form, 'applicant_type' => 'SELF', 'requirements_status' => 'CHECKED', 'review_reason' => '', 'authorization_file' => $this->authorizationFile, 'identification_file' => $this->identificationFile]);
+        $form = $this->form;
+        if (! $this->needsRepresentative()) {
+            $form = array_diff_key($form, array_flip(self::REPRESENTATIVE_FIELDS));
+        }
+
+        return SeniorRegistrationInput::normalize([...$form, 'applicant_type' => $this->needsRepresentative() ? 'REPRESENTATIVE' : 'SELF', 'requirements_status' => 'CHECKED', 'review_reason' => '', 'authorization_file' => $this->needsRepresentative() ? $this->authorizationFile : null, 'identification_file' => $this->identificationFile]);
     }
 
     private function validateInput(?array $fields = null): array
@@ -104,7 +119,7 @@ class IdApplication extends Component
             }
         }
         try {
-            return SeniorRegistrationInput::validator($input, $fields)->validate();
+            return SeniorRegistrationInput::validator($input, $fields, requireAuthorizationFile: false)->validate();
         } catch (ValidationException $exception) {
             $errors = [];
             foreach ($exception->errors() as $field => $messages) {
@@ -129,6 +144,7 @@ class IdApplication extends Component
         if ($this->step < 3) {
             $this->validateInput($fields);
             $this->resetValidation();
+            $this->completedSteps[$this->step] = true;
             $this->step++;
         }
     }
@@ -137,6 +153,30 @@ class IdApplication extends Component
     {
         $this->step = max(0, $this->step - 1);
         $this->resetValidation();
+    }
+
+    public function canVisitStep(int $target): bool
+    {
+        if ($target < 0 || $target > 3) {
+            return false;
+        }
+        for ($step = 0; $step < $target; $step++) {
+            if (empty($this->completedSteps[$step])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function goToStep(int $target): void
+    {
+        Gate::authorize('create', SeniorCitizen::class);
+        if ($this->canVisitStep($target)) {
+            $this->step = $target;
+            $this->informationReviewed = false;
+            $this->resetValidation();
+        }
     }
 
     public function cancel(): void
@@ -148,12 +188,12 @@ class IdApplication extends Component
         }
     }
 
-    public function submit(SeniorRegistration $registration): void
+    public function submit(SeniorRegistration $registration, bool $prepareId = true): void
     {
         Gate::authorize('create', SeniorCitizen::class);
         abort_unless($this->step === 3, 422);
         if ($this->registeredSeniorId) {
-            $this->redirectRoute('senior-id.show', [$this->registeredSeniorId, ...$this->returnContext]);
+            $this->finishSubmission($prepareId);
 
             return;
         }
@@ -168,13 +208,23 @@ class IdApplication extends Component
                 collect($keys)->contains(fn ($key) => str_starts_with($key, 'form.')) => 2,
                 default => 3,
             };
+            $this->completedSteps = array_filter($this->completedSteps, fn ($step) => $step < $this->step, ARRAY_FILTER_USE_KEY);
             throw $exception;
         }
-        $senior = $registration->create($data);
+        $senior = $registration->create($data, requireAuthorizationFile: false);
         $this->registeredSeniorId = $senior->id;
+        $this->finishSubmission($prepareId);
+    }
+
+    private function finishSubmission(bool $prepareId): void
+    {
         session()->flash('clear-registration-names', true);
-        session()->flash('status', 'Requirements checked and registration verified. Prepare the ID.');
-        $this->redirectRoute('senior-id.show', [$senior, ...$this->returnContext]);
+        session()->flash('status', 'Registration saved successfully.');
+        if ($prepareId) {
+            $this->redirectRoute('senior-id.show', [$this->registeredSeniorId, ...$this->returnContext]);
+        } else {
+            $this->redirectRoute('registrations.index');
+        }
     }
 
     public function render(OfficeSettings $settings)

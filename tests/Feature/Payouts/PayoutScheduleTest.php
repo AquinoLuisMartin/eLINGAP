@@ -50,7 +50,7 @@ class PayoutScheduleTest extends TestCase
 
         $component->set('form.amount', '600')->set('form.available_funds', '12000')
             ->set('form.location', 'Synthetic venue')->set('form.scheduled_at', '2026-12-10T12:00')
-            ->set('historicalClaimsChecked', true)->call('createSchedule')->assertHasNoErrors()
+            ->set('historicalClaimsChecked', true)->set('form.ends_at', '2026-12-10T17:00')->call('createSchedule')->assertHasNoErrors()
             ->assertSeeLivewire(SchedulePanel::class);
 
         $this->assertDatabaseHas('benefit_schedules', [
@@ -104,10 +104,10 @@ class PayoutScheduleTest extends TestCase
         Livewire::test(Workspace::class, ['initialProgramId' => (string) $program->id, 'payoutMode' => true])
             ->assertDontSee('Program and eligibility')->assertDontSee('Frequency:')
             ->assertDontSee('wire:model="form.period_key"', false)->assertDontSee('wire:model="form.eligibility_on"', false)
-            ->assertSee('Schedule and funding')->assertSet('form.period_key', '2026')
+            ->assertSee('Funding')->assertSet('form.period_key', '2026')
             ->assertSet('form.eligibility_on', '2026-10-29')
             ->set('form.location', 'Synthetic venue')->set('form.scheduled_at', '2026-12-10T12:00')->set('historicalClaimsChecked', true)
-            ->call('createSchedule')->assertHasNoErrors();
+            ->set('form.ends_at', '2026-12-10T17:00')->call('createSchedule')->assertHasNoErrors();
 
         $schedule = BenefitSchedule::sole();
         $this->assertSame('2026', $schedule->period_key);
@@ -131,7 +131,7 @@ class PayoutScheduleTest extends TestCase
             ->set('form.location', 'Synthetic payout venue')
             ->set('form.amount', '750')
             ->set('historicalClaimsChecked', true)
-            ->call('createSchedule')->assertHasNoErrors()
+            ->set('form.ends_at', '2026-12-10T17:00')->call('createSchedule')->assertHasNoErrors()
             ->assertSeeLivewire(SchedulePanel::class);
 
         $program = Program::where('name', 'Localized Social Pension')->sole();

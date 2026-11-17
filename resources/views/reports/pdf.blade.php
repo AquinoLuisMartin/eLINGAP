@@ -5,20 +5,20 @@
     <title>{{ $title }} | eLINGAP</title>
     <style>
         @page { margin: 95px 30px 45px; }
-        body { font-family: 'DejaVu Sans', sans-serif; font-size: 9px; color: #243247; line-height: 1.45; }
-        header { position: fixed; top: -72px; left: 0; right: 0; height: 50px; border-bottom: 2px solid #00327d; padding-bottom: 9px; }
+        body { font-family: 'Inter', sans-serif; font-size: 9px; color: #000; line-height: 1.45; }
+        header { position: fixed; top: -72px; left: 0; right: 0; height: 50px; border-bottom: 2px solid #000; padding-bottom: 9px; }
         h1 { font-size: 17px; margin: 0 0 6px; }
         h2 { font-size: 12px; margin: 18px 0 6px; }
         p { margin: 0 0 6px; }
-        .metadata { margin-bottom: 14px; color: #526174; }
+        .metadata { margin-bottom: 14px; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         thead { display: table-header-group; }
         tr { page-break-inside: avoid; }
-        th, td { border: 1px solid #d7dfe8; padding: 6px 5px; vertical-align: top; overflow-wrap: break-word; word-wrap: break-word; }
-        th { background: #eaf0f7; text-align: left; font-size: 8px; }
-        tbody tr:nth-child(even) { background: #f7f9fc; }
+        th, td { border: 1px solid #d6d6d6; padding: 6px 5px; vertical-align: top; overflow-wrap: break-word; word-wrap: break-word; }
+        th { background: #eee; text-align: left; font-size: 8px; }
+        tbody tr:nth-child(even) { background: #f7f7f7; }
         .population { width: 70%; }
-        .total { font-weight: bold; background: #eaf0f7; }
+        .total { font-weight: bold; background: #eee; }
         .empty { text-align: center; padding: 18px; }
     </style>
 </head>

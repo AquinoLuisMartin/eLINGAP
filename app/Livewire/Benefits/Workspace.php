@@ -29,7 +29,7 @@ class Workspace extends Component
     #[Locked]
     public bool $payoutMode = false;
 
-    public array $form = ['program_id' => '', 'period_key' => '', 'eligibility_on' => '', 'scheduled_at' => '', 'location' => '', 'batch_name' => '', 'barangay_ids' => [], 'requirements' => '', 'allow_representative' => false, 'amount' => '', 'available_funds' => '0'];
+    public array $form = ['program_id' => '', 'period_key' => '', 'eligibility_on' => '', 'scheduled_at' => '', 'ends_at' => '', 'location' => '', 'batch_name' => '', 'barangay_ids' => [], 'requirements' => '', 'allow_representative' => false, 'amount' => '', 'available_funds' => '0'];
 
     public array $newProgram = ['name' => '', 'agency' => '', 'government_level' => 'LGU', 'cadence' => 'ANNUAL'];
 
@@ -106,11 +106,12 @@ class Workspace extends Component
             'form.period_key' => ['required', 'string', 'max:40'],
             'form.eligibility_on' => ['required', 'date', 'before_or_equal:today'],
             'form.scheduled_at' => ['required', 'date', 'after_or_equal:form.eligibility_on'],
+            'form.ends_at' => ['required', 'date', 'after:form.scheduled_at'],
             'form.location' => ['required', 'string', 'max:250'], 'form.batch_name' => ['nullable', 'string', 'max:100'],
             'form.barangay_ids' => ['array'], 'form.barangay_ids.*' => ['integer', 'distinct', 'exists:barangays,id'],
             'form.requirements' => ['nullable', 'string', 'max:1500'], 'form.allow_representative' => ['required', 'boolean'],
             'form.amount' => ['nullable', 'numeric', 'min:0.01', 'max:9999999999.99'], 'form.available_funds' => ['required', 'numeric', 'min:0', 'max:999999999999.99'],
-        ])['form'];
+        ], [], ['form.scheduled_at' => 'payout start time', 'form.ends_at' => 'payout end time'])['form'];
         $data['amount'] = $data['amount'] === '' ? null : $data['amount'];
         $data['barangay_ids'] = array_map('intval', $data['barangay_ids']);
         $custom = [];

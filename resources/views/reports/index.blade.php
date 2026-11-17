@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-staff.page-header title="Reports" description="Choose a report, filter the records, and download a CSV or PDF with current population totals." />
+    <x-staff.page-header title="Reports" description="Choose a report, filter the records, and download Excel, CSV, or PDF with current population totals." />
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         @foreach (\App\Services\Reports\StaffReport::TYPES as $type => $name)
             <article class="panel flex flex-col items-start">
