@@ -38,7 +38,7 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-Route::get('verify-id/{token}', PublicIdVerificationController::class)->middleware('throttle:60,1,id-verification')->name('id.verify');
+Route::get('verify/{token}', PublicIdVerificationController::class)->middleware('throttle:60,1,id-verification')->name('id.verify');
 
 Route::middleware(EnsurePreviewIsLocal::class)->group(function () {
     foreach ([
