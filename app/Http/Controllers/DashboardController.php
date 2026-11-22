@@ -23,12 +23,21 @@ class DashboardController extends Controller
 
         Gate::authorize('viewAny', SeniorCitizen::class);
         $active = SeniorCitizen::query()->where('status', SeniorCitizenStatus::Verified->value);
+        $firstBirthDateAfter = fn (int $age): string => today()->subYearsNoOverflow($age)->addDay()->toDateString();
+        $after60 = $firstBirthDateAfter(60);
+        $after70 = $firstBirthDateAfter(70);
+        $after80 = $firstBirthDateAfter(80);
+        $after90 = $firstBirthDateAfter(90);
         $milestoneAges = Program::query()->where('status', 'ACTIVE')->get(['benefit_rules'])
             ->flatMap(fn ($program) => array_keys($program->benefit_rules['milestones'] ?? []))
             ->map(fn ($age) => (int) $age)->filter(fn ($age) => $age >= 60)->unique()->sort()->values();
         $totals = (clone $active)->toBase()->selectRaw(
-            'count(*) as total, count(distinct barangay_id) as barangays, count(case when birth_date > ? then 1 end) as age_60_69, count(case when birth_date between ? and ? then 1 end) as age_70_79, count(case when birth_date between ? and ? then 1 end) as age_80_89, count(case when birth_date <= ? then 1 end) as age_90_plus',
-            [today()->subYears(70), today()->subYears(80)->addDay(), today()->subYears(70), today()->subYears(90)->addDay(), today()->subYears(80), today()->subYears(90)]
+            'count(*) as total,
+             count(case when birth_date >= ? and birth_date < ? then 1 end) as age_60_69,
+             count(case when birth_date >= ? and birth_date < ? then 1 end) as age_70_79,
+             count(case when birth_date >= ? and birth_date < ? then 1 end) as age_80_89,
+             count(case when birth_date < ? then 1 end) as age_90_plus',
+            [$after70, $after60, $after80, $after70, $after90, $after80, $after90]
         )->first();
         $ageGroups = [
             '60–69' => (int) $totals->age_60_69,
@@ -36,6 +45,9 @@ class DashboardController extends Controller
             '80–89' => (int) $totals->age_80_89,
             '90+' => (int) $totals->age_90_plus,
         ];
+        $barangays = (clone $active)->toBase()->join('barangays', 'barangays.id', '=', 'senior_citizens.barangay_id')
+            ->selectRaw('barangays.name, count(*) as total')->groupBy('barangays.id', 'barangays.name')
+            ->orderByDesc('total')->orderBy('barangays.name')->get();
 
         return view('dashboard.index', [
             'activeCount' => (int) $totals->total,
@@ -47,10 +59,9 @@ class DashboardController extends Controller
                     $query->orWhereBetween('birth_date', [today()->subYears($age), today()->subYears($age - 1)->subDay()]);
                 }
             })->count(),
-            'barangayCount' => (int) $totals->barangays,
-            'barangays' => (clone $active)->join('barangays', 'barangays.id', '=', 'senior_citizens.barangay_id')
-                ->selectRaw('barangays.name, count(*) as total')->groupBy('barangays.id', 'barangays.name')
-                ->orderByDesc('total')->limit(8)->get(),
+            'barangayCount' => $barangays->count(),
+            'barangays' => $barangays->take(8),
+            'otherBarangays' => $barangays->skip(8),
             'ageGroups' => collect($ageGroups),
             'genders' => (clone $active)->selectRaw('sex, count(*) as total')->groupBy('sex')->pluck('total', 'sex'),
             'statuses' => SeniorCitizen::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),

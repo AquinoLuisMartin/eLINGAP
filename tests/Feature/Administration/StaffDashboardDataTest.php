@@ -22,6 +22,7 @@ class StaffDashboardDataTest extends TestCase
         $this->assertSame(0, $response->viewData('barangayCount'));
         $this->assertSame(0, $response->viewData('milestoneCount'));
         $response->assertSee('No milestone programs configured');
+        $response->assertSee('No verified seniors with a barangay recorded yet.');
     }
 
     public function test_coverage_counts_all_barangays_even_when_the_chart_is_limited(): void
@@ -36,6 +37,24 @@ class StaffDashboardDataTest extends TestCase
 
         $this->assertSame(10, $response->viewData('barangayCount'));
         $this->assertCount(8, $response->viewData('barangays'));
+        $this->assertSame(2, (int) $response->viewData('otherBarangays')->sum('total'));
+        $response->assertSee('Other barangays')
+            ->assertSee('20.0%')
+            ->assertSee('View counts for all 10 barangays');
+    }
+
+    public function test_age_distribution_counts_birthdays_in_the_correct_brackets(): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 22)->startOfDay());
+        $barangay = Barangay::create(['name' => 'Synthetic area', 'code' => 'SYN']);
+
+        foreach (['1966-11-23', '1966-11-22', '1956-11-23', '1956-11-22', '1946-11-23', '1946-11-22', '1936-11-23', '1936-11-22'] as $index => $birthDate) {
+            $this->senior($barangay, $index, $birthDate);
+        }
+
+        $response = $this->actingAs(User::factory()->create())->get(route('dashboard'))->assertOk();
+
+        $this->assertSame([2, 2, 2, 1], $response->viewData('ageGroups')->values()->all());
     }
 
     public function test_milestone_totals_follow_the_active_program_rules(): void
