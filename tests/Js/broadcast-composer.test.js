@@ -60,6 +60,14 @@ test('template guidance does not duplicate placeholders or exceed the message li
     assert.ok(copy.endsWith(broadcastGuidance));
 });
 
+test('complete program advisories copy verbatim without appending another generic message', () => {
+    const body = 'OSCA | Synthetic program\nPetsa: [Petsa]\nOras: [Oras]\nLugar: [Lugar/Venue]\nDalhin ang OSCA ID. Dumating sa oras.';
+    const { state } = composer();
+    state.chooseTemplate(selection('12', body));
+    assert.equal(state.broadcastBody, body);
+    assert.equal(templateCopy(body), body);
+});
+
 test('creating a template opens the editor without replacing the existing message', () => {
     const { state, opened } = composer({ message: 'Existing draft' });
     state.previousTemplate = '2';
@@ -81,12 +89,61 @@ test('valid templates stay in component state, populate the message, and can be 
     const id = state.localTemplates[0].id;
     state.chooseTemplate(selection(id, state.localTemplates[0].body));
 
-    assert.deepEqual(state.localTemplates, [{ id, title: 'Office notice', body: 'Confirmed local message', active: true }]);
+    assert.deepEqual(state.localTemplates, [{ id, title: 'Office notice', body: 'Confirmed local message', active: true, programId: null }]);
     assert.equal(state.selectedTemplate, id);
     assert.equal(state.broadcastBody, 'Confirmed local message');
     assert.equal(closed(), 1);
     assert.equal(updates(), 2);
     assert.deepEqual(composer().state.localTemplates, []);
+});
+
+test('program changes select a matching template, fill its saved body, and refresh the audience from the root scope', () => {
+    const { state } = composer();
+    const watchers = {};
+    const templates = [
+        { id: '1', title: 'Program A - Schedule', body: 'Program A message', active: true, programId: 10 },
+        { id: '2', title: 'Program B - Schedule', body: 'Program B message', active: true, programId: 20 },
+    ];
+    state.$el = { dataset: { templates: JSON.stringify(templates) } };
+    state.$watch = (name, callback) => { watchers[name] = callback; };
+    let refreshed = 0;
+    state.refreshAudience = () => { refreshed++; };
+    state.$refs.confirmed = { checked: true };
+    state.init();
+    assert.equal(state.selectedTemplate, '');
+
+    state.program = '20';
+    watchers.program();
+    assert.equal(state.selectedTemplate, '2');
+    assert.equal(state.broadcastBody, 'Program B message');
+    assert.equal(state.$refs.confirmed.checked, false);
+    assert.equal(refreshed, 1);
+    assert.deepEqual(state.programTemplates().map(template => template.id), ['2']);
+    state.program = '30';
+    watchers.program();
+    assert.equal(state.selectedTemplate, '');
+    assert.equal(state.broadcastBody, '');
+    assert.deepEqual(state.programTemplates(), []);
+    state.barangay = '4';
+    watchers.barangay();
+    assert.equal(refreshed, 3);
+});
+
+test('program matching handles initial selections, edited seed templates, and program-specific local templates', () => {
+    const { state } = composer({ program: '10' });
+    state.seedTemplates = [{ id: '1', title: 'Program A - Schedule', body: 'Original', active: true, programId: 10 }];
+    state.overrides = { '1': { id: '1', title: 'Edited title', body: 'Edited message', active: true } };
+    state.matchProgramTemplate();
+    assert.equal(state.selectedTemplate, '1');
+    assert.equal(state.broadcastBody, 'Edited message');
+    state.templateTitle = 'Local reminder';
+    state.templateBody = 'Program A reminder';
+    state.saveTemplate();
+    assert.equal(state.localTemplates[0].programId, '10');
+    state.program = '20';
+    assert.deepEqual(state.programTemplates(), []);
+    state.program = '';
+    assert.equal(state.programTemplates().length, 2);
 });
 
 test('empty and oversized local templates do not save or close the editor', () => {
@@ -103,13 +160,36 @@ test('empty and oversized local templates do not save or close the editor', () =
     }
 });
 
-test('program mock counts update from the current barangay base and All Programs restores it', () => {
-    const { state } = composer({ eligible: 200 });
-    for (const [program, count] of [['sss', 50], ['gsis', 30], ['lgu', 80], ['centenarian', 4], ['all', 200]]) {
-        state.program = program;
-        assert.equal(state.eligibleRecipients, count);
-    }
-    const empty = composer({ eligible: 0 }).state;
-    empty.program = 'sss';
-    assert.equal(empty.eligibleRecipients, 0);
+test('audience counts use the server and keep the current selection when responses arrive out of order', async (context) => {
+    context.mock.method(globalThis, 'fetch', async () => ({ ok: true, json: async () => ({ eligible: 7, excluded: 2 }) }));
+    const originalWindow = globalThis.window;
+    globalThis.window = { location: { origin: 'https://preview.test' } };
+    context.after(() => { globalThis.window = originalWindow; });
+    const { state } = composer({ eligible: 200, audienceUrl: '/messaging' });
+    state.program = '12';
+    assert.equal(state.audiencePreview, true);
+    await state.refreshAudience();
+    assert.equal(state.eligibleRecipients, 7);
+    assert.equal(state.excludedRecipients, 2);
+    assert.equal(state.audiencePreview, false);
+    assert.equal(new URL(fetch.mock.calls[0].arguments[0]).searchParams.get('program_id'), '12');
+
+    let finishFirst;
+    fetch.mock.mockImplementationOnce(() => new Promise(resolve => { finishFirst = resolve; }));
+    state.program = '13';
+    const first = state.refreshAudience();
+    state.program = '14';
+    await state.refreshAudience();
+    finishFirst({ ok: true, json: async () => ({ eligible: 99, excluded: 0 }) });
+    await first;
+    assert.equal(state.appliedProgram, '14');
+    assert.equal(state.eligibleRecipients, 7);
+
+    fetch.mock.mockImplementationOnce(async () => ({ ok: false }));
+    state.program = '15';
+    await state.refreshAudience();
+    assert.equal(state.audiencePreview, true);
+    assert.notEqual(state.audienceError, '');
+    await state.refreshAudience();
+    assert.equal(state.audiencePreview, false);
 });

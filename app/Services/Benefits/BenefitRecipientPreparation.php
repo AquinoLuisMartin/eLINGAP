@@ -22,6 +22,7 @@ class BenefitRecipientPreparation
             }
             $seniors = SeniorCitizen::query()->where('id', '>', $cursor)->where('id', '<=', $schedule->preparation_max_id)
                 ->where('status', 'VERIFIED')->whereNotNull('id_generated_at')
+                ->whereDoesntHave('activeAssignments', fn ($query) => $query->where('program_id', '!=', $schedule->program_id))
                 ->when($schedule->barangay_ids, fn ($query) => $query->whereIn('barangay_id', $schedule->barangay_ids))
                 ->orderBy('id')->limit(100)->get();
             $periods = $this->eligibility->periods($schedule->rule_snapshot, $schedule->eligibility_on, $schedule->period_key);

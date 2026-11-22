@@ -26,7 +26,7 @@
                 <button type="button" x-cloak @click="visible = !visible" :aria-pressed="visible" aria-controls="{{ $field }}" aria-label="Show {{ strtolower($label) }}" :aria-label="(visible ? 'Hide ' : 'Show ') + '{{ strtolower($label) }}'" x-text="visible ? 'Hide' : 'Show'" class="absolute inset-y-0 right-0 min-w-16 cursor-pointer rounded-r-lg px-3 text-sm font-semibold text-osca-primary hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-osca-primary">Show</button>
             </div>
             @if ($field === 'password')
-                <p id="password-help" class="text-xs leading-5 text-slate-600">Use 8 to 15 characters, including spaces or special characters. Avoid your name or employee ID.</p>
+                <p id="password-help" class="text-xs leading-5 text-slate-600">8-15 characters. Do not use your name or employee ID.</p>
             @endif
             @error($field)<p id="{{ $field }}-error" class="field-error" role="alert">{{ $message }}</p>@enderror
         </div>

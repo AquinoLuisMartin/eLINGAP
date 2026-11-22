@@ -2,7 +2,7 @@
 @section('content')
 <x-workspace-navigation section="payouts" />
 <div class="w-full min-w-0 max-w-full space-y-5">
-<x-staff.page-header :title="$selectedScheduleId ? 'Review payout schedule' : 'New payout schedule'" :description="$selectedScheduleId ? 'Review recipients and funding before approving the schedule.' : 'Choose a program, enter schedule details, then review eligible recipients.'">
+<x-staff.page-header :title="$selectedScheduleId ? 'Review payout schedule' : 'New payout schedule'">
     <a href="{{ route('payout-schedules.index') }}" class="secondary-button">&larr; Back to schedules</a>
 </x-staff.page-header>
 @if ($selectedScheduleId)
@@ -10,8 +10,8 @@
 @else
 <form method="GET" action="{{ route('payout-schedules.create') }}" class="grid gap-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900 sm:p-6">
     <div class="field-label"><label data-select-label>Program</label>
-        <p id="payout-program-help" class="field-helper">Select a program and continue to its schedule details.</p>
-        <x-select id="payout-program" label="Program" name="program_id" required aria-describedby="payout-program-help" class="mt-2 block w-full">
+
+        <x-select id="payout-program" label="Program" name="program_id" required class="mt-2 block w-full">
             <option value="">Select program</option>
             @foreach ($programs as $program)<option value="{{ $program->id }}" @selected((string) $selectedProgramId === (string) $program->id)>{{ $program->name }}</option>@endforeach
             @if ($canScheduleBenefits)<option value="other" @selected($selectedProgramId === 'other')>Other - enter a new program</option>@endif

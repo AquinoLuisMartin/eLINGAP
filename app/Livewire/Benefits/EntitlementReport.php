@@ -55,7 +55,7 @@ class EntitlementReport extends Component
                 'program:id,name,government_level',
                 'seniorCitizen:id,barangay_id,osca_id_number,first_name,middle_name,last_name,name_suffix,status',
                 'seniorCitizen.barangay:id,name', 'schedule:id,status',
-                'payments:id,benefit_entitlement_id,reference_number,paid_at,reversed_at,reversal_reason',
+                'payments:id,benefit_entitlement_id,paid_at,reversed_at,reversal_reason',
             ])
             ->when(in_array($this->status, ['PENDING', 'UNPAID', 'UNCLAIMED', 'CLAIMED']), fn ($query) => $query->where('status', $this->status))
             ->when($this->programId, fn ($query) => $query->where('program_id', (int) $this->programId))
@@ -74,7 +74,7 @@ class EntitlementReport extends Component
     public function reverse(int $paymentId, BenefitPayments $service): void
     {
         $service->reverse(BenefitPayment::findOrFail($paymentId), $this->reason);
-        $this->notice = 'Payment reversed. Original reference and history retained.';
+        $this->notice = 'Payment reversed. Original payment and audit history retained.';
         $this->reset('reason');
     }
 
@@ -90,10 +90,10 @@ class EntitlementReport extends Component
 
         return response()->streamDownload(function () use ($query): void {
             $stream = fopen('php://output', 'w');
-            fputcsv($stream, ['OSCA ID No.', 'Program', 'Original period', 'Amount (PHP)', 'Status', 'Senior status', 'Payment references'], escape: '');
+            fputcsv($stream, ['OSCA ID No.', 'Program', 'Original period', 'Amount (PHP)', 'Status', 'Senior status', 'Claim history'], escape: '');
             $query->chunkById(200, function ($entries) use ($stream): void {
                 foreach ($entries as $entry) {
-                    $row = [$entry->seniorCitizen->osca_id_number ?? '', $entry->program->name, $entry->period_key, $entry->amount ?? '', $entry->status->value, $entry->seniorCitizen->status->value, $entry->payments->map(fn ($payment) => $payment->reference_number.($payment->reversed_at ? ' (reversed)' : ''))->implode('; ')];
+                    $row = [$entry->seniorCitizen->osca_id_number ?? '', $entry->program->name, $entry->period_key, $entry->amount ?? '', $entry->status->value, $entry->seniorCitizen->status->value, $entry->payments->map(fn ($payment) => $payment->paid_at->format('Y-m-d H:i:s').($payment->reversed_at ? ' (reversed)' : ' (claimed)'))->implode('; ')];
                     fputcsv($stream, array_map(CsvCell::escape(...), $row), escape: '');
                 }
             });

@@ -41,7 +41,7 @@
 </div>
 <div class="flex min-w-0 flex-col gap-[7px]">
     <label for="contact_number" class="block font-medium">Mobile Number</label>
-    <x-senior-mobile-input id="contact_number" name="contact_number" required :value="old('contact_number', $seniorCitizen->contact_number ?? '')" />
+    <x-senior-mobile-input id="contact_number" name="contact_number" required :fixed-local="isset($seniorCitizen)" :value="old('contact_number', $seniorCitizen->contact_number ?? '')" />
 </div>
 <div class="min-w-0">
     <label for="barangay_id" class="block font-medium">Barangay</label>
@@ -64,7 +64,7 @@
 
 <fieldset class="grid grid-cols-1 gap-x-6 gap-y-5 rounded-lg border p-4 md:col-span-2 md:grid-cols-2">
     <legend class="px-2 font-semibold">Applicant and authorized representative</legend>
-    <p class="text-sm text-slate-500 md:col-span-2">A contact number for the senior is required for every registration. Representative details and authorization proof are required when a representative applies or receives SMS.</p>
+    <p class="text-sm text-slate-500 md:col-span-2">Representative applications require authorization proof.</p>
     <div class="field-label block text-sm md:col-span-2"><label data-select-label>Applicant type</label><x-select label="Applicant type" name="applicant_type" class="mt-1 w-full">
             <option value="SELF" @selected(old('applicant_type', $seniorCitizen->applicant_type ?? 'SELF') === 'SELF')>Senior personally</option>
             <option value="REPRESENTATIVE" @selected(old('applicant_type', $seniorCitizen->applicant_type ?? 'SELF') === 'REPRESENTATIVE')>Authorized representative</option>

@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="w-full min-w-0 max-w-full">
-    <x-staff.page-header title="Create program" description="Enter the program details and available budget.">
+    <x-staff.page-header title="Create program">
         <a class="secondary-button" href="{{ route('programs.index') }}">Back to programs</a>
     </x-staff.page-header>
     <form class="panel grid gap-5 sm:grid-cols-2" method="POST" action="{{ route('administration.programs.store') }}">

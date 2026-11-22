@@ -17,9 +17,11 @@ export function readTemplates(key) {
 export default function templateState(key) {
     return {
         seedTemplates: [],
+        retiredTemplateIds: [],
         overrides: {},
         init() {
             this.seedTemplates = JSON.parse(this.$el.dataset.templates || '[]');
+            this.retiredTemplateIds = JSON.parse(this.$el.dataset.retiredTemplates || '[]');
             this.overrides = readTemplates(key);
         },
         refreshTemplates(event) {
@@ -28,7 +30,8 @@ export default function templateState(key) {
         },
         availableTemplates() {
             const templates = new Map(this.seedTemplates.map(template => [template.id, template]));
-            Object.values(this.overrides).forEach(template => templates.set(template.id, template));
+            Object.values(this.overrides).filter(template => !this.retiredTemplateIds.includes(template.id))
+                .forEach(template => templates.set(template.id, template));
             return [...templates.values()].filter(template => template.active);
         },
         persistTemplate(template) {

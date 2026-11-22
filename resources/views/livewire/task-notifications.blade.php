@@ -38,8 +38,7 @@
         </div>
 
         <div class="task-notifications-footer">
-            <span>Resolved tasks leave this list automatically.</span>
-            <button type="button" class="task-notifications-refresh" wire:click="$refresh" wire:loading.attr="disabled">
+            <button type="button" class="task-notifications-refresh ml-auto" wire:click="$refresh" wire:loading.attr="disabled">
                 <span wire:loading.remove>Refresh</span><span wire:loading>Refreshing...</span>
             </button>
         </div>

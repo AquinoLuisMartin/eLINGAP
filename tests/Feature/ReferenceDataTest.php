@@ -134,7 +134,7 @@ class ReferenceDataTest extends TestCase
 
         $this->assertDatabaseHas('system_configurations', ['key' => 'municipality', 'value' => 'Santa Maria']);
         $this->assertDatabaseHas('system_configurations', ['key' => 'province', 'value' => 'Bulacan']);
-        $this->assertDatabaseCount('sms_templates', 18);
+        $this->assertDatabaseCount('sms_templates', 9);
         $this->assertDatabaseEmpty('users');
     }
 

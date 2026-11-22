@@ -261,93 +261,48 @@
     ],
     "sms_templates": [
         {
-            "name": "Annual December Senior Assistance - Mga kinakailangan",
-            "body": "OSCA: Paalala tungkol sa Annual December Senior Assistance. Makipag-ugnayan sa OSCA para sa kwalipikasyon at mga dokumentong kailangan sa aplikasyon. Ihanda ang inyong senior citizen ID.",
+            "name": "Annual December Senior Assistance",
+            "body": "OSCA | Annual December Senior Assistance\nPamamahagi ng taunang tulong pinansyal sa mga nakumpirmang benepisyaryo ngayong Disyembre.\nPetsa: [Petsa]\nOras: [Oras]\nLugar: [Lugar\/Venue]\nDalhin: OSCA ID o valid ID. Kung pinapayagan ang kinatawan, kailangan ang authorization letter at valid ID ng kinatawan.\nDumating sa oras. Walang bayad; huwag magbigay ng pera o personal na impormasyon sa hindi awtorisadong tao.",
             "is_active": true
         },
         {
-            "name": "Annual December Senior Assistance - Iskedyul",
-            "body": "OSCA: Para sa mga benepisyaryo ng Annual December Senior Assistance, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
+            "name": "LGU Age 90 Cash Gift",
+            "body": "OSCA | LGU Age 90 Cash Gift\nPagpapatunay ng edad at pagproseso ng cash gift para sa mga kwalipikadong 90 taong gulang.\nPetsa: [Petsa]\nOras: [Oras]\nLugar: [Lugar\/Venue]\nDalhin: OSCA ID o valid ID at patunay ng kapanganakan. Kung pinapayagan ang kinatawan, kailangan ang authorization letter at valid ID ng kinatawan.\nDumating sa oras. Walang bayad; huwag magbigay ng pera o personal na impormasyon sa hindi awtorisadong tao.",
             "is_active": true
         },
         {
-            "name": "LGU Age 90 Cash Gift - Mga kinakailangan",
-            "body": "OSCA: Paalala tungkol sa LGU Age 90 Cash Gift. Makipag-ugnayan sa OSCA para sa pagpapatunay ng edad at mga dokumentong kailangan sa aplikasyon. Ihanda ang inyong senior citizen ID.",
+            "name": "LGU Age 100 Cash Gift",
+            "body": "OSCA | LGU Age 100 Cash Gift\nPagpapatunay ng edad at pagproseso ng cash gift para sa mga kwalipikadong 100 taong gulang.\nPetsa: [Petsa]\nOras: [Oras]\nLugar: [Lugar\/Venue]\nDalhin: OSCA ID o valid ID at patunay ng kapanganakan. Kung pinapayagan ang kinatawan, kailangan ang authorization letter at valid ID ng kinatawan.\nDumating sa oras. Walang bayad; huwag magbigay ng pera o personal na impormasyon sa hindi awtorisadong tao.",
             "is_active": true
         },
         {
-            "name": "LGU Age 90 Cash Gift - Iskedyul",
-            "body": "OSCA: Para sa mga benepisyaryo ng LGU Age 90 Cash Gift, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
+            "name": "National Social Pension",
+            "body": "OSCA | National Social Pension\nPagpapatunay ng kwalipikasyon at talaan para sa payout ng pambansang social pension.\nPetsa: [Petsa]\nOras: [Oras]\nLugar: [Lugar\/Venue]\nDalhin: OSCA ID o valid ID. Kung pinapayagan ang kinatawan, kailangan ang authorization letter at valid ID ng kinatawan.\nDumating sa oras. Walang bayad; huwag magbigay ng pera o personal na impormasyon sa hindi awtorisadong tao.",
             "is_active": true
         },
         {
-            "name": "LGU Age 100 Cash Gift - Mga kinakailangan",
-            "body": "OSCA: Paalala tungkol sa LGU Age 100 Cash Gift. Makipag-ugnayan sa OSCA para sa pagpapatunay ng edad at mga dokumentong kailangan sa aplikasyon. Ihanda ang inyong senior citizen ID.",
+            "name": "Localized Social Pension",
+            "body": "OSCA | Localized Social Pension\nPagpapatunay ng kwalipikasyon at talaan para sa payout ng lokal na social pension.\nPetsa: [Petsa]\nOras: [Oras]\nLugar: [Lugar\/Venue]\nDalhin: OSCA ID o valid ID. Kung pinapayagan ang kinatawan, kailangan ang authorization letter at valid ID ng kinatawan.\nDumating sa oras. Walang bayad; huwag magbigay ng pera o personal na impormasyon sa hindi awtorisadong tao.",
             "is_active": true
         },
         {
-            "name": "LGU Age 100 Cash Gift - Iskedyul",
-            "body": "OSCA: Para sa mga benepisyaryo ng LGU Age 100 Cash Gift, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
+            "name": "Paglingap kay Lolo at Lola",
+            "body": "OSCA | Paglingap kay Lolo at Lola\nPagpapatunay ng kwalipikasyon para sa tulong sa mga nakaratay at indigent na senior.\nPetsa: [Petsa]\nOras: [Oras]\nLugar: [Lugar\/Venue]\nDalhin: OSCA ID o valid ID at mga dokumentong nagpapatunay ng kalagayan. Kung pinapayagan ang kinatawan, kailangan ang authorization letter at valid ID ng kinatawan.\nDumating sa oras. Walang bayad; huwag magbigay ng pera o personal na impormasyon sa hindi awtorisadong tao.",
             "is_active": true
         },
         {
-            "name": "National Social Pension - Mga kinakailangan",
-            "body": "OSCA: Paalala tungkol sa National Social Pension. Makipag-ugnayan sa OSCA para sa pagpapatunay ng kwalipikasyon at katayuan sa listahan ng pensyon. Ihanda ang inyong senior citizen ID.",
+            "name": "Provincial Centenarian Cash Gift and Groceries",
+            "body": "OSCA | Provincial Centenarian Cash Gift and Groceries\nPagpapatunay para sa cash gift at grocery assistance ng mga kwalipikadong centenarian.\nPetsa: [Petsa]\nOras: [Oras]\nLugar: [Lugar\/Venue]\nDalhin: OSCA ID o valid ID at patunay ng kapanganakan. Kung pinapayagan ang kinatawan, kailangan ang authorization letter at valid ID ng kinatawan.\nDumating sa oras. Walang bayad; huwag magbigay ng pera o personal na impormasyon sa hindi awtorisadong tao.",
             "is_active": true
         },
         {
-            "name": "National Social Pension - Iskedyul",
-            "body": "OSCA: Para sa mga benepisyaryo ng National Social Pension, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
+            "name": "Expanded Centenarians Act (RA 11982)",
+            "body": "OSCA | Expanded Centenarians Act (RA 11982)\nPagpapatunay ng edad at pagproseso ng cash gift para sa mga kwalipikadong senior.\nPetsa: [Petsa]\nOras: [Oras]\nLugar: [Lugar\/Venue]\nDalhin: OSCA ID o valid ID at patunay ng kapanganakan. Kung pinapayagan ang kinatawan, kailangan ang authorization letter at valid ID ng kinatawan.\nDumating sa oras. Walang bayad; huwag magbigay ng pera o personal na impormasyon sa hindi awtorisadong tao.",
             "is_active": true
         },
         {
-            "name": "Localized Social Pension - Mga kinakailangan",
-            "body": "OSCA: Paalala tungkol sa Localized Social Pension. Makipag-ugnayan sa OSCA para sa pagpapatunay ng kwalipikasyon at katayuan sa listahan ng pensyon. Ihanda ang inyong senior citizen ID.",
-            "is_active": true
-        },
-        {
-            "name": "Localized Social Pension - Iskedyul",
-            "body": "OSCA: Para sa mga benepisyaryo ng Localized Social Pension, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
-            "is_active": true
-        },
-        {
-            "name": "Paglingap kay Lolo at Lola - Mga kinakailangan",
-            "body": "OSCA: Paalala tungkol sa Paglingap kay Lolo at Lola. Makipag-ugnayan sa OSCA para sa kwalipikasyon at mga dokumentong kailangan sa aplikasyon. Ihanda ang inyong senior citizen ID.",
-            "is_active": true
-        },
-        {
-            "name": "Paglingap kay Lolo at Lola - Iskedyul",
-            "body": "OSCA: Para sa mga benepisyaryo ng Paglingap kay Lolo at Lola, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
-            "is_active": true
-        },
-        {
-            "name": "Provincial Centenarian Cash Gift and Groceries - Mga kinakailangan",
-            "body": "OSCA: Paalala tungkol sa Provincial Centenarian Cash Gift and Groceries. Makipag-ugnayan sa OSCA para sa pagpapatunay ng edad at mga dokumentong kailangan sa aplikasyon. Ihanda ang inyong senior citizen ID.",
-            "is_active": true
-        },
-        {
-            "name": "Provincial Centenarian Cash Gift and Groceries - Iskedyul",
-            "body": "OSCA: Para sa mga benepisyaryo ng Provincial Centenarian Cash Gift and Groceries, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
-            "is_active": true
-        },
-        {
-            "name": "Expanded Centenarians Act (RA 11982) - Mga kinakailangan",
-            "body": "OSCA: Paalala tungkol sa Expanded Centenarians Act (RA 11982). Makipag-ugnayan sa OSCA para sa pagpapatunay ng edad at mga dokumentong kailangan sa aplikasyon. Ihanda ang inyong senior citizen ID.",
-            "is_active": true
-        },
-        {
-            "name": "Expanded Centenarians Act (RA 11982) - Iskedyul",
-            "body": "OSCA: Para sa mga benepisyaryo ng Expanded Centenarians Act (RA 11982), kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
-            "is_active": true
-        },
-        {
-            "name": "T.S.S. - Tulong sa Senior - Mga kinakailangan",
-            "body": "OSCA: Paalala tungkol sa T.S.S. - Tulong sa Senior. Makipag-ugnayan sa OSCA para sa pagsusuri ng inyong kahilingan at kaukulang dokumento. Ihanda ang inyong senior citizen ID.",
-            "is_active": true
-        },
-        {
-            "name": "T.S.S. - Tulong sa Senior - Iskedyul",
-            "body": "OSCA: Para sa mga benepisyaryo ng T.S.S. - Tulong sa Senior, kumpirmahin sa tanggapan ang opisyal na petsa, oras, lugar at mga kailangang dalhin bago pumunta. Maghintay ng kumpirmasyon mula sa OSCA.",
+            "name": "T.S.S. - Tulong sa Senior",
+            "body": "OSCA | T.S.S. - Tulong sa Senior\nPagsusuri ng inyong kahilingan para sa tulong pinansyal.\nPetsa: [Petsa]\nOras: [Oras]\nLugar: [Lugar\/Venue]\nDalhin: OSCA ID o valid ID at mga dokumentong sumusuporta sa kahilingan. Kung pinapayagan ang kinatawan, kailangan ang authorization letter at valid ID ng kinatawan.\nDumating sa oras. Walang bayad; huwag magbigay ng pera o personal na impormasyon sa hindi awtorisadong tao.",
             "is_active": true
         }
     ],

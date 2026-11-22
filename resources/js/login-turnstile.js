@@ -8,8 +8,12 @@ export default function initLoginTurnstile(doc = document, browser = window) {
     const retry = doc.getElementById('login-verification-retry');
     let widgetId;
     let script;
+    const setStatus = (message, state = 'pending') => {
+        status.textContent = message;
+        status.dataset.state = state;
+    };
     const showError = () => {
-        status.textContent = 'Security verification could not complete. Please retry.';
+        setStatus('Security verification could not complete. Please retry.');
         retry.hidden = false;
     };
     const render = () => {
@@ -18,12 +22,13 @@ export default function initLoginTurnstile(doc = document, browser = window) {
             sitekey: container.dataset.sitekey,
             action: 'login',
             size: 'flexible',
+            theme: 'light',
             callback: () => {
-                status.textContent = 'Security verification complete.';
+                setStatus('Security verification complete.', 'success');
                 retry.hidden = true;
             },
             'expired-callback': () => {
-                status.textContent = 'Verification expired. Please verify again.';
+                setStatus('Verification expired. Please verify again.');
                 browser.turnstile.reset(widgetId);
             },
             'error-callback': () => { showError(); return true; },
@@ -46,19 +51,22 @@ export default function initLoginTurnstile(doc = document, browser = window) {
     modal.addEventListener('login:opened', load);
     retry.addEventListener('click', () => {
         retry.hidden = true;
-        status.textContent = 'Loading security verification...';
+        setStatus('Loading security verification...');
         if (widgetId !== undefined) browser.turnstile.reset(widgetId);
         else load();
     });
     form.addEventListener('submit', event => {
         if (widgetId === undefined || !browser.turnstile.getResponse(widgetId)) {
             event.preventDefault();
-            status.textContent = 'Complete the security verification before signing in.';
+            setStatus('Complete the security verification before signing in.');
             retry.hidden = false;
         }
     });
     browser.addEventListener('pageshow', event => {
-        if (event.persisted && widgetId !== undefined) browser.turnstile.reset(widgetId);
+        if (event.persisted && widgetId !== undefined) {
+            setStatus('Loading security verification...');
+            browser.turnstile.reset(widgetId);
+        }
     });
     if (!modal.classList.contains('hidden')) load();
 }

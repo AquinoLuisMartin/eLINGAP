@@ -21,18 +21,27 @@ class BenefitPayments
         Gate::authorize('manage', BenefitSchedule::class);
         validator($data, [
             'claimant_type' => ['required', 'in:SELF,REPRESENTATIVE'],
-            'external_reference' => ['nullable', 'string', 'max:180'],
+            'identity_checked' => ['accepted'],
+            'authorization_checked' => ['required_if:claimant_type,REPRESENTATIVE', 'accepted_if:claimant_type,REPRESENTATIVE'],
             'groceries_received' => ['sometimes', 'boolean'],
             'requirements_checked' => ['sometimes', 'boolean'],
         ])->validate();
 
         return DB::transaction(function () use ($entitlement, $data) {
             $schedule = BenefitSchedule::query()->with('program')->lockForUpdate()->findOrFail($entitlement->benefit_schedule_id);
+            $demo = (bool) ($schedule->rule_snapshot['local_demo'] ?? false);
+            if ($demo) {
+                abort_unless(app()->environment('local') && in_array(DB::connection()->getConfig('host'), ['localhost', '127.0.0.1', '::1'], true), 403, 'Demo payout schedules can only be used with a local database.');
+            }
             $entitlement = BenefitEntitlement::query()->lockForUpdate()->findOrFail($entitlement->id);
             $senior = SeniorCitizen::query()->lockForUpdate()->findOrFail($entitlement->senior_citizen_id);
-            abort_unless($entitlement->status === BenefitStatus::Unpaid && $entitlement->benefit_schedule_id === $schedule->id, 409, 'This entitlement is not awaiting payment.');
+            abort_unless(in_array($entitlement->status, [BenefitStatus::Unpaid, BenefitStatus::Unclaimed], true) && $entitlement->benefit_schedule_id === $schedule->id, 409, 'This entitlement is not awaiting payment.');
             abort_unless($schedule->status === 'APPROVED' && $entitlement->reviewed_at && $schedule->scheduled_at->lte(now()), 422, 'Staff approval and the scheduled payout date are required.');
             abort_unless($schedule->program->status === 'ACTIVE', 422, 'The program is not active.');
+            abort_unless($entitlement->amount > 0 && round((float) $schedule->entitlements()->sum('amount'), 2) <= (float) $schedule->available_funds, 422, 'Approved funding must cover the payout schedule.');
+            if (isset($data['reviewed_amount'])) {
+                abort_unless($data['reviewed_amount'] === $entitlement->amount && $data['reviewed_schedule_id'] === $schedule->id, 409, 'The payout details changed. Review the claim again.');
+            }
             $on = isset($entitlement->rule_snapshot['claim_window_months']) ? now()->startOfDay() : $entitlement->eligibility_on;
             if ($reason = $this->eligibility->reason($senior, $entitlement->rule_snapshot, $on, $entitlement->milestone_age)) {
                 throw ValidationException::withMessages(['claim' => $reason]);
@@ -41,26 +50,38 @@ class BenefitPayments
                 abort(409, 'This benefit has already been paid.');
             }
             if ($data['claimant_type'] === 'REPRESENTATIVE') {
-                abort_unless($schedule->allow_representative && $senior->representative_name && $senior->documents()->where('document_type', 'AUTHORIZATION')->exists(), 422, 'Representative claiming requires schedule permission and recorded authorization.');
+                abort_unless($schedule->allow_representative && ($data['claimant_name'] ?? $senior->representative_name) && $senior->documents()->where('document_type', 'AUTHORIZATION')->exists(), 422, 'Representative claiming requires schedule permission and recorded authorization.');
             }
             if ($schedule->requirements && ! ($data['requirements_checked'] ?? false)) {
                 throw ValidationException::withMessages(['claim' => 'Confirm the announced requirements before recording payment.']);
             }
-            if (($entitlement->rule_snapshot['government_level'] ?? $schedule->program->government_level) !== 'LGU' && empty($data['external_reference'])) {
-                throw ValidationException::withMessages(['claim' => 'Record the provincial or national receipt reference.']);
-            }
             if (($entitlement->rule_snapshot['groceries'] ?? false) && ! ($data['groceries_received'] ?? false)) {
                 throw ValidationException::withMessages(['claim' => 'Confirm receipt of groceries for this benefit.']);
             }
+            $claimant = [
+                'claimant_name' => $data['claimant_type'] === 'SELF' ? $senior->full_name : ($data['claimant_name'] ?? $senior->representative_name),
+                'claimant_relationship' => $data['claimant_type'] === 'SELF' ? null : ($data['claimant_relationship'] ?? $senior->representative_relationship),
+                'claimant_contact' => $data['claimant_type'] === 'SELF' ? $senior->contact_number : ($data['claimant_contact'] ?? $senior->representative_contact),
+            ];
+            validator($claimant, [
+                'claimant_name' => ['required', 'string', 'max:350'],
+                'claimant_relationship' => [$data['claimant_type'] === 'REPRESENTATIVE' ? 'required' : 'nullable', 'string', 'max:100'],
+                'claimant_contact' => ['nullable', 'string', 'max:30'],
+            ])->validate();
+            if ($data['claimant_type'] === 'SELF' && array_key_exists('claimant_name', $data)) {
+                abort_unless(array_intersect_key($data, $claimant) === $claimant, 409, 'The claimant details changed. Review the claim again.');
+            }
             $payment = BenefitPayment::create([
                 'benefit_entitlement_id' => $entitlement->id, 'benefit_schedule_id' => $schedule->id,
-                'reference_number' => 'PAY-'.Str::ulid(), 'amount' => $entitlement->amount,
+                'reference_number' => ($demo ? 'DEMO-LOCAL-' : 'PAY-').Str::ulid(), 'amount' => $entitlement->amount,
                 'claimant_type' => $data['claimant_type'], 'external_reference' => $data['external_reference'] ?? null,
+                ...$claimant,
+                'identity_verified' => true, 'authorization_verified' => $data['claimant_type'] === 'REPRESENTATIVE',
                 'groceries_received' => $data['groceries_received'] ?? false, 'recorded_by' => auth()->id(), 'paid_at' => now(),
             ]);
             $entitlement->update(['status' => BenefitStatus::Claimed, 'claimed_at' => now()]);
             $schedule->recipients()->where('benefit_entitlement_id', $entitlement->id)->update(['outcome' => 'CLAIMED']);
-            BenefitAudit::record('benefit.claimed', $entitlement, ['reference' => $payment->reference_number, 'payment_id' => $payment->id]);
+            BenefitAudit::record($demo ? 'local_demo.benefit_claimed' : 'benefit.claimed', $entitlement, ['reference' => $payment->reference_number, 'payment_id' => $payment->id, 'claimant_type' => $payment->claimant_type, 'identity_verified' => true, 'authorization_verified' => $payment->authorization_verified, 'local_demo' => $demo]);
 
             return $payment;
         });

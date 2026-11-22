@@ -91,6 +91,8 @@ class SmsMessagePreviewTest extends TestCase
             array_map(fn ($header) => trim($header->textContent), iterator_to_array($xpath->query('//table/thead/tr/th'))));
         $this->assertCount(0, $xpath->query('//table/thead/tr/th[contains(., "Failure")]'));
         $this->assertCount(1, $xpath->query('//button[@data-retry]'));
+        $retry = json_decode($xpath->query('//button[@data-retry]')->item(0)->getAttribute('data-retry'), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame(route('sms.messages.retry', $message), $retry['retryUrl']);
     }
 
     public function test_individual_message_content_requires_authentication(): void

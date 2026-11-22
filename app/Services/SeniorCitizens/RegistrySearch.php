@@ -25,7 +25,7 @@ class RegistrySearch
 
     public function data(array $filters, int $page = 1): array
     {
-        $query = SeniorCitizen::query()->with(['barangay:id,name', 'activeAssignments:id,senior_citizen_id,program_id', 'activeAssignments.program:id,name', 'milestoneClaims:id,senior_citizen_id,milestone_age'])
+        $query = SeniorCitizen::query()->with(['barangay:id,name', 'activeAssignments:id,senior_citizen_id,program_id', 'activeAssignments.program:id,name'])
             ->when(filled(trim($filters['search'] ?? '')), fn ($query) => $query->searchable($filters['search'], $filters['search_by'] ?? 'all'))
             ->when($filters['barangay_id'] ?? null, fn ($query, $id) => $query->where('barangay_id', $id))
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))

@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="w-full min-w-0 max-w-full">
-    <x-staff.page-header :title="$application->application_number" description="Review benefit application details and processing history.">
+    <x-staff.page-header :title="$application->application_number">
         <a class="secondary-button" href="{{ route('applications.index') }}">Back to applications</a>
     </x-staff.page-header>
     <section class="panel">

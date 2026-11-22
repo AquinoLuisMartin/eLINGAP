@@ -3,7 +3,7 @@
     <div>
         <p class="section-kicker">Administration</p>
         <h2>User Accounts</h2>
-        <p class="section-subtitle">Manage system users, roles, and access permissions.</p>
+
     </div>
     <a class="primary-button" href="{{ route('administration.users.create') }}">
         <x-admin.icon name="plus" size="17" /> Add User

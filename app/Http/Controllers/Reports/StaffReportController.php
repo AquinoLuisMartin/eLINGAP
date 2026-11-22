@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Reports;
 
 use App\Enums\ApplicationStatus;
+use App\Enums\BenefitStatus;
 use App\Enums\PayoutStatus;
 use App\Enums\SeniorCitizenStatus;
 use App\Http\Controllers\Controller;
@@ -37,11 +38,12 @@ class StaffReportController extends Controller
             'report' => $report,
             'filters' => $filters,
             'filterLabels' => $report->filterLabels($filters),
+            'summary' => $report->summary($type, $filters),
             'generatedAt' => now(),
             'population' => $report->populationQuery()->orderBy('name')->get(),
             'milestoneAges' => $type === 'milestones' ? $report->milestoneAges() : collect(),
             'barangays' => Barangay::query()->orderBy('name')->get(['id', 'name']),
-            'programs' => in_array($type, ['beneficiaries', 'payouts'], true) ? Program::query()->orderBy('name')->get(['id', 'name']) : collect(),
+            'programs' => $type !== 'archived' ? Program::query()->orderBy('name')->get(['id', 'name']) : collect(),
         ]);
     }
 
@@ -54,6 +56,7 @@ class StaffReportController extends Controller
         $generatedAt = now();
         $population = $report->populationQuery()->orderBy('name')->get();
         $filterLabels = $report->filterLabels($filters);
+        $summary = $report->summary($type, $filters);
         $query = $report->orderedQuery($type, $filters);
         $total = (clone $query)->count();
         if ($format === 'pdf' && $total > StaffReportPdf::MAX_RECORDS) {
@@ -74,7 +77,7 @@ class StaffReportController extends Controller
             $content = $pdf->render([
                 'title' => StaffReport::TYPES[$type], 'type' => $type, 'report' => $report,
                 'headings' => $report->headings($type), 'records' => $query->get(),
-                'generatedAt' => $generatedAt, 'population' => $population, 'filterLabels' => $filterLabels, 'total' => $total,
+                'generatedAt' => $generatedAt, 'population' => $population, 'filterLabels' => $filterLabels, 'total' => $total, 'summary' => $summary,
             ]);
         }
         AuditLog::create(['user_id' => $request->user()->id, 'action' => 'report.exported', 'new_values' => ['report' => $type, 'format' => $format, 'filters' => $filters, 'generated_at' => $generatedAt->toIso8601String()], 'ip_address' => $request->ip()]);
@@ -84,23 +87,23 @@ class StaffReportController extends Controller
         }
 
         if ($format === 'xlsx') {
-            return response()->streamDownload(function () use ($spreadsheet, $report, $type, $query, $generatedAt, $population, $filterLabels): void {
+            return response()->streamDownload(function () use ($spreadsheet, $report, $type, $query, $generatedAt, $population, $filterLabels, $summary): void {
                 $spreadsheet->write([
                     'title' => StaffReport::TYPES[$type], 'type' => $type, 'report' => $report,
                     'headings' => $report->headings($type), 'records' => $query->lazy(200),
-                    'generatedAt' => $generatedAt, 'population' => $population, 'filterLabels' => $filterLabels,
+                    'generatedAt' => $generatedAt, 'population' => $population, 'filterLabels' => $filterLabels, 'summary' => $summary,
                 ]);
             }, $filename, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Cache-Control' => 'private, no-store']);
         }
 
-        return response()->streamDownload(function () use ($report, $type, $query, $generatedAt, $population, $filterLabels, $total): void {
+        return response()->streamDownload(function () use ($report, $type, $query, $generatedAt, $population, $filterLabels, $total, $summary): void {
             $stream = fopen('php://output', 'w');
             fputcsv($stream, $report->headings($type), escape: '');
             foreach ($query->lazy(200) as $record) {
                 fputcsv($stream, array_map(CsvCell::escape(...), $report->row($type, $record)), escape: '');
             }
             fputcsv($stream, [], escape: '');
-            foreach (['Report' => StaffReport::TYPES[$type], 'Generated at' => $generatedAt->format('Y-m-d H:i:s e'), 'Matching records' => $total, ...$filterLabels] as $label => $value) {
+            foreach (['Report' => StaffReport::TYPES[$type], 'Generated at' => $generatedAt->format('Y-m-d H:i:s e'), 'Matching records' => $total, ...$filterLabels, ...$summary] as $label => $value) {
                 fputcsv($stream, array_map(CsvCell::escape(...), [$label, $value]), escape: '');
             }
             fputcsv($stream, ['Population scope', 'Verified senior citizens across all barangays; excludes deceased, archived and transferred records.'], escape: '');
@@ -115,18 +118,23 @@ class StaffReportController extends Controller
 
     private function filters(Request $request, string $type, StaffReport $report): array
     {
-        $rules = ['barangay_id' => ['nullable', 'integer', 'exists:barangays,id']];
-        if (in_array($type, ['masterlist', 'applications', 'payouts'], true)) {
+        $rules = ['barangay_id' => ['nullable', 'integer', 'exists:barangays,id'], 'search' => ['nullable', 'string', 'max:100']];
+        if (in_array($type, ['masterlist', 'applications'], true)) {
             $rules['status'] = ['nullable', Rule::enum(match ($type) {
                 'masterlist' => SeniorCitizenStatus::class,
                 'applications' => ApplicationStatus::class,
-                'payouts' => PayoutStatus::class,
             })];
         }
-        if (in_array($type, ['beneficiaries', 'payouts'], true)) {
+        if ($type === 'payouts') {
+            $rules['status'] = ['nullable', Rule::in(array_unique([...array_column(PayoutStatus::cases(), 'value'), ...array_column(BenefitStatus::cases(), 'value')]))];
+        }
+        if ($type === 'archived') {
+            $rules['status'] = ['nullable', Rule::in(['DECEASED', 'ARCHIVED', 'TRANSFERRED'])];
+        }
+        if ($type !== 'archived') {
             $rules['program_id'] = ['nullable', 'integer', 'exists:programs,id'];
         }
-        if (in_array($type, ['masterlist', 'beneficiaries'], true)) {
+        if (in_array($type, ['masterlist', 'beneficiaries', 'population', 'milestones', 'archived'], true)) {
             $rules['age_min'] = ['nullable', 'integer', 'min:60', 'max:150'];
             $rules['age_max'] = ['nullable', 'integer', 'min:60', 'max:150', Rule::when($request->filled('age_min'), 'gte:age_min')];
         }
@@ -138,6 +146,11 @@ class StaffReportController extends Controller
             $rules['to'] = ['nullable', 'date', 'after_or_equal:from'];
         }
 
-        return $request->validate($rules);
+        $filters = $request->validate($rules);
+        if ($type === 'milestones') {
+            $filters['milestone'] ??= $report->milestoneAges()->first();
+        }
+
+        return $filters;
     }
 }

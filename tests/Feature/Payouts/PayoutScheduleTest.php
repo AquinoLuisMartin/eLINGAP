@@ -197,7 +197,7 @@ class PayoutScheduleTest extends TestCase
         $this->get(route('payout-schedules.create', ['program_id' => $program->id, 'schedule_id' => $schedule->id]))
             ->assertSeeLivewire(SchedulePanel::class)
             ->assertSee($schedule->reference_number)
-            ->assertSee('Preparing eligible recipients. Review and approval will be available when preparation finishes.');
+            ->assertSee('Preparing recipients...');
     }
 
     public function test_admin_can_review_schedules_but_cannot_open_staff_program_creation(): void

@@ -2,7 +2,7 @@
 @section('content')
 <div class="min-w-0" x-data="smsMessages()">
     <x-workspace-navigation section="messaging" />
-    <x-staff.page-header title="Individual SMS messages" description="Track queued messages, review provider results, and retry failed submissions.">
+    <x-staff.page-header title="Individual SMS messages">
         <a class="primary-button" href="{{ route('sms.messages.create') }}">Send SMS</a>
     </x-staff.page-header>
     <form class="mb-5 flex flex-wrap items-end gap-3" method="GET" action="{{ route('sms.messages.index') }}">
@@ -21,10 +21,12 @@
         @endif
     </form>
     <p x-cloak x-show="notice" x-text="notice" role="status" class="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-950 dark:text-green-200"></p>
-    <x-sms.delivery-table :messages="$messages" />
+    @if (session('status'))<x-feedback class="mb-4">{{ session('status') }}</x-feedback>@endif
+    @error('sms')<x-feedback type="error" class="mb-4">{{ $message }}</x-feedback>@enderror
+    <x-sms.delivery-table :messages="$messages" live-retry />
     <div class="mt-4">{{ $messages->links() }}</div>
 
     <x-sms.message-dialog />
-    <x-sms.retry-dialog />
+    <x-sms.retry-dialog live-retry />
 </div>
 @endsection

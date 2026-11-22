@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'body', 'is_active', 'created_by'])]
+#[Fillable(['name', 'body', 'is_active', 'created_by', 'program_id', 'superseded_by_id'])]
 class SmsTemplate extends Model
 {
     protected function casts(): array

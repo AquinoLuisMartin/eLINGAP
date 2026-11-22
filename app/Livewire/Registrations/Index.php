@@ -44,6 +44,12 @@ class Index extends Component
     #[On('id-print-updated')]
     public function refreshPrinting(): void {}
 
+    public function resetFilters(): void
+    {
+        $this->reset('search', 'searchBy', 'stage', 'barangayId');
+        $this->resetPage();
+    }
+
     public function render()
     {
         $query = SeniorCitizen::query()->where('status', '!=', 'PENDING')->with(['barangay:id,name', 'milestoneClaims:id,senior_citizen_id,milestone_age'])

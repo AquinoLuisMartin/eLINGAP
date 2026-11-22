@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<x-staff.page-header :title="$program->name.' beneficiaries'" description="Review enrolled beneficiaries and add eligible senior citizens.">
+<x-staff.page-header :title="$program->name.' beneficiaries'">
     <a class="secondary-button" href="{{ route('programs.show', $program) }}">Back to program</a>
 </x-staff.page-header>
 @can('manage', \App\Models\BenefitSchedule::class)

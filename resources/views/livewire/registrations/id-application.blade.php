@@ -3,7 +3,7 @@
     @if ($modal) role="dialog" aria-modal="true" aria-labelledby="id-application-title" x-trap.inert.noscroll="true" @keydown.escape.window="$wire.cancel()" @endif>
     <div @class(['w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900', 'mx-auto max-w-4xl' => $modal, 'min-w-0 max-w-full' => ! $modal]) @if ($modal) style="max-height: 90dvh; overflow-y: auto" @endif>
         <header class="flex items-start justify-between gap-4 border-b border-slate-200 px-4 py-4 sm:px-5 dark:border-slate-700">
-            <div><h2 id="id-application-title" class="text-xl font-semibold sm:text-2xl">New ID Application</h2><p class="mt-1 max-w-xl text-sm text-slate-500">Check requirements and register the senior. Prepare the ID now or later.</p></div>
+            <div><h2 id="id-application-title" class="text-xl font-semibold sm:text-2xl">New ID Application</h2></div>
             <button type="button" wire:click="cancel" class="icon-button shrink-0" aria-label="Close ID application"><x-admin.icon name="x" size="20" /></button>
         </header>
         <nav aria-label="ID application progress" class="border-b border-slate-200 px-4 py-3 sm:px-5 dark:border-slate-700">
@@ -22,7 +22,7 @@
             <div class="flex flex-col gap-3 px-4 py-4 sm:px-5">
                 <div class="flex flex-wrap items-center justify-between gap-3"><h3 class="text-lg font-semibold">{{ [0 => 'Check requirements first', 1 => 'Personal information', 2 => 'Address and contact details', 3 => 'Documents and confirmation'][$step] }}</h3><p class="text-xs text-slate-500">Step {{ $step + 1 }} of 4</p></div>
                 @if ($step === 0)
-                    <p class="max-w-2xl text-sm text-slate-500">Verify and check the presented required documents before proceeding to enter the senior citizen's information.</p>
+
                     <fieldset>
                         <legend class="mb-2 text-base font-semibold text-slate-900 dark:text-slate-100">Document checks</legend>
                         <div class="flex flex-col gap-3">
@@ -41,7 +41,7 @@
                         </div>
                     </fieldset>
                 @elseif ($step === 1)
-                    <p class="max-w-2xl text-sm text-slate-500">Enter the senior's details as shown on their identification documents. Applicants must be at least 60 years old. Fields marked <span class="field-required" aria-hidden="true">*</span><span class="sr-only"> with an asterisk</span> are required.</p>
+                    <p class="max-w-2xl text-sm text-slate-500">Applicants must be at least 60 years old.</p>
                     <div class="grid items-start gap-x-4 gap-y-3 sm:grid-cols-2">
                         @foreach (['first_name' => 'First name', 'last_name' => 'Last name', 'middle_name' => 'Middle name', 'name_suffix' => 'Name suffix'] as $field => $label)
                             <x-registration-field wire:key="personal-field-{{ $field }}" :name="'form.'.$field" :label="$label" :required="in_array($field, ['first_name', 'last_name'])"><input id="form-{{ $field }}" data-senior-name wire:model="form.{{ $field }}" class="uppercase" pattern="[\p{L}\p{M} ]+" title="Letters and spaces only" maxlength="{{ $field === 'name_suffix' ? 20 : 100 }}" autocomplete="off"></x-registration-field>
@@ -119,7 +119,7 @@
                     <section aria-labelledby="final-verification-title" class="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-700 dark:bg-slate-800">
                         <div class="flex flex-col gap-1">
                             <h3 id="final-verification-title" class="font-semibold text-(--navy) dark:text-slate-100">Final Verification</h3>
-                            <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">Review the application details and confirm that all required documents have been verified before proceeding to ID preparation.</p>
+
                         </div>
                         <label class="flex cursor-pointer items-start gap-3">
                             <input type="checkbox" wire:model="informationReviewed" class="mt-1 shrink-0" aria-required="true" aria-describedby="application-verification-description">

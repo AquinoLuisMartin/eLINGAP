@@ -32,6 +32,62 @@ class IdPrintWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_registration_metrics_are_static_and_refresh_while_stage_filtering_still_works(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $pending = $this->senior();
+        $pending->forceFill(['id_generated_at' => null])->save();
+        $issued = $this->senior(2);
+        $inactive = $this->senior(3);
+        $inactive->update(['status' => 'ARCHIVED']);
+
+        $component = Livewire::test(Index::class);
+
+        $counts = $component->viewData('counts');
+        $this->assertSame([1, 1, 1], [(int) $counts->verified, (int) $counts->issued, (int) $counts->inactive]);
+        $document = new \DOMDocument;
+        @$document->loadHTML($component->html());
+        $xpath = new \DOMXPath($document);
+        $metrics = $xpath->query('//*[@aria-label="Registration metrics"]')->item(0);
+        $this->assertNotNull($metrics);
+        $this->assertSame(3, $xpath->query('./div', $metrics)->length);
+        $this->assertSame(0, $xpath->query('.//button | .//a | .//*[@role="button" or @tabindex or @aria-pressed] | .//@*[name()="wire:click"]', $metrics)->length);
+
+        $component->set('stage', 'VERIFIED');
+        $this->assertSame([$pending->id], $component->viewData('registrations')->modelKeys());
+        $component->set('stage', 'ISSUED');
+        $this->assertSame([$issued->id], $component->viewData('registrations')->modelKeys());
+        $component->set('stage', 'INACTIVE');
+        $this->assertSame([$inactive->id], $component->viewData('registrations')->modelKeys());
+
+        $issued->forceFill(['id_generated_at' => null])->save();
+        $component->call('$refresh');
+        $counts = $component->viewData('counts');
+        $this->assertSame([2, 0, 1], [(int) $counts->verified, (int) $counts->issued, (int) $counts->inactive]);
+        $component->assertSet('stage', 'INACTIVE');
+    }
+
+    public function test_resetting_registration_filters_returns_to_the_first_page(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $component = Livewire::test(Index::class)
+            ->set('search', 'EXAMPLE')
+            ->set('searchBy', 'name')
+            ->set('stage', 'HISTORY')
+            ->set('barangayId', '1')
+            ->call('setPage', 2)
+            ->assertSee('Reset filters');
+
+        $component->call('resetFilters');
+
+        $component->assertSet('search', '')
+            ->assertSet('searchBy', 'all')
+            ->assertSet('stage', '')
+            ->assertSet('barangayId', '')
+            ->assertSet('paginators.page', 1)
+            ->assertDontSee('Reset filters');
+    }
+
     public function test_pdf_generation_requires_physical_confirmation_and_cannot_be_repeated(): void
     {
         $this->actingAs(User::factory()->create());

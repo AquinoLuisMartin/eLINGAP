@@ -1,4 +1,4 @@
-<section class="page-intro"><div><p class="section-kicker">Communications center</p><h2>SMS Dispatcher</h2><p class="section-subtitle">Recorded sending results and broadcast history.</p></div><a class="primary-button" href="{{ route('sms.blasts.create') }}"><x-admin.icon name="send" size="16" /> Create Broadcast</a></section>
+<section class="page-intro"><div><p class="section-kicker">Communications center</p><h2>SMS Dispatcher</h2></div><a class="primary-button" href="{{ route('sms.blasts.create') }}"><x-admin.icon name="send" size="16" /> Create Broadcast</a></section>
 <section class="stat-strip">
     <div class="mini-stat"><div><small>Sent this month</small><strong>{{ number_format($this->summary['sms_sent']) }}</strong></div></div>
     <div class="mini-stat"><div><small>Sending success this month</small><strong>{{ $this->summary['sms_rate'] === null ? 'No attempts' : $this->summary['sms_rate'].'%' }}</strong></div></div>

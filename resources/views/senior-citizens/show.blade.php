@@ -10,7 +10,8 @@
         }
     }" @registration-verified.window="window.location.reload()">
         <header class="space-y-4">
-            <a href="{{ route(request('from') === 'registrations' ? 'registrations.index' : 'senior-citizens.index', request()->only(['search', 'search_by', 'stage', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])) }}" class="text-button inline-flex min-h-11 items-center text-sm">&larr; Back to {{ request('from') === 'registrations' ? 'registrations' : 'masterlist' }}</a>
+            @php($adminRecord = auth()->user()->isAdmin())
+            <a href="{{ $adminRecord ? route('administration.dashboard', ['tab' => 'records']) : route(request('from') === 'registrations' ? 'registrations.index' : 'senior-citizens.index', request()->only(['search', 'search_by', 'stage', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])) }}" class="text-button inline-flex min-h-11 items-center text-sm">&larr; Back to {{ $adminRecord ? 'registry' : (request('from') === 'registrations' ? 'registrations' : 'masterlist') }}</a>
             <div class="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div class="min-w-0 space-y-2">
                     <p class="text-xs text-slate-500 dark:text-slate-400">Senior citizen record</p>
@@ -132,7 +133,7 @@
         <section id="id-card" role="tabpanel" aria-labelledby="tab-id-card" tabindex="0" x-show="tab === 'id-card'" x-cloak>
             <x-benefit-panel class="p-4!">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div class="space-y-2"><h3 class="text-lg font-semibold">Digital ID details</h3><p class="max-w-xl text-sm text-slate-500">Review issuance details before preparing the official card. Attach a physical photo and collect the thumbprint after printing.</p></div>
+                    <div class="space-y-2"><h3 class="text-lg font-semibold">Digital ID details</h3><p class="max-w-xl text-sm text-slate-500">Attach the photo and collect the thumbprint after printing.</p></div>
                     @can('manageId', $seniorCitizen)
                         <a href="{{ route('senior-id.show', [$seniorCitizen, ...request()->only(['from', 'search', 'search_by', 'stage', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])]) }}" class="primary-button w-full lg:w-auto">Prepare and print ID</a>
                     @endcan
@@ -152,7 +153,7 @@
                 <livewire:slot name="milestones">
                     <x-benefit-panel class="p-4!">
                         <h3 class="text-lg font-semibold text-(--navy) dark:text-slate-100">Age Milestones</h3>
-                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Milestone dates based on the senior's birth date.</p>
+
                         <ul class="mt-3 flex flex-col gap-2">
                             @forelse ($milestoneAges as $age)
                                 @php($achieved = $seniorCitizen->birth_date->age >= $age)

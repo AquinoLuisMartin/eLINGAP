@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Payouts;
 
+use App\Livewire\Payouts\Details;
 use App\Livewire\Payouts\Index;
 use App\Models\Barangay;
 use App\Models\BenefitEntitlement;
@@ -21,6 +22,19 @@ class PayoutRecordsTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_legacy_payout_details_are_viewable_without_leaving_the_payouts_page(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $legacy = $this->legacy();
+
+        Livewire::test(Details::class)->call('open', 'legacy', $legacy->id)
+            ->assertSee('Payout Details')->assertSee($legacy->seniorCitizen->surname_first_name)
+            ->assertSee('Localized Social Pension')->assertViewHas('canClaim', false)
+            ->call('close')->assertDontSee('Payout Details');
+
+        $this->assertDatabaseCount('benefit_payments', 0);
+    }
+
     public function test_lists_legacy_payouts_and_pending_entitlements_with_distinct_links_and_unknown_amounts(): void
     {
         $this->actingAs(User::factory()->create());
@@ -30,9 +44,9 @@ class PayoutRecordsTest extends TestCase
         Livewire::test(Index::class)
             ->assertViewHas('payouts', fn ($rows) => $rows->total() === 2)
             ->assertSee('Localized Social Pension')->assertSee('National Social Pension')
-            ->assertSee('Awaiting amount')->assertSee('2026-Q4')
-            ->assertSeeHtml('href="'.route('payouts.show', $legacy).'"')
-            ->assertSeeHtml('href="'.route('senior-citizens.show', $entry->senior_citizen_id).'"')
+            ->assertSee('Not yet assigned')->assertSee('2026-Q4')
+            ->assertSeeHtml("source: 'legacy', payoutId: {$legacy->id}")
+            ->assertSeeHtml("source: 'benefit', payoutId: {$entry->id}")
             ->assertSeeHtml('wire:key="payout-legacy-'.$legacy->id.'"')
             ->assertSeeHtml('wire:key="payout-benefit-'.$entry->id.'"');
     }
@@ -85,6 +99,164 @@ class PayoutRecordsTest extends TestCase
         $this->get(route('payouts.index'))->assertRedirect(route('login'));
     }
 
+    public function test_status_filters_include_legacy_claims_and_treat_proxy_claims_as_a_subset(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $legacy = $this->legacy();
+        $legacy->update(['status' => 'RELEASED', 'claimant_type' => 'PROXY']);
+        $entry = $this->entitlement(['status' => 'CLAIMED', 'amount' => 500]);
+        $schedule = BenefitSchedule::create(['program_id' => $entry->program_id, 'reference_number' => 'SYN-FILTER', 'period_key' => '2026-Q4', 'eligibility_on' => today(), 'scheduled_at' => now(), 'location' => 'Synthetic venue', 'barangay_ids' => [], 'rule_snapshot' => [], 'created_by' => auth()->id()]);
+        $proxy = BenefitPayment::create(['benefit_entitlement_id' => $entry->id, 'benefit_schedule_id' => $schedule->id, 'reference_number' => 'SYN-PROXY', 'amount' => 500, 'claimant_type' => 'REPRESENTATIVE', 'recorded_by' => auth()->id(), 'paid_at' => now()]);
+        $self = $entry->replicate();
+        $self->period_key = '2026-Q3';
+        $self->save();
+        BenefitPayment::create(['benefit_entitlement_id' => $self->id, 'benefit_schedule_id' => $schedule->id, 'reference_number' => 'SYN-SELF', 'amount' => 500, 'claimant_type' => 'SELF', 'recorded_by' => auth()->id(), 'paid_at' => now()]);
+        foreach (['2026-Q2' => 'PENDING', '2026-Q1' => 'UNPAID', '2025-Q4' => 'UNCLAIMED'] as $period => $status) {
+            $copy = $entry->replicate();
+            $copy->fill(['period_key' => $period, 'status' => $status]);
+            $copy->save();
+        }
+
+        $component = Livewire::test(Index::class)->assertSet('status', '')->assertSet('sort', 'name_asc');
+
+        $document = new \DOMDocument;
+        @$document->loadHTML($component->html());
+        $statusOptions = [];
+        foreach ((new \DOMXPath($document))->query('//select[@aria-label="Status"]/option') as $option) {
+            $statusOptions[] = trim($option->textContent);
+        }
+        $this->assertSame(['All statuses', 'Pending', 'Unclaimed', 'Claimed'], $statusOptions);
+
+        $this->assertSame(6, $component->viewData('counts')->sum());
+        $component->assertViewHas('proxyCount', 2);
+        foreach (['PENDING' => 2, 'UNCLAIMED' => 1, 'CLAIMED' => 3] as $status => $expected) {
+            $component->set('status', $status)->assertHasNoErrors();
+            $this->assertSame($expected, $component->viewData('payouts')->total());
+            $this->assertSame($expected, $component->viewData('counts')->sum());
+        }
+        $proxy->update(['reversed_at' => now()]);
+        $entry->update(['status' => 'UNPAID']);
+        $component->call('$refresh')->assertViewHas('proxyCount', 1);
+        $this->assertSame(2, $component->viewData('payouts')->total());
+        $this->assertSame(1, $component->viewData('payouts')->where('source', 'legacy')->count());
+        $component->set('sort', 'claimed_first')->call('resetFilters')->assertSet('status', '')->assertSet('sort', 'name_asc');
+        $this->assertSame(6, $component->viewData('payouts')->total());
+        $component->set('status', 'CLAIMED_PROXY')->assertHasErrors('status');
+        $this->get(route('payouts.index', ['status' => 'CLAIMED', 'sort' => 'claimed_first']))->assertOk();
+    }
+
+    public function test_four_sort_modes_work_with_status_filters_and_reset_pagination(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $legacy = $this->legacy();
+        $legacy->seniorCitizen->update(['last_name' => 'Zulu']);
+        $entry = $this->entitlement(['status' => 'CLAIMED']);
+        $entry->seniorCitizen->update(['last_name' => 'Alpha']);
+        $unclaimed = $entry->replicate();
+        $unclaimed->fill(['period_key' => '2026-Q3', 'status' => 'UNCLAIMED']);
+        $unclaimed->save();
+        $alphaClaimed = 'benefit:'.$entry->id;
+        $alphaUnclaimed = 'benefit:'.$unclaimed->id;
+        $zuluPending = 'legacy:'.$legacy->id;
+        $component = Livewire::test(Index::class);
+
+        foreach ([
+            'name_asc' => [$alphaUnclaimed, $alphaClaimed, $zuluPending],
+            'name_desc' => [$zuluPending, $alphaUnclaimed, $alphaClaimed],
+            'pending_first' => [$alphaUnclaimed, $zuluPending, $alphaClaimed],
+            'claimed_first' => [$alphaClaimed, $alphaUnclaimed, $zuluPending],
+        ] as $sort => $expected) {
+            $component->call('gotoPage', 2)->set('sort', $sort)->assertSet('paginators.page', 1)->assertHasNoErrors();
+            $this->assertSame($expected, $component->viewData('payouts')->map(fn ($row) => $row->source.':'.$row->id)->all());
+        }
+        $component->set('status', 'UNCLAIMED')->set('sort', 'name_desc');
+        $this->assertSame([$unclaimed->id], $component->viewData('payouts')->pluck('id')->all());
+        $component->set('sort', 'unsafe_column')->assertHasErrors(['sort']);
+        $component->call('resetFilters')->assertSet('sort', 'name_asc')->assertSet('status', '')->assertHasNoErrors();
+    }
+
+    public function test_default_order_uses_actual_surname_first_and_middle_names_across_payout_sources(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $legacy = $this->legacy();
+        $legacy->seniorCitizen->update(['first_name' => 'Aaron', 'middle_name' => 'Alpha', 'last_name' => 'Zulu', 'osca_id_number' => '26-0001']);
+        $entry = $this->entitlement(['status' => 'CLAIMED']);
+        $entry->seniorCitizen->update(['first_name' => 'Zara', 'last_name' => 'Alpha', 'osca_id_number' => '26-9999']);
+        $middleTie = $legacy->seniorCitizen->replicate();
+        $middleTie->fill(['middle_name' => 'Beta', 'osca_id_number' => '26-0002']);
+        $middleTie->save();
+        $middlePayout = $legacy->replicate();
+        $middlePayout->senior_citizen_id = $middleTie->id;
+        $middlePayout->save();
+        $firstTie = $legacy->seniorCitizen->replicate();
+        $firstTie->fill(['first_name' => 'Zara', 'middle_name' => 'Alpha', 'osca_id_number' => '26-0003']);
+        $firstTie->save();
+        $firstPayout = $legacy->replicate();
+        $firstPayout->senior_citizen_id = $firstTie->id;
+        $firstPayout->save();
+        $repeat = $entry->replicate();
+        $repeat->period_key = '2026-Q3';
+        $repeat->save();
+
+        $component = Livewire::test(Index::class);
+
+        $this->assertSame([
+            'benefit:'.$repeat->id, 'benefit:'.$entry->id, 'legacy:'.$legacy->id,
+            'legacy:'.$middlePayout->id, 'legacy:'.$firstPayout->id,
+        ], $component->viewData('payouts')->map(fn ($row) => $row->source.':'.$row->id)->all());
+        $component->assertDontSee('Sort payouts');
+    }
+
+    public function test_alphabetical_order_is_applied_before_pagination_and_survives_search_and_filters(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $legacy = $this->legacy();
+        $expected = [];
+        foreach (range(18, 1) as $number) {
+            $senior = $legacy->seniorCitizen->replicate();
+            $senior->fill(['last_name' => 'Synthetic '.str_pad((string) $number, 2, '0', STR_PAD_LEFT), 'osca_id_number' => '26-'.str_pad((string) (100 - $number), 4, '0', STR_PAD_LEFT)]);
+            $senior->save();
+            $payout = $legacy->replicate();
+            $payout->senior_citizen_id = $senior->id;
+            $payout->save();
+            array_unshift($expected, $payout->id);
+        }
+
+        $component = Livewire::test(Index::class)->set('search', 'Synthetic')
+            ->set('status', 'PENDING')->set('programId', (string) $legacy->schedule->program_id)
+            ->set('barangayId', (string) $legacy->seniorCitizen->barangay_id);
+
+        $this->assertSame(array_slice($expected, 0, 15), $component->viewData('payouts')->pluck('id')->all());
+        $component->call('nextPage')->assertSet('paginators.page', 2);
+        $this->assertSame(array_slice($expected, 15), $component->viewData('payouts')->pluck('id')->all());
+        $component->call('previousPage');
+        $this->assertSame(array_slice($expected, 0, 15), $component->viewData('payouts')->pluck('id')->all());
+        $component->set('search', 'Synthetic 18')->assertSet('paginators.page', 1);
+        $this->assertSame([$expected[17]], $component->viewData('payouts')->pluck('id')->all());
+    }
+
+    public function test_table_has_seven_columns_and_surname_first_names_for_both_payout_sources(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $legacy = $this->legacy();
+        $legacy->seniorCitizen->update(['first_name' => 'Primo', 'middle_name' => 'Lee', 'last_name' => 'Suav']);
+        $entry = $this->entitlement();
+        $entry->seniorCitizen->update(['first_name' => 'Ana', 'middle_name' => null, 'last_name' => 'Synthetic']);
+
+        $component = Livewire::test(Index::class)->assertSee('SUAV, PRIMO LEE')->assertSee('SYNTHETIC, ANA')
+            ->assertSee('Not yet assigned')->assertDontSee('Awaiting amount');
+
+        $document = new \DOMDocument;
+        @$document->loadHTML($component->html());
+        $xpath = new \DOMXPath($document);
+        $headings = [];
+        foreach ($xpath->query('//table/thead/tr/th') as $heading) {
+            $headings[] = trim($heading->textContent);
+        }
+        $this->assertSame(['Beneficiary', 'OSCA ID', 'Barangay', 'Program', 'Amount', 'Claim Status', 'Action'], $headings);
+        Livewire::test(Details::class)->call('open', 'benefit', $entry->id)->assertSee('SYNTHETIC, ANA');
+    }
+
     public function test_compact_pagination_preserves_filters_and_filter_changes_return_to_the_first_page(): void
     {
         $this->freezeTime();
@@ -114,7 +286,7 @@ class PayoutRecordsTest extends TestCase
             ->call('previousPage')->assertSet('paginators.page', 1)
             ->call('gotoPage', 2)->assertSet('status', 'PENDING')
             ->set('search', 'No matching synthetic beneficiary')->assertSet('paginators.page', 1)
-            ->assertSee('No payouts match these filters.')
+            ->assertSee('No matching payouts.')
             ->assertDontSeeHtml('aria-label="Payout records pagination"')
             ->call('resetFilters')->assertSet('status', '')->assertSet('search', '')
             ->assertViewHas('payouts', fn ($rows) => $rows->total() === 17);

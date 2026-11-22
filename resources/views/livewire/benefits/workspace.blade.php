@@ -1,6 +1,6 @@
 <div class="space-y-6">
     @unless ($payoutMode)
-        <x-staff.page-header title="Benefits Workspace" description="Prepare recipients, confirm funds, review eligibility, and trace every claim." />
+        <x-staff.page-header title="Benefits Workspace" />
     @endunless
     <x-benefit-errors />
     @can('manage', \App\Models\BenefitSchedule::class)
@@ -9,7 +9,7 @@
             @if ($payoutMode)
                 <div class="min-w-0">
                     <h3 class="text-lg font-semibold">Schedule details</h3>
-                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Prepare a draft recipient list. Review and approval are required before any payment.</p>
+
             @else
             <details class="min-w-0" @if(!$selectedSchedule) open @endif>
                 <summary class="cursor-pointer text-lg font-semibold">Create a schedule or tracking batch</summary>
@@ -26,21 +26,14 @@
                             <label class="field-label"><span data-field-label>Agency</span><input wire:model="newProgram.agency" maxlength="180" required></label>
                             <div class="field-label"><label data-select-label>Government level</label><x-select label="Government level" wire:model="newProgram.government_level"><option value="LGU">Local government</option><option value="PROVINCIAL">Provincial government</option><option value="NATIONAL">National government</option></x-select></div>
                             <div class="field-label"><label data-select-label>Benefit frequency</label><x-select label="Benefit frequency" wire:model.live="newProgram.cadence"><option value="ANNUAL">Annual</option><option value="QUARTERLY">Quarterly</option><option value="SEMIANNUAL">Every six months</option><option value="ON_DEMAND">Upon request</option></x-select></div>
-                            <p class="text-sm text-slate-500">The program will be saved for future schedules. Verified seniors with issued OSCA IDs are eligible, subject to staff review. For milestone ages, cutoffs or additional eligibility rules, create the program in <a class="text-button" href="{{ route('benefits.programs') }}">Program rules</a> first.</p>
+                            <p class="text-sm text-slate-500">Configure milestone ages and cutoffs in <a class="text-button" href="{{ route('benefits.programs') }}">Program rules</a>.</p>
                         </fieldset>
-                    @elseif ($selectedProgram?->provisional)
-                        <div class="text-sm" wire:key="selected-program-rules-{{ $selectedProgram->id }}">
-                            @if ($selectedProgram->provisional)<p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300">This program has provisional rules. Confirm the rules before scheduling.</p>@endif
-                        </div>
-                    @endif
-                    @if ($form['program_id'] === 'other' || $selectedProgram?->status === 'UPCOMING')
-                        <label class="flex items-start gap-2 text-sm"><input type="checkbox" wire:model="historicalClaimsChecked" class="mt-1 shrink-0" required><span data-field-label>I reviewed the program rules and historical claims. Activate this program when the schedule is created.</span></label>
                     @endif
                     <div class="flex flex-wrap items-start gap-3" x-data="payoutDateTime($wire.entangle('form.scheduled_at'), $wire.entangle('form.ends_at'))">
-                        <label class="field-label w-full sm:w-56"><span data-field-label>Payout date</span><input x-model="date" @input="update()" type="date" :min="$wire.form.eligibility_on" data-validation-field="form.scheduled_at" required><span class="field-helper">Start and end times use this date.</span></label>
+                        <label class="field-label w-full sm:w-56"><span data-field-label>Payout date</span><input x-model="date" @input="update()" type="date" :min="$wire.form.eligibility_on" data-validation-field="form.scheduled_at" required></label>
                         <x-payout-time-input label="Start time" />
                         <x-payout-time-input label="End time" :end="true" />
-                        <p class="field-helper basis-full" aria-live="polite" x-text="time && endTime ? 'Payout: ' + hour + ':' + minute + ' ' + period + ' to ' + endHour + ':' + endMinute + ' ' + endPeriod + ' (Philippine time).' : 'Enter both times. End time must be later on the same payout date. Philippine time (UTC+8).'"></p>
+                        <p x-show="time && endTime" class="field-helper basis-full" aria-live="polite" x-text="time && endTime ? 'Payout: ' + hour + ':' + minute + ' ' + period + ' to ' + endHour + ':' + endMinute + ' ' + endPeriod + ' (Philippine time).' : ''"></p>
                     </div>
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <label class="field-label"><span data-field-label>Payout location</span><input wire:model="form.location" required maxlength="250" placeholder="Enter payout venue"></label>
@@ -48,15 +41,18 @@
                     </div>
                     <section class="grid grid-cols-1 gap-x-4 gap-y-3 border-t border-[var(--line)] pt-4 sm:grid-cols-2" aria-labelledby="schedule-funding-heading">
                         <h4 id="schedule-funding-heading" class="text-base font-semibold sm:col-span-2">Funding</h4>
-                        <label class="field-label"><span data-field-label>Cash aid per recipient (PHP)</span><input wire:model="form.amount" type="text" inputmode="decimal" aria-describedby="schedule-amount-help"><span id="schedule-amount-help" class="field-helper">Leave blank while awaiting funds. Milestone amounts follow program rules.</span></label>
-                        <label class="field-label"><span data-field-label>Funds available for this schedule (PHP)</span><input wire:model="form.available_funds" type="text" inputmode="decimal" required aria-describedby="schedule-funds-help"><span id="schedule-funds-help" class="field-helper">Enter 0 until funding is confirmed.</span></label>
+                        <label class="field-label"><span data-field-label>Cash aid per recipient (PHP)</span><input wire:model="form.amount" type="text" inputmode="decimal" aria-describedby="schedule-amount-help"><span id="schedule-amount-help" class="field-helper">Blank = pending funding. Milestones use program amounts.</span></label>
+                        <label class="field-label"><span data-field-label>Funds available for this schedule (PHP)</span><input wire:model="form.available_funds" type="text" inputmode="decimal" required></label>
+                        @if ($form['program_id'] === 'other' || $selectedProgram?->status === 'UPCOMING')
+                            <label class="flex items-start gap-2 text-sm sm:col-span-2"><input type="checkbox" wire:model="historicalClaimsChecked" class="mt-1 shrink-0" required><span data-field-label>I reviewed the program rules and historical claims. Activate this program when the schedule is created.</span></label>
+                        @endif
                     </section>
                     </div>
-                    <section class="schedule-audience flex min-w-0 flex-col gap-4 border-t border-[var(--line)] pt-4" aria-label="Claim requirements and audience">
+                    <section class="schedule-audience flex min-w-0 flex-col gap-3 border-t border-[var(--line)] pt-4" aria-label="Claim requirements and audience">
                     <h4 class="text-base font-semibold">Claim requirements and audience</h4>
                     <label class="field-label"><span data-field-label>Additional requirements</span><textarea wire:model="form.requirements" maxlength="1500" rows="2" placeholder="Optional: no extra documents when blank"></textarea></label>
-                    <fieldset class="md:col-span-2"><legend class="mb-2 text-sm font-semibold">Barangays in this batch</legend><p class="mb-3 text-xs text-slate-500">Leave all unchecked to include all recorded barangays.</p><div class="schedule-barangays grid gap-2">
-                        @foreach ($barangays as $barangay)<label wire:key="batch-barangay-{{ $barangay->id }}" class="text-sm"><input type="checkbox" wire:model="form.barangay_ids" value="{{ $barangay->id }}"> {{ $barangay->name }}</label>@endforeach
+                    <fieldset class="min-w-0 md:col-span-2"><legend class="mb-2 text-sm font-semibold">Barangays in this batch</legend><p id="schedule-barangays-help" class="mb-2 text-xs text-slate-500">None selected = all available barangays.</p><div class="schedule-barangays grid gap-2" role="region" aria-label="Select barangays in this batch" aria-describedby="schedule-barangays-help" tabindex="0">
+                        @foreach ($barangays as $barangay)<label wire:key="batch-barangay-{{ $barangay->id }}" class="text-sm"><input type="checkbox" wire:model="form.barangay_ids" value="{{ $barangay->id }}" @disabled(isset($reservedBarangays[$barangay->id]))> <span>{{ $barangay->name }}@if (isset($reservedBarangays[$barangay->id]))<small class="block text-xs text-slate-500 dark:text-slate-400">Assigned to {{ $reservedBarangays[$barangay->id] }}</small>@endif</span></label>@endforeach
                     </div></fieldset>
                     <label class="text-sm"><input type="checkbox" wire:model="form.allow_representative"> Authorized representatives may claim under this schedule's announced instructions.</label>
                     </section>

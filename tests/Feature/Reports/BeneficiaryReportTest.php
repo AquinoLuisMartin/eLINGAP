@@ -6,6 +6,9 @@ use App\Models\Application;
 use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\Beneficiary;
+use App\Models\BenefitEntitlement;
+use App\Models\BenefitPayment;
+use App\Models\BenefitSchedule;
 use App\Models\Payout;
 use App\Models\PayoutSchedule;
 use App\Models\Program;
@@ -19,6 +22,49 @@ use Tests\TestCase;
 class BeneficiaryReportTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_current_benefit_records_and_claims_feed_the_report_and_filtered_downloads(): void
+    {
+        $this->travelTo('2026-11-21 14:00:00');
+        $this->actingAs($staff = User::factory()->create());
+        $area = Barangay::create(['name' => 'Synthetic North', 'code' => 'N']);
+        $program = Program::create(['name' => 'Synthetic cash program', 'agency' => 'Test']);
+        $senior = $this->senior($area, 'Synthetic recipient');
+        $schedule = BenefitSchedule::create([
+            'program_id' => $program->id, 'reference_number' => 'SYNTHETIC-SCHEDULE', 'period_key' => '2026',
+            'eligibility_on' => '2026-01-01', 'scheduled_at' => now()->subDay(), 'location' => 'Synthetic venue',
+            'amount' => 500, 'available_funds' => 1000, 'barangay_ids' => [], 'rule_snapshot' => [], 'status' => 'APPROVED', 'created_by' => $staff->id,
+        ]);
+        $claimed = BenefitEntitlement::create([
+            'senior_citizen_id' => $senior->id, 'program_id' => $program->id, 'period_key' => '2026',
+            'eligibility_on' => '2026-01-01', 'amount' => 500, 'status' => 'CLAIMED',
+            'benefit_schedule_id' => $schedule->id, 'rule_snapshot' => [],
+        ]);
+        $pending = BenefitEntitlement::create([
+            'senior_citizen_id' => $senior->id, 'program_id' => $program->id, 'period_key' => '2025',
+            'eligibility_on' => '2025-01-01', 'status' => 'PENDING', 'rule_snapshot' => [],
+        ]);
+        BenefitPayment::create([
+            'benefit_entitlement_id' => $claimed->id, 'benefit_schedule_id' => $schedule->id,
+            'reference_number' => 'SYNTHETIC-CLAIM', 'amount' => 500, 'claimant_type' => 'REPRESENTATIVE',
+            'claimant_name' => 'Synthetic representative', 'recorded_by' => $staff->id, 'paid_at' => now(),
+        ]);
+        $legacySchedule = PayoutSchedule::create(['program_id' => $program->id, 'reference_number' => 'SYNTHETIC-LEGACY', 'scheduled_on' => '2025-11-21', 'amount' => 300]);
+        Payout::create(['payout_schedule_id' => $legacySchedule->id, 'senior_citizen_id' => $senior->id, 'amount' => 300, 'status' => 'RELEASED', 'claimant_type' => 'SELF', 'claimant_name' => 'Synthetic legacy claimant']);
+
+        $all = $this->get(route('reports.workspace', ['type' => 'payouts']))->assertOk();
+        $this->assertSame(3, $all->viewData('records')->total());
+        $this->assertSame(['benefit' => 2, 'legacy' => 1], $all->viewData('records')->getCollection()->countBy('source')->all());
+        $filters = ['type' => 'payouts', 'status' => 'CLAIMED', 'program_id' => $program->id, 'barangay_id' => $area->id, 'from' => '2026-11-21', 'to' => '2026-11-21'];
+        $preview = $this->get(route('reports.workspace', $filters))->assertOk()->assertSee('Synthetic representative');
+        $this->assertSame([$claimed->id], $preview->viewData('records')->pluck('id')->all());
+        $csv = $this->get(route('reports.export', $filters))->assertOk()->streamedContent();
+        $this->assertStringContainsString('Synthetic representative', $csv);
+        $this->assertSame(1, $this->get(route('reports.workspace', ['type' => 'proxy']))->assertOk()->viewData('records')->total());
+        $this->assertSame([$pending->id], $this->get(route('reports.workspace', ['type' => 'payouts', 'status' => 'PENDING']))->assertOk()->viewData('records')->pluck('id')->all());
+        $this->get(route('reports.export', [...$filters, 'format' => 'xlsx']))->assertOk();
+        $this->get(route('reports.export', [...$filters, 'format' => 'pdf']))->assertOk();
+    }
 
     public function test_beneficiary_preview_and_csv_filter_program_barangay_age_and_active_verified_assignments(): void
     {
@@ -207,7 +253,7 @@ class BeneficiaryReportTest extends TestCase
         $csv = $this->get(route('reports.export', ['type' => 'applications']))->assertOk()->streamedContent();
         $this->get(route('reports.export', ['type' => 'applications', 'format' => 'pdf']))->assertOk()->assertHeader('Content-Type', 'application/pdf');
 
-        $this->assertSame(['SYN-001', 'Applicant', 'Synthetic', 'Middle', '', 'SYN-APP-001', 'Synthetic North', 'Synthetic program', '2026-11-11', 'PENDING'], $this->csvRows($csv)[1]);
+        $this->assertSame(['SYN-001', 'Applicant', 'Synthetic', 'Middle', '', 'SYN-APP-001', 'Synthetic North', 'Synthetic program', '2026-11-11', 'PENDING', 'Not recorded', 'Not recorded', ''], $this->csvRows($csv)[1]);
     }
 
     #[TestWith(['payouts'])]

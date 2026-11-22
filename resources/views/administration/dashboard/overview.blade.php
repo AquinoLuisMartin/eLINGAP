@@ -6,7 +6,7 @@
 <section class="page-intro">
     <div>
         <h2>Account and system overview</h2>
-        <p class="section-subtitle">Manage account access and review recorded system activity.</p>
+
     </div>
     <a class="primary-button" href="{{ route('administration.users.create') }}"><x-admin.icon name="plus" size="17" /> Create account</a>
 </section>
@@ -21,11 +21,11 @@
 </section>
 <section class="dashboard-grid">
     <div class="panel tasks-panel">
-        <div class="panel-heading"><div><h3>Account administration</h3><p>Create staff accounts and manage access.</p></div></div>
-        <a class="task-row" href="{{ route('administration.users.create') }}"><span class="task-icon blue"><x-admin.icon name="users" size="16" /></span><span><strong>Create an account</strong><small>Set the account role and sign-in credentials.</small></span></a>
-        <button type="button" class="task-row" wire:click="navigate('users')"><span class="task-icon blue"><x-admin.icon name="shield-check" size="16" /></span><span><strong>Manage account access</strong><small>Review active and suspended accounts.</small></span></button>
-        <a class="task-row" href="{{ route('administration.users.index') }}"><span class="task-icon blue"><x-admin.icon name="users" size="16" /></span><span><strong>Account directory</strong><small>Review account details and available password actions.</small></span></a>
-        <button type="button" class="task-row" wire:click="navigate('configuration')"><span class="task-icon blue"><x-admin.icon name="settings" size="16" /></span><span><strong>System configuration</strong><small>Review office and system settings.</small></span></button>
+        <div class="panel-heading"><div><h3>Account administration</h3></div></div>
+        <a class="task-row" href="{{ route('administration.users.create') }}"><span class="task-icon blue"><x-admin.icon name="users" size="16" /></span><span><strong>Create an account</strong></span></a>
+        <button type="button" class="task-row" wire:click="navigate('users')"><span class="task-icon blue"><x-admin.icon name="shield-check" size="16" /></span><span><strong>Manage account access</strong></span></button>
+        <a class="task-row" href="{{ route('administration.users.index') }}"><span class="task-icon blue"><x-admin.icon name="users" size="16" /></span><span><strong>Account directory</strong></span></a>
+        <button type="button" class="task-row" wire:click="navigate('configuration')"><span class="task-icon blue"><x-admin.icon name="settings" size="16" /></span><span><strong>System configuration</strong></span></button>
     </div>
     <div class="panel table-panel">
         <div class="panel-heading"><div><h3>System monitoring</h3><p>Recorded activity as of {{ now()->format('M j, Y g:i A') }}.</p></div><button type="button" class="text-button" wire:click="navigate('system-logs')">View logs</button></div>
@@ -42,7 +42,7 @@
     </div>
 </section>
 <section class="panel activity-panel">
-    <div class="panel-heading"><div><h3>Recent audit activity</h3><p>Latest recorded actions across the system.</p></div><button type="button" class="text-button" wire:click="navigate('system-logs')">View all</button></div>
+    <div class="panel-heading"><div><h3>Recent audit activity</h3></div><button type="button" class="text-button" wire:click="navigate('system-logs')">View all</button></div>
     <div class="activity-list">
         @forelse ($this->recentActivity as $event)
             <div class="activity-item" wire:key="activity-{{ $event->id }}"><span class="activity-icon blue"><x-admin.icon name="activity" size="15" /></span><div><strong>{{ \App\Support\SystemEventLabel::for($event->action) }} - {{ \App\Support\SystemEventLabel::operator($event->operator_role, $event->operator_name) }}</strong><small>Audit event #{{ $event->id }}</small></div><time datetime="{{ \Illuminate\Support\Carbon::parse($event->created_at)->toIso8601String() }}">{{ \Illuminate\Support\Carbon::parse($event->created_at)->diffForHumans() }}</time></div>

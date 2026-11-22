@@ -10,6 +10,31 @@ use Illuminate\Support\Facades\Queue;
 
 class SmsService
 {
+    public function sendIndividual(string $recipientNumber, string $message, int $userId, ?int $seniorCitizenId): SmsMessage
+    {
+        $sms = SmsMessage::create([
+            'recipient_number' => $recipientNumber,
+            'message' => $message,
+            'created_by' => $userId,
+            'senior_citizen_id' => $seniorCitizenId,
+            'status' => SmsStatus::Queued,
+            'queued_at' => now(),
+        ]);
+
+        return $this->deliverNow($sms->id);
+    }
+
+    public function deliverNow(int $messageId): SmsMessage
+    {
+        try {
+            SendSmsJob::dispatchSync($messageId);
+        } catch (SmsDeliveryFailed) {
+            // The synchronous job has already recorded the failure.
+        }
+
+        return SmsMessage::query()->findOrFail($messageId);
+    }
+
     public function queueMany(array $messages): void
     {
         DB::transaction(function () use ($messages): void {

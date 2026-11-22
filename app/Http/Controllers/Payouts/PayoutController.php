@@ -10,10 +10,12 @@ use App\Models\AuditLog;
 use App\Models\Beneficiary;
 use App\Models\Payout;
 use App\Models\SeniorCitizen;
+use App\Services\Reports\PayoutRecords;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PayoutController extends Controller
@@ -25,6 +27,7 @@ class PayoutController extends Controller
         $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', 'in:PENDING,UNPAID,UNCLAIMED,CLAIMED,RELEASED,FAILED,VOIDED'],
+            'sort' => ['sometimes', 'required', Rule::in(array_keys(PayoutRecords::SORTS))],
             'program_id' => ['nullable', 'integer', 'exists:programs,id'],
             'barangay_id' => ['nullable', 'integer', 'exists:barangays,id'],
         ]);

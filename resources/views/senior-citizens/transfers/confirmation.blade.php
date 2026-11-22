@@ -4,7 +4,7 @@
     <div class="flex max-h-[85dvh] flex-col">
         <header class="shrink-0 border-b border-slate-200 px-5 py-5 sm:px-6 dark:border-slate-700">
             <h2 id="transfer-confirm-title" class="text-xl font-semibold tracking-tight">Confirm record transfer</h2>
-            <p id="transfer-confirm-description" class="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">Are you sure you want to record this transfer? Please review the information before confirming.</p>
+            <p id="transfer-confirm-description" class="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">Record this transfer?</p>
         </header>
         <div class="min-h-0 overflow-y-auto px-5 py-5 sm:px-6">
             <dl class="grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2">

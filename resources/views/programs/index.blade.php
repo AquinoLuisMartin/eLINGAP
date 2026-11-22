@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<x-staff.page-header title="Programs" description="Browse program details, budgets, and availability.">
+<x-staff.page-header title="Programs">
     @can('create', App\Models\Program::class)
         <a class="primary-button" href="{{ route('administration.programs.create') }}">Create program</a>
     @endcan

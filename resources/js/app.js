@@ -1,9 +1,10 @@
 import { workspaceTheme } from './workspace-theme';
+import { workspaceSidebar } from './workspace-sidebar';
 import Alpine from 'alpinejs';
 import collapse from '@alpinejs/collapse';
 import idImageEditor from './id-image-editor';
 import initApplicationWizard from './application-wizard';
-import { formatRegistrationMobile, formatSeniorMobile, formatSeniorName, initSeniorNameInputs } from './senior-registration-input';
+import { formatRegistrationMobile, formatSeniorMobile, formatSeniorName, initSeniorMobileInputs, initSeniorNameInputs } from './senior-registration-input';
 import uiSelect from './select-control';
 import { anchoredDropdown } from './menu-position';
 import initFormFeedback from './form-feedback';
@@ -14,6 +15,7 @@ import initUppercaseSearch from './uppercase-search';
 import broadcastComposer from './broadcast-composer';
 import smsTemplateEditor from './sms-template-editor';
 import smsMessages from './sms-messages';
+import individualSmsComposer from './individual-sms-composer';
 import initConfirmDialogs, { confirmSubmit } from './confirm-dialog';
 import initPrintingCompletion from './printing-completion';
 import transferConfirmation from './transfer-confirmation';
@@ -28,9 +30,11 @@ window.formatSeniorName = formatSeniorName;
 window.uiSelect = uiSelect;
 window.anchoredDropdown = anchoredDropdown;
 window.workspaceTheme = workspaceTheme;
+window.workspaceSidebar = workspaceSidebar;
 window.broadcastComposer = broadcastComposer;
 window.smsTemplateEditor = smsTemplateEditor;
 window.smsMessages = smsMessages;
+window.individualSmsComposer = individualSmsComposer;
 window.transferConfirmation = transferConfirmation;
 window.profileConfirmation = profileConfirmation;
 window.payoutDateTime = payoutDateTime;
@@ -40,6 +44,7 @@ const modalTriggers = new WeakMap();
 
 document.addEventListener('DOMContentLoaded', () => {
     initSeniorNameInputs();
+    initSeniorMobileInputs();
     initInputSuggestions();
     initUppercaseSearch();
     if (!window.Alpine) {
@@ -243,6 +248,8 @@ function initPasswordToggle() {
             input.type = showing ? 'password' : 'text';
             toggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
             toggle.setAttribute('aria-pressed', String(!showing));
+            toggle.querySelector('[data-eye-icon]')?.classList.toggle('hidden', !showing);
+            toggle.querySelector('[data-eye-off-icon]')?.classList.toggle('hidden', showing);
         });
     });
 }

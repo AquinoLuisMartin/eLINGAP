@@ -1,4 +1,4 @@
-<section class="page-intro"><div><p class="section-kicker">Program registry</p><h2>Benefits &amp; Programs</h2><p class="section-subtitle">Recorded budgets, beneficiary enrollments, and released payouts.</p></div><a class="primary-button" href="{{ route('benefits.programs') }}"><x-admin.icon name="plus" size="17" /> Review Program Rules</a></section>
+<section class="page-intro"><div><p class="section-kicker">Program registry</p><h2>Benefits &amp; Programs</h2></div><a class="primary-button" href="{{ route('benefits.programs') }}"><x-admin.icon name="plus" size="17" /> Review Program Rules</a></section>
 <div class="program-grid" wire:loading.class="data-refreshing" wire:target="search">
     @forelse ($this->programs as $program)
         @php $released = (float) $program->released_amount + (float) $program->benefit_released_amount; $utilization = (float) $program->budget > 0 ? round($released / (float) $program->budget * 100, 1) : null; @endphp

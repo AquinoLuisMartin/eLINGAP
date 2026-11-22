@@ -87,7 +87,7 @@
                 <x-admin.icon name="log-out" size="20" />
             </div>
             <h2 id="logout-modal-title">Are you sure you want to log out?</h2>
-            <p>You will be returned to the public eLINGAP landing page.</p>
+
             <div class="modal-actions">
                 <button type="button" class="secondary-button" wire:click="$set('logoutConfirmOpen', false)">Cancel</button>
                 <form method="POST" action="{{ route('logout') }}">

@@ -3,8 +3,14 @@
     @if (($schedule->rule_snapshot['government_level'] ?? $schedule->program->government_level) !== 'LGU')<p class="my-3 rounded bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950 dark:text-blue-200">External benefit tracking: confirm the provincial or national receipt rather than recording an LGU disbursement.</p>@endif
     @if ($notice)<x-feedback>{{ $notice }}</x-feedback>@endif
     <x-benefit-errors />
+    @if (!$smsOnly)
+    @can('manage', \App\Models\BenefitSchedule::class)
+        @if (in_array($schedule->status, ['DRAFT', 'APPROVED'], true))
+            <a class="text-button" href="{{ route('sms.blasts.create', ['benefit_schedule_id' => $schedule->id]) }}">Prepare message in Messaging</a>
+        @endif
+    @endcan
     @if ($schedule->preparation_token)
-        <p wire:poll.10s class="my-3 text-sm" role="status">Preparing eligible recipients. Review and approval will be available when preparation finishes. If preparation stops, use Refresh eligibility list to retry.</p>
+        <p wire:poll.10s class="my-3 text-sm" role="status">Preparing recipients...</p>
     @endif
     @can('manage', \App\Models\BenefitSchedule::class)
         @if ($schedule->status === 'DRAFT')
@@ -22,10 +28,11 @@
         @elseif ($schedule->status === 'APPROVED')
             <div class="my-4 grid gap-3 md:grid-cols-2">
                 <div class="field-label"><label data-select-label>Claimant</label><x-select label="Claimant" wire:model="claimant"><option value="SELF">Senior personally</option>@if($schedule->allow_representative)<option value="REPRESENTATIVE">Authorized representative</option>@endif</x-select></div>
-                @if (($schedule->rule_snapshot['government_level'] ?? $schedule->program->government_level) !== 'LGU')<label class="field-label">External receipt reference<input wire:model="externalReference" maxlength="180"></label>@endif
                 @if ($schedule->requirements)<label class="text-sm"><input type="checkbox" wire:model="requirementsChecked"> Checked announced requirements: {{ $schedule->requirements }}</label>@endif
                 @if ($schedule->rule_snapshot['groceries'] ?? false)<label class="text-sm"><input type="checkbox" wire:model="groceriesReceived"> Groceries received</label>@endif
                 <label class="text-sm"><input type="checkbox" wire:model="paymentConfirmed"> I confirm this recipient received the benefit.</label>
+                <label class="text-sm"><input type="checkbox" wire:model="identityChecked"> I verified the claimant's identity.</label>
+                <label class="text-sm"><input type="checkbox" wire:model="authorizationChecked"> I verified authorization for a proxy claim.</label>
             </div>
             <button type="button" class="secondary-button mb-3" wire:click="close" data-confirm-title="Close this payout schedule?" data-confirm="Remaining unpaid benefits are marked unclaimed." data-confirm-label="Close schedule" data-confirm-tone="danger" wire:loading.attr="disabled">Close completed payout schedule</button>
         @endif
@@ -36,17 +43,22 @@
             <tr wire:key="schedule-entry-{{ $entry->id }}"><td><a href="{{ route('senior-citizens.show', $entry->seniorCitizen) }}" class="text-button">{{ $entry->seniorCitizen->full_name }}</a><p class="text-xs text-slate-500">{{ $entry->seniorCitizen->osca_id_number }}</p></td><td>{{ $entry->seniorCitizen->barangay->name }}</td><td>{{ $entry->period_key }}</td><td>{{ $entry->amount === null ? 'Awaiting funds' : 'PHP '.number_format((float) $entry->amount, 2) }}</td><td>{{ $entry->status->label() }}<p class="text-xs text-slate-500">{{ $entry->reviewed_at ? 'Staff checked' : 'Needs staff review' }}</p><p class="text-xs text-slate-500">{{ $entry->seniorCitizen->status->value }}</p></td><td>
                 @can('manage', \App\Models\BenefitSchedule::class)
                     @if ($schedule->status === 'DRAFT' && ! $schedule->preparation_token)<div class="flex gap-3"><button type="button" class="text-button" wire:click="review({{ $entry->id }}, true)" wire:loading.attr="disabled">Check and include</button><button type="button" class="text-button" wire:click="review({{ $entry->id }}, false)" wire:loading.attr="disabled">Exclude</button></div>
-                    @elseif ($schedule->status === 'APPROVED' && $entry->status->value === 'UNPAID')<button type="button" class="primary-button" wire:click="claim({{ $entry->id }})" data-confirm-title="Confirm receipt for {{ $entry->seniorCitizen->full_name }}?" data-confirm="A unique payment reference is generated." data-confirm-label="Confirm receipt" wire:loading.attr="disabled">{{ ($schedule->rule_snapshot['government_level'] ?? $schedule->program->government_level) === 'LGU' ? 'Confirm payment' : 'Record external receipt' }}</button>@endif
+                    @elseif ($schedule->status === 'APPROVED' && $entry->status->value === 'UNPAID')<button type="button" class="primary-button" wire:click="claim({{ $entry->id }})" data-confirm-title="Confirm receipt for {{ $entry->seniorCitizen->full_name }}?" data-confirm="Confirm the verified claimant received the cash payout." data-confirm-label="Confirm receipt" wire:loading.attr="disabled">Confirm payment</button>@endif
                 @endcan
-                @foreach ($entry->payments as $payment)<p wire:key="schedule-payment-{{ $payment->id }}" class="text-xs">{{ $payment->reference_number }} {{ $payment->reversed_at ? '(reversed)' : '' }}</p>@endforeach
+                @foreach ($entry->payments as $payment)<p wire:key="schedule-payment-{{ $payment->id }}" class="text-xs">{{ $payment->reversed_at ? 'Reversed claim' : 'Claimed' }}</p>@endforeach
             </td></tr>
         @empty
             <tr><td colspan="6">No recipients currently assigned. Existing claims, missing eligibility, and previously assigned entitlements are excluded from automatic preparation.</td></tr>
         @endforelse
     </tbody></table></x-staff.table>{{ $entries->links() }}
+    @endif
     @can('manage', \App\Models\BenefitSchedule::class)
-        @if ($schedule->status === 'APPROVED')
-            <details class="mt-6"><summary class="cursor-pointer font-semibold">Preview and approve payout SMS</summary>
+        @if ($smsOnly && $schedule->status !== 'APPROVED')
+            <p class="mt-4 text-sm">Recipient approval required before sending.</p>
+            <a class="secondary-button mt-4" href="{{ route('payout-schedules.create', ['program_id' => $schedule->program_id, 'schedule_id' => $schedule->id]) }}">Review payout schedule</a>
+            <pre class="mt-4 whitespace-pre-wrap font-sans text-sm">{{ $message }}</pre>
+        @elseif ($schedule->status === 'APPROVED')
+            <details class="mt-6" @if ($smsOnly) open @endif><summary class="cursor-pointer font-semibold">Preview and approve payout SMS</summary>
                 <div class="mt-4 grid gap-4 md:grid-cols-2">
                     <div class="field-label"><label data-select-label>Audience</label><x-select label="Audience" wire:model="smsBarangay"><option value="">Entire scheduled batch</option>@foreach ($barangays as $barangay)<option wire:key="sms-barangay-{{ $barangay->id }}" value="{{ $barangay->id }}">{{ $barangay->name }}</option>@endforeach</x-select><span class="field-helper">Only eligible unpaid recipients in this schedule will be notified.</span></div>
                     <label class="field-label">SMS announcement<textarea wire:model="message" rows="10" maxlength="1600"></textarea><span class="field-helper">[PERIOD] and [AMOUNT] use each recipient's original entitlement.</span></label>

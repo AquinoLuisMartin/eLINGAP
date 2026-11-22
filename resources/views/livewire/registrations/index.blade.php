@@ -1,18 +1,18 @@
 <div data-print-workspace x-data="{}" @focus.window="$wire.$refresh()">
     @php($canPrint = auth()->user()->can('configureId', \App\Models\SeniorCitizen::class))
-    <x-staff.page-header title="Registrations" description="Find approved senior citizens and existing records, including issued IDs and inactive registrations.">
+    <x-staff.page-header title="Registrations">
         @can('create', \App\Models\SeniorCitizen::class)
             <livewire:senior-citizens.application-launcher />
             <a class="secondary-button" href="{{ route('senior-id.reprint-approvals') }}">Reprint Approvals</a>
         @endcan
     </x-staff.page-header>
 
-    <div class="staff-summary-grid mb-5 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--line)] sm:grid-cols-3" role="group" aria-label="Filter registrations by record stage">
+    <div class="staff-summary-grid mb-5 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--line)] sm:grid-cols-3" role="group" aria-label="Registration metrics">
         @foreach (['VERIFIED' => ['Approved / ID pending', 'verified'], 'ISSUED' => ['ID issued', 'issued'], 'INACTIVE' => ['Inactive records', 'inactive']] as $value => [$label, $column])
-            <button type="button" class="staff-summary-item flex flex-col items-start gap-1 bg-[var(--white)] p-4 text-left" wire:key="registration-stage-{{ $value }}" wire:click="$set('stage', '{{ $value }}')" aria-pressed="{{ $stage === $value ? 'true' : 'false' }}">
+            <div class="staff-summary-item flex flex-col items-start gap-1 bg-[var(--white)] p-4 text-left" wire:key="registration-stage-{{ $value }}">
                 <span class="staff-summary-label text-sm text-[var(--muted)]">{{ $label }}</span>
                 <span class="staff-summary-value text-2xl font-semibold">{{ number_format($counts->{$column} ?? 0) }}</span>
-            </button>
+            </div>
         @endforeach
     </div>
 
@@ -33,8 +33,10 @@
             </div>
         </div>
         <div class="mt-2 flex flex-wrap items-center gap-3">
-            <a href="{{ route('registrations.index') }}" class="secondary-button">Reset filters</a>
-            <span class="text-sm text-[var(--muted)]" role="status" wire:loading wire:target="search,searchBy,stage,barangayId">Updating records...</span>
+            @if ($search !== '' || $searchBy !== 'all' || $stage !== '' || $barangayId !== '')
+                <button type="button" class="text-button hover:underline" wire:click="resetFilters" wire:loading.attr="disabled" wire:target="resetFilters">Reset filters</button>
+            @endif
+            <span class="text-sm text-[var(--muted)]" role="status" wire:loading wire:target="search,searchBy,stage,barangayId,resetFilters">Updating records...</span>
         </div>
     </section>
 
@@ -60,59 +62,60 @@
                             </div>
                             <button type="submit" class="secondary-button shrink-0 disabled:cursor-not-allowed disabled:opacity-50" :disabled="selected.length === 0">Print selected IDs</button>
                         </div>
-                        <p id="registration-print-help" class="mt-2 mb-2 text-sm text-[var(--muted)]">Select up to 4 verified records eligible for a first print or an approved reprint. Record each ID's result in Printing Completion after printing. Print at Actual Size (100%).</p>
+                        <p id="registration-print-help" class="mt-2 mb-2 text-sm text-[var(--muted)]">Maximum 4 IDs. Reprints require approval. Print at 100% and record each result.</p>
                         <label class="flex items-start gap-3 text-sm"><input type="checkbox" name="reviewed" value="1" required class="mt-1 shrink-0"><span>I reviewed the selected records and verified that all card details are correct before issuance and printing. <span class="field-required" aria-hidden="true">*</span></span></label>
                         @error('reviewed')<p class="mt-2 text-sm text-red-700 dark:text-red-300" role="alert">{{ $message }}</p>@enderror
                     </form>
                 </details>
             @endif
-        <x-staff.table label="Senior citizen registrations" wire:loading.class="opacity-60" wire:target="search,searchBy,stage,barangayId">
+        <x-staff.table label="Senior citizen registrations" wire:loading.class="opacity-60" wire:target="search,searchBy,stage,barangayId,resetFilters">
             <table class="w-full">
                 <thead>
                     <tr>
                         @if ($canPrint)<th scope="col" class="w-16">Print</th>@endif
                         <th scope="col" class="whitespace-nowrap">OSCA ID No.</th>
-                        <th scope="col">Last name</th>
-                        <th scope="col">First name</th>
-                        <th scope="col">Middle name</th>
+                        <th scope="col">Senior name</th>
                         <th scope="col">Barangay</th>
                         <th scope="col">Registered</th>
                         <th scope="col">Registration status</th>
                         <th scope="col">ID status</th>
-                        <th scope="col">Action</th>
+                        <th scope="col" class="border-l border-[var(--line)] sm:sticky sm:right-0 sm:z-10">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($registrations as $senior)
                         @php($printDisabled = $senior->status->value !== 'VERIFIED' || ! $senior->verified_at || $senior->died_on || $senior->death_declared_at || ! $senior->canGenerateIdPrint() || ($senior->id_prints_exists && ! $senior->latestIdPrintAttempt))
-                        <tr wire:key="registration-record-{{ $senior->id }}">
+                        <tr class="group" wire:key="registration-record-{{ $senior->id }}">
                                 @if ($canPrint)
                                     <td>
                                         <input type="checkbox" form="batch-id-print" name="senior_ids[]" value="{{ $senior->id }}" data-senior-name="{{ $senior->full_name }}" x-model="selected" @disabled($printDisabled) :disabled="{{ $printDisabled ? 'true' : 'false' }} || (selected.length >= (printLayout === 'single' ? 1 : 4) && !selected.includes($el.value))" class="size-4 cursor-pointer accent-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-50" aria-label="Print ID for {{ $senior->full_name }}" aria-describedby="registration-print-help">
                                     </td>
                                 @endif
                             <td class="whitespace-nowrap tabular-nums">{{ $senior->osca_id_number ?: 'Not issued' }}</td>
-                            <td>{{ $senior->last_name }}</td>
-                            <td>{{ $senior->first_name }}</td>
-                            <td>{{ $senior->middle_name ?: '—' }}</td>
-                            <td>{{ $senior->barangay->name }}</td>
+                            <td class="min-w-32 whitespace-normal! wrap-anywhere font-medium">{{ $senior->surname_first_name }}</td>
+                            <td class="min-w-24 whitespace-normal! wrap-anywhere">{{ $senior->barangay->name }}</td>
                             <td class="whitespace-nowrap">{{ $senior->created_at->format('M j, Y') }}</td>
-                            <td>
-                                <x-milestone-badge :senior="$senior" />
-                                {{ ucfirst(strtolower($senior->status->value)) }}
+                            <td class="min-w-32 whitespace-normal!">
+                                <div class="flex flex-col items-start gap-1">
+                                    <span>{{ ucfirst(strtolower($senior->status->value)) }}</span>
+                                    <x-milestone-badge :senior="$senior" />
+                                </div>
                             </td>
                             <td><x-badge :status="$senior->idPrintingStatus()" />
                                 @if ($senior->lastConfirmedIdPrint)<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ $senior->lastConfirmedIdPrint->confirmed_at->format('M j, Y g:i A') }}<br>{{ $senior->lastConfirmedIdPrint->confirmedBy?->full_name }}</p>@endif
                             </td>
-                            <td><div class="flex flex-col items-start gap-2">
-                                @if (auth()->user()->can('manageId', $senior) && in_array($senior->status->value, ['VERIFIED', 'ARCHIVED']))
-                                        <button type="button" class="text-button" wire:click="$dispatch('manage-id-print', { seniorId: {{ $senior->id }} })">Manage ID</button>
-                                    <a class="text-button" href="{{ route('senior-id.show', [$senior, 'from' => 'registrations', 'search' => $search, 'search_by' => $searchBy, 'stage' => $stage, 'barangay_id' => $barangayId, 'page' => $this->getPage()]) }}">{{ $senior->id_generated_at ? 'ID printing' : 'Prepare ID' }}</a>
-                                @endif
-                                <a class="text-button" href="{{ route('senior-citizens.show', [$senior, 'from' => 'registrations', 'search' => $search, 'search_by' => $searchBy, 'stage' => $stage, 'barangay_id' => $barangayId, 'page' => $this->getPage()]) }}">View record <x-admin.icon name="chevron-right" size="15" /></a></div></td>
+                            <td class="border-l border-[var(--line)] bg-[var(--white)] group-even:bg-[var(--paper)] sm:sticky sm:right-0 sm:z-10">
+                                <div class="flex w-max max-w-52 flex-wrap gap-x-3 gap-y-0.5">
+                                    <a class="text-button hover:underline" href="{{ route('senior-citizens.show', [$senior, 'from' => 'registrations', 'search' => $search, 'search_by' => $searchBy, 'stage' => $stage, 'barangay_id' => $barangayId, 'page' => $this->getPage()]) }}">View record</a>
+                                    @if (auth()->user()->can('manageId', $senior) && in_array($senior->status->value, ['VERIFIED', 'ARCHIVED']))
+                                        <button type="button" class="text-button hover:underline" wire:click="$dispatch('manage-id-print', { seniorId: {{ $senior->id }} })">Manage ID</button>
+                                        <a class="text-button hover:underline" href="{{ route('senior-id.show', [$senior, 'from' => 'registrations', 'search' => $search, 'search_by' => $searchBy, 'stage' => $stage, 'barangay_id' => $barangayId, 'page' => $this->getPage()]) }}">{{ $senior->id_generated_at ? 'ID printing' : 'Prepare ID' }}</a>
+                                    @endif
+                                </div>
+                            </td>
                         </tr>
                     @empty
-                        <tr><td colspan="{{ $canPrint ? 10 : 9 }}"><p class="py-6 text-center text-[var(--muted)]">No matching registration records. Adjust your filters.</p></td></tr>
+                        <tr><td colspan="{{ $canPrint ? 8 : 7 }}"><p class="py-6 text-center text-[var(--muted)]">No matching registration records.</p></td></tr>
                     @endforelse
                 </tbody>
             </table>

@@ -5,7 +5,7 @@
     <p>{{ $handoverMessage }}</p>
     <dl class="space-y-4"><div><dt class="font-semibold">Employee ID</dt><dd>{{ $employee_id }}</dd></div>
         <div><dt class="font-semibold">{{ $credentialLabel }}</dt><dd><output class="block break-all rounded border p-4 font-mono text-lg" data-credential-value>{{ $credential }}</output></dd></div></dl>
-    <p class="text-sm text-slate-500">This credential is shown once. After closing or leaving this page, it cannot be retrieved. Use the verified recovery process if a replacement is needed.</p>
+    <p class="text-sm text-slate-500">Shown once. Save it securely before leaving this page.</p>
     <p data-credential-feedback role="status" aria-live="polite"></p>
     <button type="button" class="secondary-button" data-dismiss-credential>Hide credential</button>
     <a href="{{ route('administration.users.index') }}" class="primary-button">Return to Account Management</a>

@@ -51,7 +51,13 @@ class SeniorCitizenController extends Controller
         Gate::authorize('view', $seniorCitizen);
 
         $seniorCitizen->loadMissing('milestoneClaims:id,senior_citizen_id,milestone_age');
-        $seniorCitizen->load(['barangay', 'histories.changedBy', 'beneficiaries.program', 'transfers.recorder']);
+        $seniorCitizen->load([
+            'barangay',
+            'histories' => fn ($query) => $query->orderByDesc('created_at')->orderByDesc('id'),
+            'histories.changedBy',
+            'beneficiaries.program',
+            'transfers.recorder',
+        ]);
 
         return view('senior-citizens.show', [
             'seniorCitizen' => $seniorCitizen,

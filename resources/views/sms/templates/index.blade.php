@@ -1,13 +1,13 @@
 @extends('layouts.app')
 @section('content')
 @php($templateData = $templates->map(fn ($template) => ['id' => (string) $template->id, 'title' => $template->name, 'body' => $template->body, 'active' => (bool) $template->is_active])->values())
-<div x-data="smsTemplateEditor({ key: @js('elingap-sms-templates-'.auth()->id()) })" data-templates="{{ json_encode($templateData, JSON_THROW_ON_ERROR) }}"
+<div x-data="smsTemplateEditor({ key: @js('elingap-sms-templates-'.auth()->id()) })" data-templates="{{ json_encode($templateData, JSON_THROW_ON_ERROR) }}" data-retired-templates="{{ json_encode($retiredTemplates, JSON_THROW_ON_ERROR) }}"
     x-on:sms-templates-updated.window="refreshTemplates($event)" x-on:storage.window="refreshTemplates($event)">
     <x-workspace-navigation section="messaging" />
-    <x-staff.page-header title="SMS templates" description="Maintain reusable messages for individual notices and broadcasts.">
+    <x-staff.page-header title="SMS templates">
         <a class="primary-button" href="{{ route('sms.templates.create') }}">New template</a>
     </x-staff.page-header>
-    <p class="mb-4 text-sm text-slate-500">Template edits are saved in this browser and synced to Quick template. Database records stay unchanged.</p>
+    <p class="mb-4 text-sm text-slate-500">Edits are saved in this browser only.</p>
     <p x-cloak x-show="notice" x-text="notice" role="status" class="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-950 dark:text-green-200"></p>
     <div class="grid gap-3">
         <template x-for="item in displayedTemplates" :key="item.id">

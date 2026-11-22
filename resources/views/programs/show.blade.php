@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="w-full min-w-0 max-w-full">
-    <x-staff.page-header :title="$program->name" description="Program details and application activity.">
+    <x-staff.page-header :title="$program->name">
         <a class="secondary-button" href="{{ route('programs.index') }}">Back to programs</a>
     </x-staff.page-header>
     <section class="panel">

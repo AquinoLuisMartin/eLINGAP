@@ -67,6 +67,9 @@ class SeedSystemTesting extends Command
                 ]);
 
                 if ($index <= 12) {
+                    if ($senior->activeAssignments()->exists()) {
+                        continue;
+                    }
                     Beneficiary::firstOrCreate([
                         'program_id' => $program->id, 'senior_citizen_id' => $senior->id,
                     ], ['status' => 'ACTIVE', 'enrolled_on' => today()]);

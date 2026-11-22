@@ -747,7 +747,7 @@ class IdApplicationTest extends TestCase
             ->assertDontSee('The requirements checks.identity field must be accepted.')
             ->set('form.requirements_checks.identity', true)->set('form.requirements_checks.residency', true)
             ->call('next')->assertHasNoErrors()->assertSet('step', 1)
-            ->assertSee('Fields marked', false)
+            ->assertDontSee('Fields marked', false)
             ->assertSee('class="field-label-text">First name<!--[if BLOCK]><![endif]--><span class="field-required" aria-hidden="true">*</span>', false)
             ->assertSee('class="field-label-text">Middle name<!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]--></span>', false);
     }

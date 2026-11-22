@@ -7,6 +7,13 @@ import smsMessages, { smsStatusClass } from '../../resources/js/sms-messages.js'
 
 const sample = { id: '1', title: 'Pension reminder', body: 'Original notice', active: true };
 
+test('retired template overrides cannot reappear beside unified program templates', t => {
+    const { values } = browser(t);
+    values.set('user-1', JSON.stringify({ 'retired-2': { ...sample, id: 'retired-2', title: 'Old schedule fragment' }, 'local-3': { ...sample, id: 'local-3', title: 'Custom local message' } }));
+    const state = initialize(templateState('user-1'), [sample], ['retired-2']);
+    assert.deepEqual(state.availableTemplates().map(template => template.id), ['1', 'local-3']);
+});
+
 function browser(t) {
     const previous = globalThis.window;
     const values = new Map();
@@ -17,9 +24,10 @@ function browser(t) {
     return { target, values };
 }
 
-function initialize(state, seeds = [sample]) {
-    state.$el = { dataset: { templates: JSON.stringify(seeds) } };
+function initialize(state, seeds = [sample], retired = []) {
+    state.$el = { dataset: { templates: JSON.stringify(seeds), retiredTemplates: JSON.stringify(retired) } };
     state.$nextTick = callback => callback();
+    state.$watch = () => {};
     state.init();
     return state;
 }
@@ -108,24 +116,37 @@ test('invalid edits do not overwrite stored templates', t => {
     assert.deepEqual(readTemplates('user-1'), {});
 });
 
-test('both audience filters immediately recalculate eligible and excluded counters', () => {
-    const composer = broadcastComposer({ eligible: 200, excluded: 40, barangayIds: ['11', '22'] });
+test('both audience filters recalculate eligible and excluded counters from the server', async t => {
+    const { target } = browser(t);
+    target.location = { origin: 'https://example.test' };
+    const fetch = t.mock.method(globalThis, 'fetch', async url => {
+        const query = new URL(url).searchParams;
+        const counts = query.get('program_id') ? [27, 213] : query.get('barangay_id') ? [67, 173] : [200, 40];
+        return { ok: true, json: async () => ({ eligible: counts[0], excluded: counts[1] }) };
+    });
+    const composer = broadcastComposer({ eligible: 200, excluded: 40, audienceUrl: '/sms/blasts/create' });
+    composer.$refs = {};
     assert.equal(composer.broadcastBody, '');
     assert.equal(composer.audiencePreview, false);
     assert.equal(composer.excludedRecipients, 40);
 
     composer.barangay = '11';
+    assert.equal(composer.audiencePreview, true);
+    await composer.refreshAudience();
     assert.equal(composer.eligibleRecipients, 67);
     assert.equal(composer.excludedRecipients, 173);
-    assert.equal(composer.audiencePreview, true);
+    assert.equal(composer.audiencePreview, false);
     composer.program = 'lgu';
+    await composer.refreshAudience();
     assert.equal(composer.eligibleRecipients, 27);
     assert.equal(composer.excludedRecipients, 213);
     composer.barangay = '';
-    composer.program = 'all';
+    composer.program = '';
+    await composer.refreshAudience();
     assert.equal(composer.eligibleRecipients, 200);
     assert.equal(composer.excludedRecipients, 40);
     assert.equal(composer.audiencePreview, false);
+    assert.equal(fetch.mock.callCount(), 3);
 });
 
 test('retry confirmation changes only the selected failed row and preserves other rows', () => {

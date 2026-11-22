@@ -64,7 +64,6 @@ class DashboardController extends Controller
             'otherBarangays' => $barangays->skip(8),
             'ageGroups' => collect($ageGroups),
             'genders' => (clone $active)->selectRaw('sex, count(*) as total')->groupBy('sex')->pluck('total', 'sex'),
-            'statuses' => SeniorCitizen::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
         ]);
     }
 }

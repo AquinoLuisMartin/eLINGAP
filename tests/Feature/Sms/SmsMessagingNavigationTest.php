@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Sms;
 
+use App\Models\Program;
 use App\Models\SmsTemplate;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -48,26 +49,31 @@ class SmsMessagingNavigationTest extends TestCase
             ->assertViewIs('sms.blasts.create')->assertSee('View SMS History');
     }
 
-    public function test_broadcast_composer_renders_local_template_editor_and_program_preview_without_backend_fields(): void
+    public function test_broadcast_composer_renders_local_template_editor_and_masterlist_programs(): void
     {
+        $savedProgram = Program::create(['name' => 'Preview assistance program', 'agency' => 'OSCA', 'budget' => 0]);
+        $savedTemplate = SmsTemplate::create(['name' => $savedProgram->name.' - Iskedyul', 'body' => 'Preview program reminder', 'is_active' => true]);
         $this->actingAs(User::factory()->create());
 
         $response = $this->get(route('sms.blasts.create'));
 
         $response->assertDontSee('-- Select a template or create new --')->assertDontSee('Update audience')->assertSee('+ Create new template...')
-            ->assertSee('Template Title')->assertSee('Message Body')->assertSee('(Insert Venue/Place)')
-            ->assertSee('(Insert Date)')->assertSee('(Insert Time)')->assertSee('Benefit / Pension Program')
-            ->assertSee('SSS Pension')->assertSee('GSIS Pension')->assertSee('LGU Social Pension')->assertSee('Centenarian Cash Gift');
+            ->assertSee('Template Title')->assertSee('Message Body')->assertSee('[Lugar/Venue]')
+            ->assertSee('[Petsa]')->assertSee('[Oras]')->assertSee('Benefit / Pension Program')
+            ->assertSee($savedProgram->name)->assertDontSee('SSS Pension')->assertDontSee('mock counts');
         $document = new \DOMDocument;
         $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
         $xpath = new \DOMXPath($document);
+        $templateData = json_decode($xpath->query('//*[@data-templates]')->item(0)->getAttribute('data-templates'), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame($savedProgram->id, $templateData[0]['programId']);
+        $this->assertSame((string) $savedTemplate->id, $templateData[0]['id']);
         $program = $xpath->query('//select[@id="broadcast-program"]')->item(0);
         $this->assertSame('', $program->getAttribute('name'));
         $textarea = $xpath->query('//textarea[@id="broadcast-message"]')->item(0);
         $this->assertSame('Write a message', $textarea->getAttribute('placeholder'));
         $this->assertSame('', $textarea->textContent);
         $this->assertCount(1, $xpath->query('//dialog[@aria-labelledby="new-template-title"]'));
-        $this->assertDatabaseCount('sms_templates', 0);
+        $this->assertDatabaseCount('sms_templates', 1);
         $this->assertDatabaseCount('sms_messages', 0);
     }
 
@@ -108,7 +114,7 @@ class SmsMessagingNavigationTest extends TestCase
             $xpath = new \DOMXPath($document);
             $data = json_decode($xpath->query('//*[@data-templates]')->item(0)->getAttribute('data-templates'), true, 512, JSON_THROW_ON_ERROR);
             $this->assertSame([
-                ['id' => (string) $active->id, 'title' => 'Synthetic active template', 'body' => 'Synthetic reminder', 'active' => true],
+                ['id' => (string) $active->id, 'title' => 'Synthetic active template', 'body' => 'Synthetic reminder', 'active' => true, 'programId' => null],
             ], $data);
         } finally {
             Model::preventAccessingMissingAttributes($previous);

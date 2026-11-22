@@ -5,7 +5,7 @@
     <div class="flex max-h-[85dvh] flex-col">
         <header class="shrink-0 border-b border-slate-200 px-5 py-5 sm:px-6 dark:border-slate-700">
             <h2 id="profile-confirm-title" class="text-xl font-semibold tracking-tight">Confirm profile changes</h2>
-            <p id="profile-confirm-description" class="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">Are you sure you want to save these changes to the senior citizen's profile? Please review the updated information before proceeding.</p>
+            <p id="profile-confirm-description" class="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">Save these profile changes?</p>
         </header>
         <div class="min-h-0 overflow-y-auto px-5 py-5 sm:px-6">
             <p x-show="!changes.length" role="status" class="text-sm text-slate-500 dark:text-slate-400">No changes detected</p>

@@ -1,6 +1,6 @@
 <div x-data="signaturePad($wire)" wire:ignore class="space-y-3">
-    <p id="signature-pad-help" class="text-sm text-slate-500">Draw with a mouse, finger, or stylus, then save the signature.</p>
-    <canvas x-ref="canvas" width="900" height="300" aria-label="Draw signature" aria-describedby="signature-pad-help"
+
+    <canvas x-ref="canvas" width="900" height="300" aria-label="Draw signature"
         class="aspect-[3/1] w-full touch-none rounded-lg border border-slate-300 bg-white dark:border-slate-600"
         @pointerdown.prevent="start($event)" @pointermove.prevent="move($event)" @pointerup="stop($event)" @pointercancel="stop($event)" @lostpointercapture="stop($event)"></canvas>
     <div class="flex flex-wrap gap-2">

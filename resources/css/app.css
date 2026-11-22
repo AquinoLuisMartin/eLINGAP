@@ -241,7 +241,10 @@
 .schedule-card { container: payout-schedule / inline-size; }
 .schedule-editor { min-width: 0; }
 .schedule-fields .field-label { max-width: 27.5rem; }
-.schedule-barangays { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }
+.schedule-barangays { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); max-height: 14rem; overflow-y: auto; overscroll-behavior-y: contain; padding: 10px; border: 1px solid var(--line); border-radius: 8px; scrollbar-gutter: stable; }
+.schedule-audience .field-label textarea { min-height: 64px; }
+.schedule-editor .schedule-actions { margin-top: 0; padding-top: 12px; }
+.schedule-barangays:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
 .schedule-barangays label { display: flex; align-items: flex-start; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
 .schedule-barangays input { flex-shrink: 0; margin-top: 5px; }
 .schedule-editor .schedule-actions { grid-column: 1 / -1; }

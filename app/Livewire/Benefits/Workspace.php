@@ -150,6 +150,17 @@ class Workspace extends Component
                 }
             }
 
+            $reserved = $this->reservedBarangays($program->id, $data['period_key']);
+            if (array_intersect($data['barangay_ids'], array_keys($reserved))) {
+                throw ValidationException::withMessages(['form.barangay_ids' => 'A selected barangay is already assigned to another batch for this program and period. Choose the remaining barangays.']);
+            }
+            if ($data['barangay_ids'] === []) {
+                $data['barangay_ids'] = Barangay::query()->where('is_active', true)->whereNotIn('id', array_keys($reserved))->pluck('id')->all();
+            }
+            if ($data['barangay_ids'] === [] && $reserved !== []) {
+                throw ValidationException::withMessages(['form.barangay_ids' => 'All barangays are already assigned to batches for this program and period.']);
+            }
+
             return $service->create($program, $data);
         });
         $this->form['program_id'] = (string) $schedule->program_id;
@@ -165,6 +176,24 @@ class Workspace extends Component
         $this->selectedSchedule = $id;
     }
 
+    private function reservedBarangays(int $programId, string $period): array
+    {
+        $schedules = BenefitSchedule::query()->where('program_id', $programId)->where('period_key', $period)
+            ->where('status', '!=', 'CANCELLED')
+            ->when($period === 'MILESTONES', fn ($query) => $query->whereYear('eligibility_on', (int) substr($this->form['eligibility_on'], 0, 4)))
+            ->orderBy('id')->get(['barangay_ids', 'batch_name', 'reference_number']);
+        $reserved = [];
+        $allBarangayIds = null;
+        foreach ($schedules as $schedule) {
+            $ids = $schedule->barangay_ids ?: ($allBarangayIds ??= Barangay::query()->pluck('id')->all());
+            foreach ($ids as $id) {
+                $reserved[$id] = $schedule->batch_name ?: $schedule->reference_number;
+            }
+        }
+
+        return $reserved;
+    }
+
     public function render(): View
     {
         $programs = Program::query()->whereNotNull('benefit_code')->whereNotNull('benefit_rules')->whereIn('status', ['ACTIVE', 'UPCOMING'])->orderBy('name')->get(['id', 'name', 'status', 'benefit_rules', 'provisional']);
@@ -172,6 +201,7 @@ class Workspace extends Component
         return view('livewire.benefits.workspace', [
             'programs' => $programs,
             'selectedProgram' => $programs->firstWhere('id', $this->form['program_id']),
+            'reservedBarangays' => is_numeric($this->form['program_id']) ? $this->reservedBarangays((int) $this->form['program_id'], $this->form['period_key']) : [],
             'barangays' => Barangay::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'schedules' => $this->payoutMode ? null : BenefitSchedule::query()->with('program:id,name,government_level')->withCount('entitlements')->latest('id')->paginate(10, pageName: 'schedulesPage'),
         ]);

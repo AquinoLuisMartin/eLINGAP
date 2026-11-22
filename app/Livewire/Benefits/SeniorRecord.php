@@ -9,6 +9,8 @@ use App\Models\SeniorCitizen;
 use App\Services\Benefits\BenefitAssignment;
 use App\Services\Benefits\SeniorEligibilityRecord;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -31,15 +33,51 @@ class SeniorRecord extends Component
     public string $programId = '';
 
     #[Locked]
+    public ?array $assignmentReview = null;
+
+    #[Locked]
     public ?array $classificationReview = null;
 
-    public function assignBenefit(BenefitAssignment $assignments): void
+    public function reviewAssignment(): void
     {
         Gate::authorize('manage', BenefitSchedule::class);
-        $data = $this->validate(['programId' => ['required', 'integer', 'exists:programs,id']]);
-        $assignments->assign(SeniorCitizen::findOrFail($this->seniorId), Program::findOrFail($data['programId']));
-        $this->reset('programId');
-        $this->notice = 'Program assigned by OSCA Staff.';
+        $this->assignmentReview = null;
+        $data = $this->validate(['programId' => ['required', 'integer', Rule::exists('programs', 'id')->where('status', 'ACTIVE')]], ['programId.required' => 'Select one program before saving.']);
+        $senior = SeniorCitizen::findOrFail($this->seniorId);
+        abort_unless($senior->status->value === 'VERIFIED' && $senior->verified_at && $senior->id_generated_at && $senior->osca_id_number && ! $senior->died_on && ! $senior->death_declared_at, 422, 'Register, verify and generate the OSCA ID before assigning benefits.');
+        $program = Program::findOrFail($data['programId']);
+        $active = $senior->activeAssignments()->get(['id', 'program_id']);
+        if ($active->isNotEmpty() && ! $active->contains('program_id', $program->id)) {
+            throw ValidationException::withMessages(['programId' => 'Choose one of the existing active program assignments.']);
+        }
+        $this->assignmentReview = ['program_id' => $program->id, 'program_name' => $program->name, 'resolve' => $active->count() > 1];
+        $this->notice = '';
+    }
+
+    public function cancelAssignmentReview(): void
+    {
+        $this->assignmentReview = null;
+    }
+
+    public function updatedProgramId(): void
+    {
+        $this->assignmentReview = null;
+        $this->resetValidation('programId');
+    }
+
+    public function confirmAssignment(BenefitAssignment $assignments): void
+    {
+        Gate::authorize('manage', BenefitSchedule::class);
+        abort_unless($this->assignmentReview !== null && (string) $this->assignmentReview['program_id'] === $this->programId, 422, 'Confirm the selected program before saving.');
+        $senior = SeniorCitizen::findOrFail($this->seniorId);
+        $program = Program::findOrFail($this->assignmentReview['program_id']);
+        if ($this->assignmentReview['resolve']) {
+            $assignments->resolve($senior, $program);
+        } else {
+            $assignments->assign($senior, $program);
+        }
+        $this->reset('programId', 'assignmentReview');
+        $this->notice = 'Program assignment saved successfully. Payout and claim history retained.';
     }
 
     public function mount(int $seniorId): void
@@ -103,7 +141,7 @@ class SeniorRecord extends Component
             'senior' => SeniorCitizen::with('activeAssignments.program')->findOrFail($this->seniorId),
             'classificationLabels' => self::CLASSIFICATION_LABELS,
             'programs' => Program::query()->where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name']),
-            'entitlements' => BenefitEntitlement::query()->where('senior_citizen_id', $this->seniorId)->with(['program', 'payments'])->latest('id')->paginate(10, ['*'], 'seniorBenefitsPage'),
+            'entitlements' => BenefitEntitlement::query()->where('senior_citizen_id', $this->seniorId)->with(['program', 'payments' => fn ($query) => $query->latest('paid_at')->latest('id'), 'payments.recordedBy'])->latest('id')->paginate(10, ['*'], 'seniorBenefitsPage'),
         ]);
     }
 }

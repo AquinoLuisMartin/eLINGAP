@@ -25,7 +25,7 @@
                         <tr data-senior-id="{{ $card['senior']->id }}"><td><x-senior-id.front :card="$card" /></td><td class="card-gap"></td><td><x-senior-id.back :card="$card" /></td></tr>
                     @endforeach
                 </tbody></table>
-                <p class="print-note">Each row shows one senior's front and back side by side.<br>85.60 x 53.98 mm per side. Print at actual size (100%); turn off fit-to-page. Cut and join before lamination.</p>
+                <p class="print-note">85.60 x 53.98 mm per side. Print at 100%; disable fit-to-page. Cut and join before lamination.</p>
             </div>
         @endforeach
     @else
@@ -34,6 +34,6 @@
             <tr><td><x-senior-id.front :card="$card" /></td><td><x-senior-id.back :card="$card" /></td></tr>
         @endforeach
     </tbody></table>
-    <p class="print-note">Front and back shown side by side.<br>85.60 x 53.98 mm per side. Print at actual size (100%); turn off fit-to-page. Cut and join before lamination.</p>
+    <p class="print-note">85.60 x 53.98 mm per side. Print at 100%; disable fit-to-page. Cut and join before lamination.</p>
     @endif
 </body></html>

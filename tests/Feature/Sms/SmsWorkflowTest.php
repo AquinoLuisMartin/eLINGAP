@@ -13,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Queue\Events\JobQueueing;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use RuntimeException;
@@ -92,6 +93,21 @@ class SmsWorkflowTest extends TestCase
         $this->assertDatabaseHas('sms_delivery_logs', ['sms_message_id' => $message->id, 'status' => 'SENT', 'provider_message_id' => 'provider-123']);
     }
 
+    public function test_pinas_sms_connection_failure_is_recorded_without_retrying(): void
+    {
+        config(['services.sms.url' => 'https://pinassms.com/api', 'services.sms.token' => 'synthetic-token']);
+        Http::preventStrayRequests();
+        Http::fake(['https://pinassms.com/api/sms/send' => Http::failedConnection('Synthetic connection failure')]);
+        $message = app(SmsService::class)->queue('+639000000000', 'Synthetic message');
+
+        $this->artisan('queue:work', ['connection' => 'database-atomic', '--once' => true])->assertSuccessful();
+
+        Http::assertSentCount(1);
+        $this->assertSame('FAILED', $message->fresh()->status->value);
+        $this->assertDatabaseHas('sms_delivery_logs', ['sms_message_id' => $message->id, 'status' => 'FAILED']);
+        $this->assertDatabaseCount('jobs', 0);
+    }
+
     public function test_sms_job_refuses_a_recipient_who_became_ineligible(): void
     {
         $barangay = Barangay::create(['name' => 'Poblacion', 'code' => 'POB']);
@@ -107,16 +123,36 @@ class SmsWorkflowTest extends TestCase
         $this->assertDatabaseHas('sms_delivery_logs', ['sms_message_id' => $message->id, 'status' => 'FAILED']);
     }
 
-    public function test_failed_message_retry_rechecks_eligibility(): void
+    public function test_failed_individual_message_retry_sends_immediately(): void
     {
-        Queue::fake();
+        config(['services.sms.url' => 'https://pinassms.com/api', 'services.sms.token' => 'synthetic-token']);
+        Http::preventStrayRequests();
+        Http::fake(['https://pinassms.com/api/sms/send' => Http::response(['id' => 'synthetic-retry'], 202)]);
         $staff = User::factory()->create();
         $message = SmsMessage::create(['recipient_number' => '09171234567', 'message' => 'Reminder', 'status' => 'FAILED']);
 
         $this->actingAs($staff)->post(route('sms.messages.retry', $message))->assertRedirect();
-        $this->assertSame('QUEUED', $message->fresh()->status->value);
-        Queue::assertPushed(SendSmsJob::class, fn (SendSmsJob $job) => $job->smsMessageId === $message->id);
+        $this->assertSame('SENT', $message->fresh()->status->value);
+        $this->assertDatabaseCount('jobs', 0);
 
         $this->post(route('sms.messages.retry', $message))->assertStatus(409);
+        Http::assertSentCount(1);
+    }
+
+    public function test_direct_send_reports_a_provider_rejection_without_exposing_its_response(): void
+    {
+        config(['services.sms.url' => 'https://pinassms.com/api', 'services.sms.token' => 'synthetic-token']);
+        Http::preventStrayRequests();
+        Http::fake(['https://pinassms.com/api/sms/send' => Http::response(['debug' => 'private-provider-value'], 401)]);
+
+        $this->actingAs(User::factory()->create())->post(route('sms.messages.store'), ['recipient_number' => '09000000000', 'message' => 'Synthetic message'])
+            ->assertRedirectToRoute('sms.messages.index')->assertSessionHasErrors('sms');
+
+        $message = SmsMessage::sole();
+        $this->assertSame('FAILED', $message->status->value);
+        $this->assertStringContainsString('HTTP 401', $message->failure_reason);
+        $this->assertStringNotContainsString('private-provider-value', $message->failure_reason);
+        $this->assertDatabaseCount('jobs', 0);
+        Http::assertSentCount(1);
     }
 }

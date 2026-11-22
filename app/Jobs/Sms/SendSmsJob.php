@@ -5,6 +5,7 @@ namespace App\Jobs\Sms;
 use App\Enums\SmsStatus;
 use App\Models\SmsMessage;
 use App\Services\Benefits\BenefitSms;
+use App\Services\Sms\SmsDeliveryRequiresReview;
 use App\Services\Sms\SmsGateway;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -42,7 +43,14 @@ class SendSmsJob implements ShouldQueue
             }
         }
 
-        $result = $gateway->send($smsMessage->recipient_number, $smsMessage->message, 'sms-'.$smsMessage->id);
+        try {
+            $result = $gateway->send($smsMessage->recipient_number, $smsMessage->message, 'sms-'.$smsMessage->id);
+        } catch (SmsDeliveryRequiresReview $exception) {
+            $this->fail($exception);
+
+            return;
+        }
+
         $smsMessage->update(['status' => SmsStatus::Sent, 'provider_message_id' => $result['provider_message_id'], 'sent_at' => now()]);
         $smsMessage->deliveryLogs()->create(['status' => SmsStatus::Sent, 'provider_message_id' => $result['provider_message_id'], 'response_payload' => $result['response'], 'recorded_at' => now()]);
     }
@@ -54,7 +62,9 @@ class SendSmsJob implements ShouldQueue
             return;
         }
 
-        $reason = 'SMS delivery failed. Check the provider configuration and delivery status before retrying.';
+        $reason = $exception instanceof SmsDeliveryRequiresReview
+            ? $exception->getMessage()
+            : 'SMS delivery failed. Check the provider configuration and delivery status before retrying.';
         $smsMessage->update(['status' => SmsStatus::Failed, 'failure_reason' => $reason]);
         $smsMessage->deliveryLogs()->create(['status' => SmsStatus::Failed, 'response_payload' => ['error' => $reason], 'recorded_at' => now()]);
     }

@@ -60,7 +60,12 @@ class FreeTierReadTest extends TestCase
 
         $response = $this->actingAs($staff)->get($schedulePage ? route('payout-schedules.show', $schedule) : route('payouts.index'));
 
-        $response->assertSee('Synthetic Middle Applicant Jr.')->assertSee('Annual December Senior Assistance')->assertSee(route('payouts.show', $payout));
+        $response->assertSee('Annual December Senior Assistance');
+        if ($schedulePage) {
+            $response->assertSee('Synthetic Middle Applicant Jr.')->assertSee(route('payouts.show', $payout));
+        } else {
+            $response->assertSee('APPLICANT, SYNTHETIC MIDDLE JR.')->assertSee('View Details');
+        }
         $payouts = $schedulePage ? $response->viewData('payouts') : Livewire::test(PayoutIndex::class)->viewData('payouts');
         $this->assertLessThan(4096, strlen(json_encode($payouts->items(), JSON_THROW_ON_ERROR)));
     }
@@ -103,7 +108,9 @@ class FreeTierReadTest extends TestCase
         $component = Livewire::test($componentClass, $componentClass === SchedulePanel::class ? ['scheduleId' => $schedule->id] : []);
 
         $component->assertSee('Synthetic Middle Applicant Jr.')->assertSee('Annual December Senior Assistance')
-            ->assertSee('Synthetic barangay')->assertSee('SYN-PAY-REVERSED')->assertSee('SYN-PAY-CURRENT');
+            ->assertSee('Synthetic barangay')->assertSee('Reversed')->assertSee('Claimed')
+            ->assertDontSee('SYN-PAY-REVERSED')->assertDontSee('SYN-PAY-CURRENT');
+        $this->assertCount(2, $component->viewData('entries')->first()->payments);
         $this->assertLessThan(8192, strlen(json_encode($component->viewData('entries')->items(), JSON_THROW_ON_ERROR)));
         if ($componentClass === SchedulePanel::class) {
             $this->assertSame(1, $component->viewData('recipientTotal'));

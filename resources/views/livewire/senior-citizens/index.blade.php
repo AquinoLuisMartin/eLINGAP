@@ -3,7 +3,7 @@
     @endphp
 
     <div class="registry-workspace flex min-w-0 flex-col gap-5">
-        <x-staff.page-header class="mb-0" title="Senior Masterlist" description="Process senior citizen ID applications, review requirements, and prepare IDs.">
+        <x-staff.page-header class="mb-0" title="Senior Masterlist">
             @can('create', \App\Models\SeniorCitizen::class)
                 <a href="{{ route('registrations.import.create') }}" class="secondary-button">Import records</a>
             @endcan
@@ -111,12 +111,14 @@
                                 <td>{{ $seniorCitizen->last_name }}</td>
                                 <td>{{ $seniorCitizen->first_name }}</td>
                                 <td>{{ $seniorCitizen->middle_name ?: '—' }}</td>
-                                <td><div class="flex flex-col items-start gap-2">{{ $seniorCitizen->birth_date->age }}<x-milestone-badge :senior="$seniorCitizen" /></div></td>
+                                <td class="tabular-nums">{{ $seniorCitizen->birth_date->age }}</td>
                                 <td>{{ $seniorCitizen->barangay->name }}</td>
                                 <td>
-                                    @foreach ($seniorCitizen->activeAssignments as $assignment)<p wire:key="registry-assignment-{{ $assignment->id }}">{{ $assignment->program->name }}</p>@endforeach
-                                    @if ($seniorCitizen->has_national_pension || $seniorCitizen->has_local_pension)<p>Pensioner ({{ implode(', ', array_filter([$seniorCitizen->has_national_pension ? 'National' : null, $seniorCitizen->has_local_pension ? 'Local' : null])) }})</p>
-                                    @elseif ($seniorCitizen->activeAssignments->isEmpty())<span class="text-slate-500">None assigned</span>@endif
+                                    @if ($seniorCitizen->activeAssignments->count() > 1)
+                                        <span class="text-slate-500">Program selection required</span>
+                                    @else
+                                        {{ $seniorCitizen->activeAssignments->first()?->program->name ?? 'None assigned' }}
+                                    @endif
                                 </td>
                                 <td>
                                     <div class="flex flex-col items-start gap-2">

@@ -3,7 +3,7 @@
 <div class="w-full min-w-0" x-data="smsMessages({ action: 'Resend' })">
 <x-workspace-navigation section="messaging" />
 <header class="staff-page-heading">
-    <div><h2>Broadcast details</h2><p>Review the original message and recipient delivery results.</p></div>
+    <div><h2>Broadcast details</h2></div>
     <a href="{{ route('sms.blasts.index') }}" class="secondary-button" x-on:click="if (window.history.length > 1) { $event.preventDefault(); window.history.back(); }">&larr; Back</a>
 </header>
 <div class="grid gap-3 rounded-lg border border-slate-200 bg-white p-5 sm:grid-cols-2 dark:border-slate-700 dark:bg-slate-900">

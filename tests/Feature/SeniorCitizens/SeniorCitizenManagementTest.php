@@ -17,6 +17,86 @@ class SeniorCitizenManagementTest extends TestCase
 {
     use RefreshDatabase;
 
+    #[TestWith(['+639170000001'])]
+    #[TestWith(['09170000001'])]
+    #[TestWith(['9170000001'])]
+    #[TestWith(['917-000-0001'])]
+    public function test_edit_mobile_mask_loads_existing_formats_and_saves_canonical_number(string $saved): void
+    {
+        $senior = $this->seniorCitizen();
+        $senior->update(['contact_number' => $saved]);
+        $this->actingAs($this->user('OSCA_STAFF'));
+        $response = $this->get(route('senior-citizens.edit', $senior))->assertOk();
+        $document = new \DOMDocument;
+        @$document->loadHTML($response->getContent());
+        $field = (new \DOMXPath($document))->query('//input[@name="contact_number"]')->item(0);
+        $this->assertNotNull($field);
+        $this->assertSame('917-000-0001', $field->getAttribute('value'));
+        $this->assertSame('12', $field->getAttribute('maxlength'));
+        $this->assertSame('numeric', $field->getAttribute('inputmode'));
+        $this->assertTrue($field->hasAttribute('data-fixed-mobile'));
+
+        $this->put(route('senior-citizens.update', $senior), [
+            ...$senior->only(['barangay_id', 'first_name', 'last_name', 'sex', 'address']),
+            'birth_date' => $senior->birth_date->format('Y-m-d'), 'contact_number' => '917-000-0001',
+        ])->assertSessionHasNoErrors()->assertRedirect(route('senior-citizens.show', $senior));
+
+        $this->assertSame('+639170000001', $senior->fresh()->contact_number);
+    }
+
+    #[TestWith(['9'])]
+    #[TestWith(['817-000-0001'])]
+    #[TestWith(['917-000-00011'])]
+    #[TestWith(['917abc0000001'])]
+    public function test_edit_mobile_validation_rejects_invalid_numbers_when_mask_is_bypassed(string $number): void
+    {
+        $senior = $this->seniorCitizen();
+        $senior->update(['contact_number' => '+639170000001']);
+
+        $this->actingAs($this->user('OSCA_STAFF'))->putJson(route('senior-citizens.update', $senior), [
+            ...$senior->only(['barangay_id', 'first_name', 'last_name', 'sex', 'address']),
+            'birth_date' => $senior->birth_date->format('Y-m-d'), 'contact_number' => $number,
+        ])->assertUnprocessable()->assertJsonValidationErrors('contact_number');
+
+        $this->assertSame('+639170000001', $senior->fresh()->contact_number);
+    }
+
+    public function test_masterlist_age_column_shows_numeric_age_without_milestone_badge(): void
+    {
+        $this->travelTo('2026-11-21 12:00:00');
+        $senior = $this->seniorCitizen();
+        $senior->update(['birth_date' => '1926-01-01']);
+
+        $this->actingAs($this->user('OSCA_STAFF'))->get(route('senior-citizens.index'))
+            ->assertOk()->assertSee('<td class="tabular-nums">100</td>', false)
+            ->assertDontSee('Milestone Reached');
+    }
+
+    public function test_record_activity_is_shown_newest_first_by_full_timestamp_with_stable_ties(): void
+    {
+        $senior = $this->seniorCitizen();
+        foreach ([
+            'morning_activity' => '2026-11-21 09:00:00',
+            'afternoon_activity' => '2026-11-21 15:00:00',
+            'previous_day_activity' => '2026-11-20 22:00:00',
+            'same_time_activity' => '2026-11-21 15:00:00',
+        ] as $action => $timestamp) {
+            $history = $senior->histories()->make(['action' => $action]);
+            $history->created_at = $timestamp;
+            $history->save();
+        }
+
+        $response = $this->actingAs($this->user('OSCA_STAFF'))->get(route('senior-citizens.show', $senior));
+
+        $response->assertSeeInOrder([
+            'Record activity',
+            'Same time activity',
+            'Afternoon activity',
+            'Morning activity',
+            'Previous day activity',
+        ]);
+    }
+
     public function test_direct_registration_rejects_invalid_name_characters(): void
     {
         $this->actingAs($this->user('OSCA_STAFF'))->post(route('senior-citizens.store'), [

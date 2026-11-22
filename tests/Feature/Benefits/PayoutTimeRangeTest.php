@@ -34,6 +34,12 @@ class PayoutTimeRangeTest extends TestCase
         $this->assertSame('2026-12-10 15:30', $schedule->ends_at->format('Y-m-d H:i'));
         $this->assertStringContainsString('Payout: Dec 10, 2026 9:00 AM - 3:30 PM (Philippine time)', app(BenefitSms::class)->template($schedule));
         $this->get(route('payout-schedules.index'))->assertOk()->assertSee('9:00 AM - 3:30 PM');
+        $this->get(route('sms.blasts.create'))->assertOk()->assertSee('Scheduled payout')->assertSee('Synthetic venue')->assertSee('9:00 AM - 3:30 PM');
+        $this->get(route('sms.blasts.create', ['benefit_schedule_id' => $schedule->id]))->assertOk()
+            ->assertSee('Payout SMS announcement')->assertSee('Location: Synthetic venue')
+            ->assertSee('Payout: Dec 10, 2026 9:00 AM - 3:30 PM (Philippine time)')
+            ->assertSee('Recipient approval required before sending.')->assertDontSee('Compose message');
+        $this->assertDatabaseCount('sms_messages', 0);
     }
 
     #[TestWith([''])]

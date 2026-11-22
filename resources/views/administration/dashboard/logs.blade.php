@@ -1,4 +1,4 @@
-<section class="page-intro"><div><p class="section-kicker">Administration</p><h2>System Logs</h2><p class="section-subtitle">Recorded audit and authentication events.</p></div></section>
+<section class="page-intro"><div><p class="section-kicker">Administration</p><h2>System Logs</h2></div></section>
 <div class="panel table-panel" wire:loading.class="data-refreshing" wire:target="search,logCategory">
     <div class="logs-summary"><div><strong>{{ number_format($this->filteredLogs->total()) }}</strong><span>matching events</span></div></div>
     <div class="table-tools"><div class="filter-pills">

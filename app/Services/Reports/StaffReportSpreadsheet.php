@@ -36,7 +36,7 @@ class StaffReportSpreadsheet
 
             $details = $book->createSheet()->setTitle('Report details');
             $line = 1;
-            foreach (['Report' => $data['title'], 'Generated at' => $data['generatedAt']->format('Y-m-d H:i:s e'), 'Matching records' => $records->getHighestDataRow() - 1, ...$data['filterLabels']] as $label => $value) {
+            foreach (['Report' => $data['title'], 'Generated at' => $data['generatedAt']->format('Y-m-d H:i:s e'), 'Matching records' => $records->getHighestDataRow() - 1, ...$data['filterLabels'], ...($data['summary'] ?? [])] as $label => $value) {
                 $this->row($details, $line++, [$label, $value]);
             }
             $this->row($details, ++$line, ['Population scope', 'Verified seniors across all barangays; excludes deceased, archived and transferred records.']);

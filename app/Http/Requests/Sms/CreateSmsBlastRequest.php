@@ -17,6 +17,7 @@ class CreateSmsBlastRequest extends FormRequest
         return [
             'message' => ['required', 'string', 'max:1600'],
             'barangay_id' => ['nullable', 'integer', 'exists:barangays,id'],
+            'program_id' => ['nullable', 'integer', 'exists:programs,id'],
             'confirmed' => ['accepted'],
         ];
     }

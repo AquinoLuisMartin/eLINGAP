@@ -7,16 +7,14 @@
 <div class="staff-dashboard grid min-w-0 gap-5 text-[var(--ink)]">
     <dl class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4" aria-label="Registry overview">
         @foreach ([
-            ['Verified seniors', $activeCount, 'users', 'bg-blue-100 text-blue-700 dark:bg-blue-400/15 dark:text-blue-300'],
-            ['Approved applications', $readyCount, 'file-check-2', 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300'],
-            ['Upcoming milestones', $milestoneCount, 'calendar-days', 'bg-violet-100 text-violet-700 dark:bg-violet-400/15 dark:text-violet-300'],
-            ['Barangays covered', $barangayCount, 'map-pin', 'bg-cyan-100 text-cyan-800 dark:bg-cyan-400/15 dark:text-cyan-300'],
-        ] as [$label, $count, $icon, $tone])
+            ['Verified seniors', $activeCount, 'contact-round'],
+            ['Approved applications', $readyCount, 'file-check-2'],
+            ['Upcoming milestones', $milestoneCount, 'calendar-days'],
+            ['Barangays covered', $barangayCount, 'map-pin'],
+        ] as [$label, $count, $icon])
             <div class="grid min-w-0 content-start gap-2 rounded-lg border border-[var(--line)] bg-[var(--white)] p-3 sm:p-4">
-                <dt class="flex flex-wrap items-center gap-2 text-sm font-medium text-[var(--muted)]">
-                    <span class="grid size-8 shrink-0 place-items-center rounded-lg {{ $tone }}">
-                        <x-admin.icon :name="$icon" :size="17" />
-                    </span>
+                <dt class="flex items-start gap-2 text-sm font-medium text-[var(--muted)]">
+                    <x-admin.icon :name="$icon" class="mt-0.5 shrink-0" />
                     {{ $label }}
                 </dt>
                 <dd class="text-2xl leading-none font-semibold tracking-tight tabular-nums wrap-anywhere sm:text-[2rem]">
@@ -91,22 +89,5 @@
             </section>
         </div>
     </div>
-
-    <section class="panel" aria-labelledby="registry-status-title">
-        <h3 id="registry-status-title" class="text-lg">Registry Status</h3>
-        <p class="mt-1 text-sm text-[var(--muted)]">All senior citizen records</p>
-        @if ($statuses->isEmpty())
-            <p class="mt-4 text-sm text-[var(--muted)]">No registry records yet.</p>
-        @else
-            <dl class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                @foreach ($statuses as $status => $count)
-                    <div class="min-w-0 rounded-md border border-[var(--line)] px-3 py-2.5">
-                        <dt><x-badge :status="$status" /></dt>
-                        <dd class="mt-1 text-xl font-semibold tabular-nums wrap-anywhere">{{ number_format($count) }}</dd>
-                    </div>
-                @endforeach
-            </dl>
-        @endif
-    </section>
 </div>
 @endsection

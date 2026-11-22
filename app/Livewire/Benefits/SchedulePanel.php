@@ -21,6 +21,9 @@ class SchedulePanel extends Component
     #[Locked]
     public int $scheduleId;
 
+    #[Locked]
+    public bool $smsOnly = false;
+
     public string $reviewNote = '';
 
     public string $notice = '';
@@ -31,13 +34,15 @@ class SchedulePanel extends Component
 
     public string $claimant = 'SELF';
 
-    public string $externalReference = '';
-
     public bool $requirementsChecked = false;
 
     public bool $groceriesReceived = false;
 
     public bool $paymentConfirmed = false;
+
+    public bool $identityChecked = false;
+
+    public bool $authorizationChecked = false;
 
     public string $message = '';
 
@@ -53,9 +58,10 @@ class SchedulePanel extends Component
         Gate::authorize('viewAny', BenefitSchedule::class);
     }
 
-    public function mount(int $scheduleId): void
+    public function mount(int $scheduleId, bool $smsOnly = false): void
     {
         $this->scheduleId = $scheduleId;
+        $this->smsOnly = $smsOnly;
         $schedule = $this->schedule();
         $this->amount = $schedule->amount ?? '';
         $this->funds = $schedule->available_funds;
@@ -116,12 +122,13 @@ class SchedulePanel extends Component
     public function claim(int $id, BenefitPayments $service): void
     {
         $this->validate([
-            'claimant' => ['required', 'in:SELF,REPRESENTATIVE'], 'externalReference' => ['nullable', 'string', 'max:180'],
+            'claimant' => ['required', 'in:SELF,REPRESENTATIVE'],
             'requirementsChecked' => ['boolean'], 'groceriesReceived' => ['boolean'], 'paymentConfirmed' => ['accepted'],
+            'identityChecked' => ['accepted'], 'authorizationChecked' => ['required_if:claimant,REPRESENTATIVE', 'accepted_if:claimant,REPRESENTATIVE'],
         ]);
-        $payment = $service->claim($this->entry($id), ['claimant_type' => $this->claimant, 'external_reference' => $this->externalReference, 'requirements_checked' => $this->requirementsChecked, 'groceries_received' => $this->groceriesReceived]);
-        $this->reset('paymentConfirmed', 'requirementsChecked', 'groceriesReceived', 'externalReference');
-        $this->notice = 'Claimed. Payment reference: '.$payment->reference_number;
+        $service->claim($this->entry($id), ['claimant_type' => $this->claimant, 'identity_checked' => $this->identityChecked, 'authorization_checked' => $this->authorizationChecked, 'requirements_checked' => $this->requirementsChecked, 'groceries_received' => $this->groceriesReceived]);
+        $this->reset('paymentConfirmed', 'identityChecked', 'authorizationChecked', 'requirementsChecked', 'groceriesReceived');
+        $this->notice = 'Claim recorded successfully.';
     }
 
     public function previewSms(BenefitSms $service): void
@@ -146,7 +153,7 @@ class SchedulePanel extends Component
         $entries = $schedule->entitlements()->select(['id', 'benefit_schedule_id', 'senior_citizen_id', 'period_key', 'amount', 'status', 'reviewed_at'])
             ->with([
                 'seniorCitizen:id,barangay_id,osca_id_number,first_name,middle_name,last_name,name_suffix,status',
-                'seniorCitizen.barangay:id,name', 'payments:id,benefit_entitlement_id,reference_number,reversed_at',
+                'seniorCitizen.barangay:id,name', 'payments:id,benefit_entitlement_id,reversed_at',
             ])->orderBy('id')->paginate(15, pageName: 'recipientsPage');
 
         return view('livewire.benefits.schedule-panel', [

@@ -2,7 +2,7 @@
 
 @section('content')
 <x-workspace-navigation section="payouts" />
-<x-staff.page-header title="Payout details" description="Check beneficiary information and confirm the release requirements.">
+<x-staff.page-header title="Payout details">
     <a class="secondary-button" href="{{ route('payouts.index') }}">Back to payouts</a>
 </x-staff.page-header>
 <section class="panel mb-6">

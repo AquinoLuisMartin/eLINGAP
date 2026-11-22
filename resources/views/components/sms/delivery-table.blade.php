@@ -1,4 +1,4 @@
-@props(['messages', 'broadcast' => false])
+@props(['messages', 'broadcast' => false, 'liveRetry' => false])
 <x-staff.table :label="$broadcast ? 'Broadcast recipient deliveries' : 'Individual messages'" class="rounded-lg border bg-white dark:border-slate-700 dark:bg-slate-900">
     <table class="w-full table-auto text-left text-sm">
         <thead class="bg-slate-100 dark:bg-slate-800">
@@ -38,7 +38,7 @@
                         <div class="flex flex-wrap justify-end gap-2">
                             @if ($message->status === \App\Enums\SmsStatus::Failed)
                                 @can('create', \App\Models\SmsMessage::class)
-                                    <button type="button" class="secondary-button" data-retry="{{ json_encode($details, JSON_THROW_ON_ERROR) }}"
+                                    <button type="button" class="secondary-button" data-retry="{{ json_encode($liveRetry ? $details + ['retryUrl' => route('sms.messages.retry', $message)] : $details, JSON_THROW_ON_ERROR) }}"
                                         x-show="rowStatus({{ $message->id }}, 'Failed') === 'Failed'" x-on:click="openRetry(JSON.parse($el.dataset.retry))"
                                         aria-haspopup="dialog" aria-controls="sms-retry-dialog" aria-label="{{ $broadcast ? 'Resend' : 'Retry' }} notification {{ $message->id }}">{{ $broadcast ? 'Resend' : 'Retry' }}</button>
                                 @endcan

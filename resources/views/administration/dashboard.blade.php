@@ -14,7 +14,7 @@
             document.documentElement.style.colorScheme = theme;
         })();
     </script>
-    @vite(['resources/css/admin.css', 'resources/js/app.js'])
+    @vite(['resources/css/admin.css', 'resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
 <body>

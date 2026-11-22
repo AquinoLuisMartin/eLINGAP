@@ -23,6 +23,43 @@ class StaffDashboardDataTest extends TestCase
         $this->assertSame(0, $response->viewData('milestoneCount'));
         $response->assertSee('No milestone programs configured');
         $response->assertSee('No verified seniors with a barangay recorded yet.');
+        $response->assertSee('aria-valuetext="0 verified seniors (0.0%)"', false)
+            ->assertSee('Male share of verified seniors')
+            ->assertSee('Female share of verified seniors');
+    }
+
+    public function test_gender_distribution_shows_counts_and_percentages_for_verified_seniors_only(): void
+    {
+        $barangay = Barangay::create(['name' => 'Synthetic area', 'code' => 'SYN']);
+        foreach (['MALE', 'MALE', 'MALE', 'FEMALE'] as $index => $sex) {
+            SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant '.$index, 'birth_date' => '1948-01-01', 'sex' => $sex, 'address' => 'Test address', 'status' => 'VERIFIED']);
+        }
+        foreach (['PENDING', 'ARCHIVED', 'DECEASED', 'TRANSFERRED'] as $status) {
+            SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => $status, 'birth_date' => '1948-01-01', 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => $status]);
+        }
+
+        $response = $this->actingAs(User::factory()->create())->get(route('dashboard'));
+
+        $response->assertSee('4 total')
+            ->assertSee('aria-label="Male share of verified seniors" aria-valuenow="75"', false)
+            ->assertSee('aria-valuetext="3 verified seniors (75.0%)"', false)
+            ->assertSee('aria-label="Female share of verified seniors" aria-valuenow="25"', false)
+            ->assertSee('aria-valuetext="1 verified seniors (25.0%)"', false)
+            ->assertSee('width: 75%;', false)
+            ->assertSee('width: 25%;', false);
+    }
+
+    public function test_gender_distribution_shows_zero_for_a_gender_without_verified_records(): void
+    {
+        $barangay = Barangay::create(['name' => 'Synthetic area', 'code' => 'SYN']);
+        $this->senior($barangay, 1, '1948-01-01');
+
+        $response = $this->actingAs(User::factory()->create())->get(route('dashboard'));
+
+        $response->assertSee('aria-label="Male share of verified seniors" aria-valuenow="0"', false)
+            ->assertSee('aria-valuetext="0 verified seniors (0.0%)"', false)
+            ->assertSee('aria-label="Female share of verified seniors" aria-valuenow="100"', false)
+            ->assertSee('aria-valuetext="1 verified seniors (100.0%)"', false);
     }
 
     public function test_coverage_counts_all_barangays_even_when_the_chart_is_limited(): void

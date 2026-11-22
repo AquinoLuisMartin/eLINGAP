@@ -14,30 +14,17 @@
 <div class="admin-shell"
     :class="theme === 'dark' ? 'theme-dark' : 'theme-light'"
     x-data="{
-        sidebarOpen: false,
-        sidebarTrigger: null,
-        adminOpen: true,
         profileOpen: @js($errors->has('photo')),
         profileTrigger: null,
+        ...workspaceSidebar(),
         ...workspaceTheme(),
     }"
-    @storage.window="syncTheme($event)" @keydown.escape.window="if (profileOpen) profileTrigger?.focus(); else if (sidebarOpen) sidebarTrigger?.focus(); profileOpen = false; sidebarOpen = false" @resize.window="sidebarOpen = false">
+    x-init="initSidebar()" @mousemove.window="trackSidebarPointer($event)" @storage.window="syncTheme($event)" @keydown.escape.window="if (profileOpen) profileTrigger?.focus(); else if (sidebarOpen) sidebarTrigger?.focus(); profileOpen = false; sidebarOpen = false" @resize.window="syncSidebarViewport()">
 
     {{-- Collapsible Sidebar --}}
-    <aside id="admin-navigation" class="admin-sidebar" x-trap.inert.noscroll="sidebarOpen && window.matchMedia('(max-width: 760px)').matches" :class="{ 'is-expanded': sidebarOpen }" @mouseenter="if (window.matchMedia('(min-width: 761px)').matches) sidebarOpen = true" @mouseleave="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains(document.activeElement)) sidebarOpen = false" @focusin="sidebarOpen = true" @focusout="if (window.matchMedia('(min-width: 761px)').matches && !$el.contains($event.relatedTarget) && !$el.matches(':hover')) sidebarOpen = false">
-        <div class="sidebar-brand">
-            <div class="brand-mark">
-                <img class="brand-logo" src="{{ asset('images/eLINGAP.png') }}" alt="eLINGAP Logo" />
-            </div>
-            <div class="brand-copy">
-                <strong>eLINGAP</strong>
-                <small>{{ $this->configuration->firstWhere('key', 'organization_name')?->value ?? 'Administration' }}</small>
-            </div>
-        </div>
-
+    <x-admin.sidebar :subtitle="$this->configuration->firstWhere('key', 'organization_name')?->value ?? 'Administration'">
         <x-admin.navigation :active="$active" :dashboard="true" />
-
-    </aside>
+    </x-admin.sidebar>
 
     <button type="button" class="sidebar-backdrop" x-show="sidebarOpen" x-cloak @click="sidebarOpen = false; sidebarTrigger?.focus()" aria-label="Close navigation"></button>
 
@@ -62,8 +49,6 @@
                     <span>{{ now()->format('l, F j, Y') }}</span>
                 </div>
 
-
-
                 <livewire:task-notifications />
 
                 <div class="header-account" @click.outside="profileOpen = false">
@@ -75,7 +60,7 @@
             </div>
         </header>
 
-        <main id="main-content" class="admin-content" tabindex="-1">
+        <main id="main-content" @class(['admin-content', 'admin-content-configuration' => $active === 'configuration']) tabindex="-1">
             @if ($active === 'records')
                 @include('administration.dashboard.records')
             @elseif ($active === 'programs')

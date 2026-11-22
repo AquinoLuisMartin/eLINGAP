@@ -2,7 +2,7 @@
 
 @section('content')
     <div class="w-full min-w-0 max-w-full space-y-6">
-        <header><h2 class="text-2xl font-semibold">Edit user account</h2><p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Update the account details and assigned access.</p></header>
+        <header><h2 class="text-2xl font-semibold">Edit user account</h2></header>
         <form class="account-form rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800" method="POST" action="{{ route('administration.users.update', $user) }}">
             @method('PUT')
             @include('administration.users._form')

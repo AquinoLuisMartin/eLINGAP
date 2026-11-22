@@ -13,7 +13,7 @@
         </a>
     @endforeach
 
-    <button type="button" class="nav-item admin-toggle" @click="adminOpen = !adminOpen" aria-controls="admin-subnavigation" :aria-expanded="adminOpen" title="Administration">
+    <button type="button" class="nav-item admin-toggle" :class="{ 'is-active': !adminOpen && @js(in_array($active, ['users', 'system-logs', 'configuration'], true)) }" @click="adminOpen = !adminOpen" aria-controls="admin-subnavigation" :aria-expanded="adminOpen" title="Administration">
         <x-admin.icon name="settings" size="18" /><span>Administration</span>
         <x-admin.icon name="chevron-down" size="15" ::class="adminOpen ? '' : 'rotate-[-90deg]'" />
     </button>

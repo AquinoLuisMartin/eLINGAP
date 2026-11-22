@@ -21,6 +21,9 @@ class ReferenceData
         $data = [];
         foreach (self::COLUMNS as $table => $columns) {
             $query = DB::table($table)->select($columns)->orderBy('id');
+            if ($table === 'sms_templates') {
+                $query->whereNull('superseded_by_id');
+            }
             if ($table === 'system_configurations') {
                 $query->whereIn('key', ['municipality', 'province']);
             }

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('content')
-<x-staff.page-header title="Benefit applications" description="Review applications for historical programs and check their processing status.">
+<x-staff.page-header title="Benefit applications">
     <a class="primary-button" href="{{ route('applications.create') }}">New application</a>
 </x-staff.page-header>
 <form method="GET" class="mb-5 grid gap-3 rounded-lg border bg-white p-4 md:grid-cols-4"><label>Search <input name="search" value="{{ request('search') }}" class="mt-1 w-full rounded border p-2" placeholder="Reference or name"></label><div class="field-label"><label data-select-label>Status</label><x-select label="Status" name="status" class="mt-1 w-full"><option value="">All statuses</option>@foreach (\App\Enums\ApplicationStatus::cases() as $status)<option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ ucfirst(strtolower($status->value)) }}</option>@endforeach</x-select></div><div class="field-label"><label data-select-label>Barangay</label><x-select label="Barangay" name="barangay_id" class="mt-1 w-full"><option value="">All barangays</option>@foreach ($barangays as $barangay)<option value="{{ $barangay->id }}" @selected(request('barangay_id') == $barangay->id)>{{ $barangay->name }}</option>@endforeach</x-select></div><div class="flex items-end gap-2"><x-button type="submit">Filter</x-button><a href="{{ route('applications.index') }}" class="secondary-button">Reset</a></div></form>

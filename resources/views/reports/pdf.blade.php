@@ -28,13 +28,13 @@
     <div class="metadata">
         <p>Generated: {{ $generatedAt->format('F j, Y, g:i:s A e') }} | Matching records: {{ number_format($total) }}</p>
         <p>Filters: @forelse ($filterLabels as $label => $value){{ $label }}: {{ $value }}{{ $loop->last ? '' : ' / ' }}@empty All records @endforelse</p>
-        @if ($type === 'beneficiaries')<p>Active program assignments for verified senior citizens. A senior may appear once for each assigned program.</p>@endif
+        @foreach ($summary ?? [] as $label => $value)<p>{{ $label }}: {{ $value }}</p>@endforeach
     </div>
     @php
         $widths = match ($type) {
             'beneficiaries' => [10, 12, 12, 11, 5, 4, 11, 17, 10, 8],
             'masterlist', 'milestones', 'archived' => [11, 16, 14, 14, 5, 11, 5, 14, 10],
-            'applications' => [10, 12, 11, 11, 5, 11, 11, 13, 9, 7],
+            'applications' => [8, 8, 8, 8, 4, 9, 8, 10, 7, 6, 8, 8, 8],
             'payouts', 'proxy' => [10, 12, 11, 11, 5, 11, 15, 7, 11, 7],
             default => [65, 35],
         };
@@ -49,8 +49,7 @@
             @endforelse
         </tbody>
     </table>
-    <h2>Verified senior population at generation</h2>
-    <p>Across all barangays, independent of report filters. Excludes deceased, archived and transferred records.</p>
+    <h2>Municipality-wide verified population</h2>
     <table class="population">
         <thead><tr><th>Barangay</th><th>Verified senior population</th></tr></thead>
         <tbody>

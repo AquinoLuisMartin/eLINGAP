@@ -115,6 +115,7 @@ Route::middleware(['auth', 'auth.session', 'active', EnsureCurrentCredentials::c
     Route::post('sms/templates', [SmsTemplateController::class, 'store'])->name('sms.templates.store');
     Route::get('sms/messages', [SmsMessageController::class, 'index'])->name('sms.messages.index');
     Route::get('sms/messages/create', [SmsMessageController::class, 'create'])->name('sms.messages.create');
+    Route::get('sms/messages/recipients', [SmsMessageController::class, 'recipients'])->name('sms.messages.recipients');
     Route::post('sms/messages', [SmsMessageController::class, 'store'])->middleware('throttle:20,1,sms-send')->name('sms.messages.store');
     Route::get('sms/blasts', [SmsBlastController::class, 'index'])->name('sms.blasts.index');
     Route::get('messaging', [SmsBlastController::class, 'create'])->name('sms.blasts.create');
@@ -140,6 +141,7 @@ Route::middleware(['auth', 'auth.session', 'active', EnsureCurrentCredentials::c
 
         Route::resource('users', UserController::class)->except(['show', 'destroy']);
         Route::resource('programs', ProgramController::class)->only(['create', 'store']);
+        Route::get('senior-citizens/{senior_citizen}', [SeniorCitizenController::class, 'show'])->name('senior-citizens.show');
         Route::delete('senior-citizens/{senior_citizen}', [SeniorCitizenController::class, 'destroy'])->name('senior-citizens.destroy');
         Route::patch('users/{user}/status', [UserStatusController::class, 'update'])->name('users.status.update');
         Route::get('password-reset-requests', [UserPasswordController::class, 'index'])->name('password-reset-requests.index');

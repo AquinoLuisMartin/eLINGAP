@@ -1,6 +1,5 @@
 @csrf
-<div class="flex flex-col gap-8 p-5 sm:p-7">
-    <p class="text-xs text-slate-500 dark:text-slate-400">Fields marked <span class="field-required" aria-hidden="true">*</span> are required.</p>
+<div class="flex flex-col gap-6 p-5 sm:p-7">
 
     @foreach (['Personal details' => ['first_name' => 'First name', 'middle_name' => 'Middle name', 'last_name' => 'Last name', 'name_suffix' => 'Name suffix'], 'Account access' => ['employee_id' => 'Employee ID']] as $section => $fields)
         <fieldset class="min-w-0">
@@ -25,7 +24,7 @@
                             @required($required) aria-invalid="{{ $errors->has($field) ? 'true' : 'false' }}"
                             @if ($errors->has($field) || $field === 'employee_id') aria-describedby="{{ $field === 'employee_id' ? 'employee_id-help ' : '' }}{{ $errors->has($field) ? $field.'-error' : '' }}" @endif>
                         @if ($field === 'employee_id')
-                            <p id="employee_id-help" class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">Format: YYYY-NNNN (e.g. 2026-0001). Must be unique to this employee.</p>
+                            <p id="employee_id-help" class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">Format: YYYY-NNNN.</p>
                         @endif
                         @error($field)<p id="{{ $field }}-error" class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
                     </div>
@@ -34,13 +33,13 @@
                 @if ($loop->last)
                     <div class="ui-field">
                         <label class="account-field-label text-sm" for="role_id">Role <span class="field-required" aria-hidden="true">*</span></label>
-                        <x-select class="w-full" id="role_id" name="role_id" required aria-invalid="{{ $errors->has('role_id') ? 'true' : 'false' }}" aria-describedby="role-help{{ $errors->has('role_id') ? ' role_id-error' : '' }}">
+                        <x-select class="w-full" id="role_id" name="role_id" required aria-invalid="{{ $errors->has('role_id') ? 'true' : 'false' }}" :aria-describedby="$errors->has('role_id') ? 'role_id-error' : null">
                             <option value="">Select role</option>
                             @foreach ($roles as $role)
                                 <option value="{{ $role->id }}" @selected(old('role_id', $user->role_id ?? '') == $role->id)>{{ $role->name->label() }}</option>
                             @endforeach
                         </x-select>
-                        <p id="role-help" class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">Determines which system features the employee can access.</p>
+
                         @error('role_id')<p id="role_id-error" class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
                     </div>
                 @endif

@@ -40,7 +40,7 @@ class OscaConsultationTest extends TestCase
             ->assertDontSee('Registration & Benefits')->assertDontSee('Historical program enrollments')
             ->assertDontSee('TSS office request and verification note')->assertDontSee('Assign benefit')
             ->assertSee('No benefit entitlements prepared yet.')
-            ->assertSee('Original period')->assertSee('Payment references');
+            ->assertSee('Original period')->assertDontSee('Payment references');
     }
 
     public function test_registration_requires_contact_even_with_a_representative_number(): void
@@ -121,7 +121,7 @@ class OscaConsultationTest extends TestCase
         $program = $this->program();
 
         Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])->set('programId', (string) $program->id)
-            ->call('assignBenefit')->assertStatus(422);
+            ->call('reviewAssignment')->assertStatus(422);
         $this->assertDatabaseCount('beneficiaries', 0);
     }
 
@@ -132,14 +132,17 @@ class OscaConsultationTest extends TestCase
         $senior = $this->senior();
         $program = $this->program();
 
-        Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])->set('programId', (string) $program->id)->call('assignBenefit')->assertHasNoErrors()->assertSee($program->name);
+        $component = Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])->set('programId', (string) $program->id)->call('reviewAssignment')->assertHasNoErrors()->assertSee($program->name);
+        $this->assertDatabaseCount('beneficiaries', 0);
+        $component->call('confirmAssignment')->assertHasNoErrors()->assertSet('assignmentReview', null)
+            ->assertSee('Program assignment saved successfully.')->assertDontSee('Confirm Program Assignment');
         app(BenefitAssignment::class)->assign($senior, $program);
 
         $this->assertDatabaseCount('beneficiaries', 1);
         $this->assertDatabaseHas('beneficiaries', ['senior_citizen_id' => $senior->id, 'program_id' => $program->id, 'assigned_by' => $staff->id]);
         $this->flushSession();
         $this->actingAs(User::factory()->admin()->create());
-        Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])->set('programId', (string) $program->id)->call('assignBenefit')->assertForbidden();
+        Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])->set('programId', (string) $program->id)->call('reviewAssignment')->assertForbidden();
     }
 
     public function test_classification_requires_generated_id(): void
@@ -560,7 +563,7 @@ class OscaConsultationTest extends TestCase
         $program = $this->program();
         $program->update(['status' => 'UPCOMING']);
 
-        Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])->set('programId', (string) $program->id)->call('assignBenefit')->assertStatus(422);
+        Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])->set('programId', (string) $program->id)->call('reviewAssignment')->assertHasErrors('programId');
 
         $this->assertDatabaseCount('beneficiaries', 0);
     }

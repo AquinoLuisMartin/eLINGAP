@@ -56,7 +56,7 @@
                                 <br><span class="text-osca-ink">in {{ $officeDetails['municipality'] }}</span>
                             @endif
                         </h1>
-                        <p class="max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">Find senior citizen programs, learn about available assistance, and plan your visit to the issuing office.</p>
+
                     </div>
                     <aside class="min-w-0" aria-label="Your OSCA office">
                         <div class="public-card relative flex h-full flex-col overflow-hidden">
@@ -66,7 +66,7 @@
                             </div>
                             <div class="flex flex-1 flex-col gap-5 p-6 sm:p-8">
                                 <h2 class="text-2xl leading-snug font-semibold tracking-tight text-osca-ink">{{ $officeDetails['office_name'] ?? 'Office of the Senior Citizen Affairs' }}</h2>
-                                <p class="text-sm leading-relaxed">Program information and registration guidance, with assistance from your municipal OSCA team.</p>
+
                             </div>
                         </div>
                     </aside>
@@ -79,7 +79,7 @@
                 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div class="mb-8 flex flex-col gap-3">
                         <h2 id="visit-title" class="text-3xl font-semibold tracking-tight text-osca-ink sm:text-4xl">Visit the office</h2>
-                        <p class="max-w-2xl text-sm leading-relaxed">Have a question about registration or a program? Our staff can guide you through the requirements and next steps.</p>
+
                     </div>
                     <div class="flex flex-col gap-6">
                         <div class="public-card flex w-full flex-col gap-6 p-6 text-osca-ink sm:p-8">

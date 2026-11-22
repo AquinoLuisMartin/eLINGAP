@@ -157,6 +157,13 @@ class SeniorCitizen extends Model
     }
 
     #[Scope]
+    protected function onProgramMasterlist(Builder $query, int $programId): Builder
+    {
+        return $query->where('status', 'VERIFIED')->has('activeAssignments', '=', 1)
+            ->whereHas('activeAssignments', fn (Builder $assignments) => $assignments->where('program_id', $programId));
+    }
+
+    #[Scope]
     protected function searchable(Builder $query, string $term, string $field = 'all'): Builder
     {
         $term = trim($term);
@@ -184,5 +191,10 @@ class SeniorCitizen extends Model
     public function getFullNameAttribute(): string
     {
         return implode(' ', array_filter([$this->first_name, $this->middle_name, $this->last_name, $this->name_suffix]));
+    }
+
+    public function getSurnameFirstNameAttribute(): string
+    {
+        return mb_strtoupper($this->last_name.', '.implode(' ', array_filter([$this->first_name, $this->middle_name, $this->name_suffix])));
     }
 }

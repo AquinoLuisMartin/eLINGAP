@@ -50,7 +50,7 @@
                 </div>
                 <div class="min-w-0">
                     <label class="field-label">House / Street / Purok / Sitio / Subdivision<textarea name="destination_address" required maxlength="1000" aria-describedby="transfer-address-help">{{ old('destination_address') }}</textarea></label>
-                    <p id="transfer-address-help" class="mt-1.5 flex items-start gap-1.5 text-[12px] leading-relaxed text-slate-500"><span aria-hidden="true" class="mt-0.5 shrink-0"><x-admin.icon name="info" size="14" /></span><span>Enter the applicable address details. Do not repeat the barangay, municipality, or province.</span></p>
+                    <p id="transfer-address-help" class="mt-1.5 flex items-start gap-1.5 text-[12px] leading-relaxed text-slate-500"><span aria-hidden="true" class="mt-0.5 shrink-0"><x-admin.icon name="info" size="14" /></span></p>
                 </div>
             </section>
             <label class="field-label">Reason (optional)<textarea name="reason" maxlength="1000">{{ old('reason') }}</textarea></label>

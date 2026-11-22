@@ -63,7 +63,7 @@
             <div class="mt-5 flex justify-end border-t border-slate-200 pt-4 dark:border-slate-700"><button type="button" wire:click="next" wire:loading.attr="disabled" class="primary-button w-full sm:w-auto">Continue to review</button></div>
         </x-senior-id.panel>
     @elseif ($step === 2)
-        <x-senior-id.panel class="p-4! [&>div]:mt-3 [&>p]:max-w-none" title="Review the card" description="Review the card details and preview for accuracy before issuing the OSCA ID.">
+        <x-senior-id.panel class="p-4! [&>div]:mt-3 [&>p]:max-w-none" title="Review the card">
             <dl class="grid gap-x-6 gap-y-3 wrap-anywhere text-sm text-(--navy) sm:grid-cols-2 lg:grid-cols-3 dark:text-slate-100">
                 <div><dt class="text-xs text-slate-500 dark:text-slate-400">Full name</dt><dd class="mt-1 font-medium">{{ $senior->full_name }}</dd></div>
                 <div><dt class="text-xs text-slate-500 dark:text-slate-400">Birth date</dt><dd class="mt-1 font-medium">{{ $senior->birth_date->format('M j, Y') }}</dd></div>
@@ -96,7 +96,7 @@
             </div>
         </x-senior-id.panel>
     @else
-        <x-senior-id.panel class="p-4! [&>div]:mt-3" title="Print the ID" description="Open the PDF and print it using the settings below. After printing, return here to record the result.">
+        <x-senior-id.panel class="p-4! [&>div]:mt-3" title="Print the ID">
             <ol class="mb-4 grid gap-3 text-sm sm:grid-cols-3">
                 <li class="rounded-lg bg-slate-50 p-3 dark:bg-slate-800"><strong class="block font-semibold">1. Set up the printer</strong><span class="mt-1 block text-slate-500 dark:text-slate-400">Match the paper size. Use Actual Size (100%) and turn off Fit to page.</span></li>
                 <li class="rounded-lg bg-slate-50 p-3 dark:bg-slate-800"><strong class="block font-semibold">2. Print and check</strong><span class="mt-1 block text-slate-500 dark:text-slate-400">Front and back print side by side. Check both sides, then cut and join before lamination.</span></li>
@@ -121,7 +121,7 @@
                     <div class="ui-field"><label for="id-paper" data-select-label class="text-sm text-slate-600 dark:text-slate-300">Paper size</label><x-select label="Paper size" id="id-paper" name="paper" class="w-full"><option value="short">Short (8.5 x 11 inches)</option><option value="long">Long (8.5 x 13 inches)</option><option value="a4">A4 (210 x 297 mm)</option></x-select></div>
                     <div class="flex flex-col gap-1 text-sm"><span class="text-slate-500 dark:text-slate-400">Print purpose</span><span class="font-medium">{{ $senior->lastConfirmedIdPrint ? 'Authorized reprint' : 'First print' }}</span></div>
                 </div>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Each card side is 85.60 x 53.98 mm. For batch printing, select up to four records in Registrations.</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Card size: 85.60 x 53.98 mm.</p>
                 <div class="grid gap-3 border-t border-slate-200 pt-4 dark:border-slate-700 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
                     <button type="button" wire:click="back" class="secondary-button">Back to review</button>
                     <button type="submit" class="primary-button" @disabled(!$credentialExists)>Open print-ready PDF</button>

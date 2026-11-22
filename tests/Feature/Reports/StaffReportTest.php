@@ -30,7 +30,7 @@ class StaffReportTest extends TestCase
         $this->assertSame('GET', $form->getAttribute('method'));
         $this->assertSame(route('reports.workspace', $type), $form->getAttribute('action'));
         $this->assertSame(0, $xpath->query('.//button[@type="submit"]', $form)->length);
-        $response->assertDontSee('Apply filters')->assertSee('Filters apply automatically.');
+        $response->assertDontSee('Apply filters')->assertDontSee('Filters apply automatically.')->assertDontSee('Use Excel (.xlsx) to preserve OSCA IDs as text.');
         $this->assertSame(1, $xpath->query('.//select[@name="barangay_id"]', $form)->length);
         $this->assertSame(2, $xpath->query('.//input[@name="age_min" or @name="age_max"]', $form)->length);
         foreach (['xlsx', 'csv', 'pdf'] as $format) {

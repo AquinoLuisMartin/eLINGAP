@@ -11,19 +11,25 @@
                 <div><dt class="text-xs text-slate-500 dark:text-slate-400">Date Issued</dt><dd class="mt-1 font-medium">{{ $senior->id_generated_at?->format('M j, Y') ?? 'Not recorded' }}</dd></div>
                 <div><dt class="text-xs text-slate-500 dark:text-slate-400">OSCA ID</dt><dd class="mt-1 wrap-anywhere font-medium">{{ $senior->osca_id_number ?? 'Not generated' }}</dd></div>
             </dl>
-            <h3 class="text-sm font-semibold text-(--navy) dark:text-slate-100">Enrolled Programs</h3>
-            <ul class="mt-2 flex flex-col gap-3 text-sm">
-                @forelse ($senior->activeAssignments as $assignment)
-                    <li wire:key="assigned-benefit-{{ $assignment->id }}" class="flex flex-col gap-1"><span class="font-semibold text-(--navy) dark:text-slate-100">{{ $assignment->program->name }}</span>@if($assignment->assigned_at)<span class="text-xs text-slate-500 dark:text-slate-400">Assigned {{ $assignment->assigned_at->format('M j, Y') }}</span>@endif</li>
-                @empty
-                    <li class="text-slate-500">No programs assigned.</li>
-                @endforelse
-            </ul>
+            <h3 class="text-sm font-semibold text-(--navy) dark:text-slate-100">Assigned Program</h3>
+            <p class="mt-2 text-sm font-semibold text-(--navy) dark:text-slate-100">{{ $senior->activeAssignments->count() > 1 ? 'Program selection required' : ($senior->activeAssignments->first()?->program->name ?? 'No program assigned.') }}</p>
             @can('manage', \App\Models\BenefitSchedule::class)
                 @if ($senior->status->value === 'VERIFIED' && $senior->id_generated_at && $senior->osca_id_number)
-                    <div class="mt-4">
-                        <div class="flex min-w-0 flex-col gap-2"><label for="benefit-assignment-program" data-select-label class="text-sm font-medium text-slate-500 dark:text-slate-400">Program or Benefit</label><x-select id="benefit-assignment-program" label="Program or Benefit" wire:model="programId" required><option value="">Select program</option>@foreach ($programs as $program)<option wire:key="assignment-program-{{ $program->id }}" value="{{ $program->id }}">{{ $program->name }}</option>@endforeach</x-select></div>
-                    </div>
+                    @if ($senior->activeAssignments->count() !== 1)
+                        <form wire:submit="reviewAssignment" novalidate class="mt-4 flex flex-col gap-2">
+                            <label for="benefit-assignment-program" data-select-label class="text-sm font-medium text-slate-500 dark:text-slate-400">Program or Benefit</label>
+                            <x-select id="benefit-assignment-program" label="Program or Benefit" wire:model="programId" required>
+                                <option value="">Select one program</option>
+                                @foreach ($programs as $program)
+                                    @if ($senior->activeAssignments->isEmpty() || $senior->activeAssignments->contains('program_id', $program->id))
+                                        <option wire:key="assignment-program-{{ $program->id }}" value="{{ $program->id }}">{{ $program->name }}</option>
+                                    @endif
+                                @endforeach
+                            </x-select>
+                            @error('programId')<p class="text-xs text-red-600 dark:text-red-400" role="alert">{{ $message }}</p>@enderror
+                            <div><button type="submit" class="primary-button w-full sm:w-auto" wire:loading.attr="disabled" wire:target="reviewAssignment,confirmAssignment">Save assigned program</button></div>
+                        </form>
+                    @endif
                     <form wire:submit="reviewClassifications" class="mt-4 grid gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
                         <h3 class="text-base font-semibold text-(--navy) dark:text-slate-100">Senior Classifications</h3>
                         <div class="grid gap-x-4 sm:grid-cols-2">
@@ -42,20 +48,35 @@
     </div>
     <x-benefit-panel class="min-w-0 p-4!">
         <h2 class="text-lg font-semibold text-(--navy) dark:text-slate-100">Benefit and Payment History</h2>
-        <x-staff.table label="Senior benefit history" class="mt-3"><table><thead><tr><th scope="col">Program</th><th scope="col">Original period</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Payment references</th></tr></thead><tbody>
+        <x-staff.table label="Senior benefit history" class="mt-3"><table class="w-full"><thead><tr><th scope="col" class="w-2/5">Program</th><th scope="col" class="w-1/5">Original period</th><th scope="col" class="w-1/5">Amount</th><th scope="col" class="w-1/5">Status</th></tr></thead><tbody>
             @forelse ($entitlements as $entry)
-                <tr wire:key="senior-entitlement-{{ $entry->id }}"><td>{{ $entry->program->name }}</td><td>{{ $entry->period_key }}</td><td>{{ $entry->amount === null ? 'Awaiting funds' : 'PHP '.number_format((float) $entry->amount, 2) }}</td><td>{{ $entry->status->label() }}</td><td>@foreach ($entry->payments as $payment)<p wire:key="senior-payment-{{ $payment->id }}">{{ $payment->reference_number }} {{ $payment->reversed_at ? '(reversed)' : '' }}</p>@endforeach</td></tr>
+                <tr wire:key="senior-entitlement-{{ $entry->id }}"><td>{{ $entry->program->name }}</td><td>{{ $entry->period_key }}</td><td class="whitespace-nowrap tabular-nums">{{ $entry->amount === null ? 'Awaiting funds' : 'PHP '.number_format((float) $entry->amount, 2) }}</td><td>{{ $entry->status->label() }}</td></tr>
+                @if ($entry->payments->isNotEmpty())
+                    <tr wire:key="senior-claims-{{ $entry->id }}"><td colspan="4"><details><summary class="cursor-pointer text-sm font-semibold">Claim Information</summary><div class="mt-3"><x-payout-claim-history :payments="$entry->payments" /></div></details></td></tr>
+                @endif
             @empty
-                <tr><td colspan="5">No benefit entitlements prepared yet.</td></tr>
+                <tr><td colspan="4">No benefit entitlements prepared yet.</td></tr>
             @endforelse
         </tbody></table></x-staff.table>
         {{ $entitlements->links() }}
     </x-benefit-panel>
-    @if ($classificationReview !== null)
+    @if ($assignmentReview !== null)
+        <div wire:key="program-assignment-confirmation" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/50 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="confirm-assignment-title" aria-describedby="confirm-assignment-message" x-data="{}" x-trap.inert.noscroll="true" @keydown.escape.window="$wire.cancelAssignmentReview()">
+            <section class="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 shadow-lg sm:p-5 dark:border-slate-700 dark:bg-slate-900">
+                <h2 id="confirm-assignment-title" class="text-lg font-semibold text-(--navy) dark:text-slate-100">Confirm Program Assignment</h2>
+                <p id="confirm-assignment-message" class="mt-3 text-sm text-slate-500 dark:text-slate-400">Set <strong class="font-semibold text-(--navy) dark:text-slate-100">{{ $assignmentReview['program_name'] }}</strong> as this senior citizen's single active program? Any previous assignments will become inactive. Payout and claim history will be retained.</p>
+                <x-benefit-errors />
+                <div class="mt-5 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+                    <button type="button" class="secondary-button" wire:click="cancelAssignmentReview" wire:loading.attr="disabled" autofocus>Cancel</button>
+                    <button type="button" class="primary-button" wire:click="confirmAssignment" wire:loading.attr="disabled">Confirm &amp; Save Assignment</button>
+                </div>
+            </section>
+        </div>
+    @elseif ($classificationReview !== null)
         <div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/50 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="confirm-classifications-title" x-data="{}" x-trap.inert.noscroll="true" @keydown.escape.window="$wire.cancelClassificationReview()">
             <section class="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 shadow-lg sm:p-5 dark:border-slate-700 dark:bg-slate-900">
                 <h2 id="confirm-classifications-title" class="text-lg font-semibold text-(--navy) dark:text-slate-100">Confirm Classifications</h2>
-                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Are you sure you want to save the selected classifications for this senior citizen? Please verify the information before proceeding.</p>
+                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Save these classifications?</p>
                 <x-benefit-errors />
                 <h3 class="mt-4 text-sm font-semibold text-(--navy) dark:text-slate-100">Selected classifications</h3>
                 @if (array_filter($classificationReview))

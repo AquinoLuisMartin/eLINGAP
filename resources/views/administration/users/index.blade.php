@@ -7,7 +7,7 @@
         <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div class="flex flex-col gap-2">
                 <h1>User accounts</h1>
-                <p class="text-sm text-slate-500 dark:text-slate-400">Manage employee accounts and system access.</p>
+
             </div>
             <div class="flex flex-wrap items-center gap-3">
                 <a class="secondary-button" href="{{ route('administration.password-reset-requests.index') }}">Password reset requests ({{ $pendingRecoveryRequests }} pending)</a>

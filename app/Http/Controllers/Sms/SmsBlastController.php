@@ -8,6 +8,8 @@ use App\Http\Requests\Sms\CreateSmsBlastRequest;
 use App\Jobs\Sms\SendSmsJob;
 use App\Models\AuditLog;
 use App\Models\Barangay;
+use App\Models\BenefitSchedule;
+use App\Models\Program;
 use App\Models\SeniorCitizen;
 use App\Models\SmsBlast;
 use App\Models\SmsMessage;
@@ -15,6 +17,7 @@ use App\Models\SmsTemplate;
 use App\Services\Benefits\BenefitSms;
 use App\Services\Sms\SmsService;
 use App\Services\Sms\SmsText;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -33,14 +36,15 @@ class SmsBlastController extends Controller
             ->latest('id')->paginate(15)]);
     }
 
-    public function create(Request $request): View
+    public function create(Request $request): View|JsonResponse
     {
         Gate::authorize('create', SmsMessage::class);
 
-        $filters = $request->validate(['barangay_id' => ['nullable', 'integer', 'exists:barangays,id']]);
+        $filters = $request->validate(['barangay_id' => ['nullable', 'integer', 'exists:barangays,id'], 'program_id' => ['nullable', 'integer', 'exists:programs,id'], 'benefit_schedule_id' => ['nullable', 'integer', 'exists:benefit_schedules,id']]);
+        $programId = isset($filters['program_id']) ? (int) $filters['program_id'] : null;
         $eligible = 0;
-        $total = SeniorCitizen::query()->when($filters['barangay_id'] ?? null, fn ($query, $id) => $query->where('barangay_id', $id))->count();
-        $this->recipients($filters['barangay_id'] ?? null)->chunkById(200, function ($seniors) use (&$eligible) {
+        $total = $this->audience($filters['barangay_id'] ?? null, $programId)->count();
+        $this->recipients($filters['barangay_id'] ?? null, $programId)->chunkById(200, function ($seniors) use (&$eligible) {
             foreach ($seniors as $senior) {
                 if ($senior->smsContact()) {
                     $eligible++;
@@ -48,17 +52,30 @@ class SmsBlastController extends Controller
             }
         });
 
-        return view('sms.blasts.create', ['barangays' => Barangay::query()->where('is_active', true)->orderBy('name')->get(), 'templates' => SmsTemplate::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'body', 'is_active']), 'eligible' => $eligible, 'excluded' => $total - $eligible]);
+        if ($request->expectsJson()) {
+            return response()->json(['eligible' => $eligible, 'excluded' => $total - $eligible]);
+        }
+
+        $payoutSchedules = BenefitSchedule::query()->with('program:id,name')->whereIn('status', ['DRAFT', 'APPROVED'])->orderByDesc('scheduled_at')->get();
+        $selectedPayout = null;
+        if ($filters['benefit_schedule_id'] ?? null) {
+            Gate::authorize('manage', BenefitSchedule::class);
+            $selectedPayout = $payoutSchedules->firstWhere('id', (int) $filters['benefit_schedule_id']);
+            abort_unless($selectedPayout, 404, 'This payout schedule is no longer available for messaging.');
+        }
+
+        return view('sms.blasts.create', ['payoutSchedules' => $payoutSchedules, 'selectedPayout' => $selectedPayout, 'programs' => Program::query()->orderBy('name')->get(['id', 'name']), 'barangays' => Barangay::query()->where('is_active', true)->orderBy('name')->get(), 'templates' => SmsTemplate::query()->whereNull('superseded_by_id')->where('is_active', true)->orderBy('name')->get(['id', 'name', 'body', 'is_active', 'program_id']), 'retiredTemplates' => SmsTemplate::query()->whereNotNull('superseded_by_id')->pluck('id')->map(strval(...))->all(), 'eligible' => $eligible, 'excluded' => $total - $eligible]);
     }
 
     public function store(CreateSmsBlastRequest $request, SmsService $smsService): RedirectResponse
     {
         $barangayId = $request->integer('barangay_id') ?: null;
-        $total = SeniorCitizen::query()->when($barangayId, fn ($query, $id) => $query->where('barangay_id', $id))->count();
-        $blast = DB::transaction(function () use ($request, $smsService, $barangayId, $total): SmsBlast {
+        $programId = $request->integer('program_id') ?: null;
+        $total = $this->audience($barangayId, $programId)->count();
+        $blast = DB::transaction(function () use ($request, $smsService, $barangayId, $programId, $total): SmsBlast {
             $blast = SmsBlast::create(['created_by' => $request->user()->id, 'barangay_id' => $barangayId, 'message' => $request->string('message')->toString()]);
             $sent = 0;
-            $this->recipients($barangayId)->chunkById(200, function ($seniorCitizens) use ($request, $smsService, $blast, &$sent): void {
+            $this->recipients($barangayId, $programId)->chunkById(200, function ($seniorCitizens) use ($request, $smsService, $blast, &$sent): void {
                 $messages = [];
                 foreach ($seniorCitizens as $seniorCitizen) {
                     if ($number = $seniorCitizen->smsContact()) {
@@ -92,10 +109,10 @@ class SmsBlastController extends Controller
         ]);
     }
 
-    public function retry(Request $request, SmsMessage $message): RedirectResponse
+    public function retry(Request $request, SmsMessage $message, SmsService $smsService): RedirectResponse
     {
         Gate::authorize('create', SmsMessage::class);
-        $mockResent = DB::transaction(function () use ($request, $message): bool {
+        $delivery = DB::transaction(function () use ($request, $message): string {
             $locked = SmsMessage::query()->with('seniorCitizen')->lockForUpdate()->findOrFail($message->id);
             abort_unless($locked->status === SmsStatus::Failed, 409, 'Only failed messages can be retried.');
             if (str_starts_with($locked->provider_message_id ?? '', 'MOCK-')
@@ -108,7 +125,7 @@ class SmsBlastController extends Controller
                 ]);
                 AuditLog::create(['user_id' => $request->user()->id, 'action' => 'sms.mock_resent', 'auditable_type' => SmsMessage::class, 'auditable_id' => $locked->id]);
 
-                return true;
+                return 'mock';
             }
             if ($locked->senior_citizen_id) {
                 abort_unless($locked->seniorCitizen?->status?->value === 'VERIFIED', 422, 'Recipient is no longer eligible.');
@@ -127,17 +144,34 @@ class SmsBlastController extends Controller
             $locked->queued_at = now();
             $locked->save();
             AuditLog::create(['user_id' => $request->user()->id, 'action' => 'sms.retried', 'auditable_type' => SmsMessage::class, 'auditable_id' => $locked->id, 'ip_address' => $request->ip()]);
+            if ($locked->sms_blast_id === null && $locked->benefit_entitlement_id === null) {
+                return 'direct';
+            }
+
             SendSmsJob::dispatch($locked->id)->onConnection('database-atomic')->beforeCommit();
 
-            return false;
+            return 'queued';
         });
 
-        return back()->with('status', $mockResent ? 'Mock resend completed. No SMS was sent.' : 'Failed SMS queued for retry.');
+        if ($delivery === 'direct') {
+            $result = $smsService->deliverNow($message->id);
+
+            return $result->status === SmsStatus::Sent
+                ? back()->with('status', 'SMS submitted to the provider.')
+                : back()->withErrors(['sms' => $result->failure_reason ?? 'SMS delivery could not be confirmed.']);
+        }
+
+        return back()->with('status', $delivery === 'mock' ? 'Mock resend completed. No SMS was sent.' : 'Failed SMS queued for retry.');
     }
 
-    private function recipients(?int $barangayId)
+    private function audience(?int $barangayId, ?int $programId)
     {
-        return SeniorCitizen::query()->select(['id', 'contact_number', 'representative_contact'])->where('status', 'VERIFIED')
-            ->when($barangayId, fn ($query) => $query->where('barangay_id', $barangayId));
+        return SeniorCitizen::query()->when($barangayId, fn ($query) => $query->where('barangay_id', $barangayId))
+            ->when($programId, fn ($query) => $query->whereHas('activeAssignments', fn ($assignments) => $assignments->where('program_id', $programId)));
+    }
+
+    private function recipients(?int $barangayId, ?int $programId)
+    {
+        return $this->audience($barangayId, $programId)->select(['id', 'contact_number', 'representative_contact'])->where('status', 'VERIFIED');
     }
 }

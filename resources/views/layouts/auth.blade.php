@@ -14,15 +14,30 @@
             @hasSection('auth-header')
                 @yield('auth-header')
             @else
-            <a href="{{ route('home') }}" class="text-sm font-semibold text-blue-700 underline">eLINGAP home</a>
-            <h1 id="auth-heading" class="mt-4 text-2xl font-semibold">@yield('title')</h1>
+                <header class="flex flex-col items-center gap-3 text-center">
+                    <a href="{{ route('home') }}" class="inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-osca-primary" aria-label="eLINGAP home">
+                        <img src="{{ asset('images/eLINGAP.png') }}" alt="" class="size-11 object-contain" width="44" height="44">
+                        <span class="text-lg font-semibold tracking-tight text-osca-primary">eLINGAP</span>
+                    </a>
+                    <div class="flex flex-col gap-1">
+                        <h1 id="auth-heading" class="text-2xl font-semibold tracking-tight text-osca-ink">@yield('heading', View::getSection('title'))</h1>
+                        @hasSection('description')
+                            <p class="text-sm leading-5 text-slate-600">@yield('description')</p>
+                        @endif
+                    </div>
+                </header>
             @endif
-            <div class="mt-4"><x-alert /></div>
+            <div id="auth-feedback" class="mt-4"><x-alert /></div>
             @yield('content')
             @hasSection('auth-footer')
                 @yield('auth-footer')
             @else
-                <a href="{{ route('login') }}" class="mt-5 inline-block text-sm text-blue-700 underline">Back to sign in</a>
+                <div class="mt-3 border-t border-slate-100 pt-2 text-center">
+                    <a href="{{ route('login') }}" class="inline-flex min-h-11 items-center gap-2 rounded text-sm font-medium text-slate-600 hover:text-osca-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-osca-primary">
+                        <x-lucide-arrow-left class="size-4" aria-hidden="true" />
+                        Back to sign in
+                    </a>
+                </div>
             @endif
         </section>
     </main>
