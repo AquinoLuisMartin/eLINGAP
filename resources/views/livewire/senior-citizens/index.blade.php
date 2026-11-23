@@ -98,26 +98,40 @@
             </div>
 
             <x-staff.table label="Senior records table" wire:loading.class="opacity-60">
-                <table class="w-full min-w-152! [&_td]:px-4! [&_td]:py-2.5! [&_td]:align-middle! [&_th]:px-4! [&_th]:py-2.5!">
+                <table class="w-full min-w-208! table-fixed [&_td]:px-3! [&_td]:py-2.5! [&_td]:align-middle! [&_th]:px-3! [&_th]:py-2.5! [&_th]:whitespace-normal!">
                     <thead>
                         <tr>
-                            <th scope="col">Senior name <span class="font-normal">/ OSCA ID No.</span></th>
-                            <th scope="col" class="w-16">Age</th>
-                            <th scope="col">Barangay</th>
+                            <th scope="col" class="w-27">OSCA ID No.</th>
+                            <th scope="col" class="w-[13%]">Last name</th>
+                            <th scope="col" class="w-[13%]">First name</th>
+                            <th scope="col" class="w-[11%]">Middle name</th>
+                            <th scope="col" class="w-13 text-center">Age</th>
+                            <th scope="col" class="w-[15%]">Barangay</th>
                             <th scope="col">Programs and benefits</th>
-                            <th scope="col" class="w-40">Actions</th>
+                            <th scope="col" class="w-36">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($seniorCitizens as $seniorCitizen)
                             <tr class="focus-within:bg-[var(--paper)] hover:bg-[var(--paper)]" wire:key="registry-record-{{ $seniorCitizen->id }}">
-                                <td class="min-w-42 whitespace-normal!">
-                                    <span class="block wrap-anywhere font-semibold">{{ $seniorCitizen->surname_first_name }}</span>
-                                    <span class="block text-xs text-[var(--muted)] tabular-nums">{{ $seniorCitizen->osca_id_number ?: 'Not issued' }}</span>
+                                <td class="whitespace-normal! wrap-anywhere tabular-nums">
+                                    @if ($seniorCitizen->osca_id_number)
+                                        {{ $seniorCitizen->osca_id_number }}
+                                    @else
+                                        <span class="text-[var(--muted)]">Not issued</span>
+                                    @endif
                                 </td>
-                                <td class="tabular-nums">{{ $seniorCitizen->birth_date->age }}</td>
-                                <td class="min-w-24 whitespace-normal! wrap-anywhere">{{ $seniorCitizen->barangay->name }}</td>
-                                <td class="min-w-38 whitespace-normal! wrap-anywhere">
+                                <td class="whitespace-normal! wrap-anywhere">
+                                    <span class="font-semibold">{{ $seniorCitizen->last_name }}</span>
+                                    @if ($seniorCitizen->name_suffix)
+                                        <span class="text-[var(--muted)]">{{ $seniorCitizen->name_suffix }}</span>
+                                    @endif
+                                </td>
+                                <td class="whitespace-normal! wrap-anywhere">{{ $seniorCitizen->first_name }}</td>
+                                <td class="whitespace-normal! wrap-anywhere">{{ $seniorCitizen->middle_name ?: '—' }}</td>
+                                <td class="text-center tabular-nums">{{ $seniorCitizen->birth_date->age }}</td>
+                                <td class="whitespace-normal! wrap-anywhere">{{ $seniorCitizen->barangay->name }}</td>
+                                <td class="whitespace-normal! wrap-anywhere">
                                     @if ($seniorCitizen->activeAssignments->count() > 1)
                                         <span class="font-medium">Program selection required</span>
                                     @elseif ($programName = $seniorCitizen->activeAssignments->first()?->program->name)
@@ -126,7 +140,7 @@
                                         <span class="text-[var(--muted)]">None assigned</span>
                                     @endif
                                 </td>
-                                <td>
+                                <td class="whitespace-normal!">
                                     <div class="flex flex-col items-start">
                                         @if ($seniorCitizen->status->value === 'PENDING' && auth()->user()->can('manageId', $seniorCitizen))
                                             <a class="text-button min-h-7! hover:underline" href="{{ route('senior-id.show', [$seniorCitizen, 'from' => 'registry', ...$navigationFilters]) }}">Review requirements</a>
@@ -136,7 +150,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5"><p class="py-3 text-[var(--muted)]">No senior citizen records match these filters.</p></td></tr>
+                            <tr><td colspan="8"><p class="py-3 text-[var(--muted)]">No senior citizen records match these filters.</p></td></tr>
                         @endforelse
                     </tbody>
                 </table>
