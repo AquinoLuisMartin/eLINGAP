@@ -45,12 +45,12 @@
                     </span>
                 </label>
                 <div class="field-label min-w-0">
-                    <label data-select-label>Record stage</label>
-                    <x-select label="Record stage" wire:model.live="stage">
+                    <label data-select-label>Registration stage</label>
+                    <x-select label="Registration stage" wire:model.live="stage">
                         <option value="">Active registrations</option>
-                        <option value="VERIFIED">Approved / ID pending</option>
-                        <option value="ISSUED">ID issued / pending printing</option>
-                        <option value="HISTORY">Registration history / printed</option>
+                        <option value="VERIFIED">Awaiting ID issuance</option>
+                        <option value="ISSUED">Awaiting ID printing</option>
+                        <option value="HISTORY">ID printed</option>
                         <option value="INACTIVE">Inactive records</option>
                     </x-select>
                 </div>

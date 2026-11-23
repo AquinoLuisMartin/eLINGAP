@@ -217,7 +217,7 @@ class BeneficiaryReportTest extends TestCase
         Beneficiary::create(['senior_citizen_id' => $senior->id, 'program_id' => $program->id, 'enrolled_on' => '2026-01-01']);
         $this->actingAs(User::factory()->create());
 
-        $response = $this->get(route('reports.export', ['type' => 'beneficiaries', 'format' => 'pdf']))->assertOk();
+        $response = $this->get(route('reports.export', ['type' => 'beneficiaries', 'format' => 'pdf', 'program_id' => $program->id]))->assertOk();
 
         $this->assertStringStartsWith('%PDF-', $response->getContent());
     }
@@ -233,6 +233,21 @@ class BeneficiaryReportTest extends TestCase
         $this->assertStringContainsString('Inter-Regular', $response->getContent());
         $this->assertStringContainsString('Inter-Bold', $response->getContent());
         $this->assertStringContainsString('/Subtype /Image', $response->getContent());
+    }
+
+    public function test_beneficiary_pdf_template_omits_the_municipality_wide_population(): void
+    {
+        $report = new StaffReport;
+
+        $html = view('reports.pdf', [
+            'title' => StaffReport::TYPES['beneficiaries'], 'type' => 'beneficiaries', 'report' => $report,
+            'headings' => $report->headings('beneficiaries'), 'records' => collect(),
+            'generatedAt' => now(), 'filterLabels' => ['Program' => 'Synthetic program'], 'total' => 0,
+        ])->render();
+
+        $this->assertStringContainsString('Synthetic program', $html);
+        $this->assertStringContainsString('Assignment status', $html);
+        $this->assertStringNotContainsString('Municipality-wide verified population', $html);
     }
 
     public function test_guests_cannot_preview_or_download_reports(): void
@@ -315,7 +330,7 @@ class BeneficiaryReportTest extends TestCase
     public function test_report_pdf_template_escapes_names_and_filter_labels(): void
     {
         $this->travelTo('2026-11-11 10:30:00');
-        $barangay = (new Barangay)->forceFill(['name' => '<script>area</script>', 'population' => 1]);
+        $barangay = (new Barangay)->forceFill(['name' => '<script>area</script>']);
         $senior = (new SeniorCitizen)->forceFill([
             'last_name' => '<script>name</script>', 'first_name' => 'Synthetic', 'birth_date' => '1966-11-11', 'status' => 'VERIFIED',
         ])->setRelation('barangay', $barangay);
@@ -323,7 +338,7 @@ class BeneficiaryReportTest extends TestCase
         $html = view('reports.pdf', [
             'title' => 'Senior citizen masterlist', 'type' => 'masterlist', 'report' => new StaffReport,
             'headings' => (new StaffReport)->headings('masterlist'), 'records' => collect([$senior]),
-            'generatedAt' => now(), 'population' => collect([$barangay]), 'filterLabels' => ['Barangay' => '<script>area</script>'], 'total' => 1,
+            'generatedAt' => now(), 'filterLabels' => ['Barangay' => '<script>area</script>'], 'total' => 1,
         ])->render();
 
         $this->assertStringContainsString('&lt;script&gt;name&lt;/script&gt;', $html);

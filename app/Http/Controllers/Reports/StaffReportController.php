@@ -54,7 +54,6 @@ class StaffReportController extends Controller
         $filters = $this->filters($request, $type, $report);
         $format = $request->validate(['format' => ['sometimes', 'required', Rule::in(['csv', 'pdf', 'xlsx'])]])['format'] ?? 'csv';
         $generatedAt = now();
-        $population = $report->populationQuery()->orderBy('name')->get();
         $filterLabels = $report->filterLabels($filters);
         $summary = $report->summary($type, $filters);
         $query = $report->orderedQuery($type, $filters);
@@ -77,8 +76,10 @@ class StaffReportController extends Controller
             $content = $pdf->render([
                 'title' => StaffReport::TYPES[$type], 'type' => $type, 'report' => $report,
                 'headings' => $report->headings($type), 'records' => $query->get(),
-                'generatedAt' => $generatedAt, 'population' => $population, 'filterLabels' => $filterLabels, 'total' => $total, 'summary' => $summary,
+                'generatedAt' => $generatedAt, 'filterLabels' => $filterLabels, 'total' => $total, 'summary' => $summary,
             ]);
+        } else {
+            $population = $report->populationQuery()->orderBy('name')->get();
         }
         AuditLog::create(['user_id' => $request->user()->id, 'action' => 'report.exported', 'new_values' => ['report' => $type, 'format' => $format, 'filters' => $filters, 'generated_at' => $generatedAt->toIso8601String()], 'ip_address' => $request->ip()]);
 

@@ -8,7 +8,6 @@
         body { font-family: 'Inter', sans-serif; font-size: 9px; color: #000; line-height: 1.45; }
         header { position: fixed; top: -72px; left: 0; right: 0; height: 50px; border-bottom: 2px solid #000; padding-bottom: 9px; }
         h1 { font-size: 17px; margin: 0 0 6px; }
-        h2 { font-size: 12px; margin: 18px 0 6px; }
         p { margin: 0 0 6px; }
         .metadata { margin-bottom: 14px; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -17,8 +16,6 @@
         th, td { border: 1px solid #d6d6d6; padding: 6px 5px; vertical-align: top; overflow-wrap: break-word; word-wrap: break-word; }
         th { background: #eee; text-align: left; font-size: 8px; }
         tbody tr:nth-child(even) { background: #f7f7f7; }
-        .population { width: 70%; }
-        .total { font-weight: bold; background: #eee; }
         .empty { text-align: center; padding: 18px; }
     </style>
 </head>
@@ -47,14 +44,6 @@
             @empty
                 <tr><td colspan="{{ count($headings) }}" class="empty">No records match these filters.</td></tr>
             @endforelse
-        </tbody>
-    </table>
-    <h2>Municipality-wide verified population</h2>
-    <table class="population">
-        <thead><tr><th>Barangay</th><th>Verified senior population</th></tr></thead>
-        <tbody>
-            @foreach ($population as $barangay)<tr><td>{{ $barangay->name }}</td><td>{{ number_format($barangay->population) }}</td></tr>@endforeach
-            <tr class="total"><td>Total verified senior population</td><td>{{ number_format($population->sum('population')) }}</td></tr>
         </tbody>
     </table>
 </body>

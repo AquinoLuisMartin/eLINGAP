@@ -49,11 +49,11 @@ class MasterlistFilterExportTest extends TestCase
             $this->assertStringStartsWith('%PDF-', $pdf);
             preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
             $contents = implode('', array_map(fn ($stream) => @gzuncompress($stream) ?: $stream, $streams[1]));
-            foreach (['MATCH-MAX', 'MATCH-MIN'] as $identifier) {
-                $this->assertStringContainsString(mb_convert_encoding($identifier, 'UTF-16BE', 'UTF-8'), $contents);
+            foreach (['MATCH-MAX', 'MATCH-MIN', 'Sample North'] as $text) {
+                $this->assertStringContainsString(mb_convert_encoding($text, 'UTF-16BE', 'UTF-8'), $contents);
             }
-            foreach (['OTHER-AREA', 'OTHER-STATUS', 'TOO-YOUNG', 'TOO-OLD'] as $identifier) {
-                $this->assertStringNotContainsString(mb_convert_encoding($identifier, 'UTF-16BE', 'UTF-8'), $contents);
+            foreach (['OTHER-AREA', 'OTHER-STATUS', 'TOO-YOUNG', 'TOO-OLD', 'Sample South', 'Municipality-wide verified population'] as $text) {
+                $this->assertStringNotContainsString(mb_convert_encoding($text, 'UTF-16BE', 'UTF-8'), $contents);
             }
         } elseif ($format === 'xlsx') {
             $path = tempnam(storage_path('framework/testing'), 'masterlist-filter-');
