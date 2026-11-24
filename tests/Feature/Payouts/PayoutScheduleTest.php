@@ -7,9 +7,13 @@ use App\Livewire\Benefits\Workspace;
 use App\Models\BenefitSchedule;
 use App\Models\Program;
 use App\Models\User;
+use App\Services\OfficeSettings;
 use Database\Seeders\BenefitProgramSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
+use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
+use RuntimeException;
 use Tests\TestCase;
 
 class PayoutScheduleTest extends TestCase
@@ -92,6 +96,24 @@ class PayoutScheduleTest extends TestCase
             ->assertSet('payoutMode', true);
         $this->assertSame('UPCOMING', $program->fresh()->status);
         $this->assertDatabaseCount('benefit_schedules', 0);
+    }
+
+    public function test_schedule_creation_failure_logs_a_short_diagnostic(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->seed(BenefitProgramSeeder::class);
+        $program = Program::where('benefit_code', 'national-milestones')->sole();
+        $failure = new RuntimeException('Synthetic private exception detail');
+        $this->mock(OfficeSettings::class)->shouldReceive('values')->andThrow($failure);
+        Exceptions::fake();
+        Log::shouldReceive('error')->once()->with('Payout schedule page failed.', [
+            'failure_type' => RuntimeException::class,
+            'origin' => basename($failure->getFile()).':'.$failure->getLine(),
+            'application_frame' => null,
+            'sqlstate' => null,
+        ]);
+
+        $this->get(route('payout-schedules.create', ['program_id' => $program->id]))->assertServerError();
     }
 
     public function test_hidden_eligibility_fields_keep_program_defaults_for_submission(): void
