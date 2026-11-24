@@ -4,6 +4,7 @@ namespace Tests\Feature\Payouts;
 
 use App\Livewire\Benefits\SchedulePanel;
 use App\Livewire\Benefits\Workspace;
+use App\Models\Barangay;
 use App\Models\BenefitSchedule;
 use App\Models\Program;
 use App\Models\User;
@@ -13,6 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\TestWith;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -114,6 +116,29 @@ class PayoutScheduleTest extends TestCase
         ]);
 
         $this->get(route('payout-schedules.create', ['program_id' => $program->id]))->assertServerError();
+    }
+
+    #[TestWith(['december-assistance', '2026'])]
+    #[TestWith(['national-milestones', 'MILESTONES'])]
+    public function test_imported_batches_keep_their_barangay_assignments_when_opening_a_new_schedule(string $code, string $period): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 24)->setTime(12, 0));
+        $this->actingAs(User::factory()->create());
+        $this->seed(BenefitProgramSeeder::class);
+        $program = Program::where('benefit_code', $code)->sole();
+        $barangay = Barangay::create(['name' => 'Synthetic barangay', 'code' => 'SYN']);
+        Barangay::create(['name' => 'Synthetic unassigned barangay', 'code' => 'SYN2']);
+        $schedule = $this->schedule($program);
+        $schedule->update([
+            'period_key' => $period,
+            'barangay_ids' => json_encode([$barangay->id], JSON_THROW_ON_ERROR),
+            'status' => 'CLOSED',
+        ]);
+
+        $response = $this->get(route('payout-schedules.create', ['program_id' => $program->id]));
+
+        $response->assertOk();
+        $this->assertSame(1, substr_count($response->getContent(), 'Assigned to '.$schedule->reference_number));
     }
 
     public function test_hidden_eligibility_fields_keep_program_defaults_for_submission(): void
