@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\SecurityHeaders;
+use Aws\S3\Exception\S3Exception;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -30,6 +31,17 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
         $exceptions->respond(function (Response $response, Throwable $exception, Request $request): Response {
+            if ($response->isServerError() && $request->routeIs('profile-photo.update')) {
+                $providerCode = $exception instanceof S3Exception ? $exception->getAwsErrorCode() : null;
+                rescue(fn () => Log::error('Profile photo upload failed.', [
+                    'disk' => config('uploads.profile_photo_disk') === 's3' ? 's3' : 'local',
+                    'failure_type' => $exception::class,
+                    'origin' => basename($exception->getFile()).':'.$exception->getLine(),
+                    'provider_status' => $exception instanceof S3Exception ? $exception->getStatusCode() : null,
+                    'provider_code' => is_string($providerCode) && preg_match('/^[A-Za-z0-9_]{1,48}$/D', $providerCode) ? $providerCode : null,
+                ]), report: false);
+            }
+
             if ($response->isServerError() && $request->routeIs('payout-schedules.create')) {
                 $cause = $exception;
                 while ($cause->getPrevious() !== null) {

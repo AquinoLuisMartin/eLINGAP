@@ -3,13 +3,17 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use App\Services\Auth\ProfilePhotos;
+use Aws\Command;
 use Aws\MockHandler;
 use Aws\Result;
+use Aws\S3\Exception\S3Exception;
 use Aws\S3\S3Client;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Exceptions;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\TestWith;
 use RuntimeException;
@@ -18,6 +22,25 @@ use Tests\TestCase;
 class ProfilePhotoTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_failed_s3_upload_logs_a_short_diagnostic(): void
+    {
+        $this->actingAs($user = User::factory()->create());
+        config(['uploads.profile_photo_disk' => 's3']);
+        $failure = new S3Exception('Synthetic private diagnostic detail', new Command('PutObject'), ['code' => 'AccessDenied']);
+        $this->mock(ProfilePhotos::class)->shouldReceive('store')->once()->andThrow($failure);
+        Exceptions::fake();
+        Log::shouldReceive('error')->once()->with('Profile photo upload failed.', [
+            'disk' => 's3',
+            'failure_type' => S3Exception::class,
+            'origin' => basename($failure->getFile()).':'.$failure->getLine(),
+            'provider_status' => null,
+            'provider_code' => 'AccessDenied',
+        ]);
+
+        $this->post(route('profile-photo.update'), ['photo' => UploadedFile::fake()->image('synthetic.png')])->assertServerError();
+        $this->assertNull($user->fresh()->profile_photo_path);
+    }
 
     public function test_s3_upload_replaces_a_local_photo_and_the_private_route_can_view_and_remove_it(): void
     {
