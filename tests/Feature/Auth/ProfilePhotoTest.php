@@ -3,6 +3,9 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use Aws\MockHandler;
+use Aws\Result;
+use Aws\S3\S3Client;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
@@ -15,6 +18,47 @@ use Tests\TestCase;
 class ProfilePhotoTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_s3_upload_replaces_a_local_photo_and_the_private_route_can_view_and_remove_it(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        $file = UploadedFile::fake()->image('synthetic.png');
+        $previous = $file->store('profile-photos', 'local');
+        $user->update(['profile_photo_path' => $previous]);
+        config([
+            'uploads.profile_photo_disk' => 's3',
+            'uploads.optimize_images' => false,
+            'filesystems.disks.s3.bucket' => 'profile-photos',
+            'filesystems.disks.s3.key' => 'synthetic',
+            'filesystems.disks.s3.secret' => 'synthetic',
+            'filesystems.disks.s3.region' => 'us-east-1',
+            'filesystems.disks.s3.endpoint' => 'https://storage.example.test/storage/v1/s3',
+            'filesystems.disks.s3.use_path_style_endpoint' => true,
+        ]);
+        $handler = new MockHandler([
+            new Result,
+            new Result(['ContentType' => 'image/png', 'Body' => $file->getContent()]),
+            new Result,
+        ]);
+        $this->app->bind(S3Client::class, fn ($app, array $parameters) => new S3Client($parameters['args'] + ['handler' => $handler]));
+
+        $this->get(route('profile-photo.show'))->assertOk();
+        $this->post(route('profile-photo.update'), ['photo' => $file])->assertRedirect()->assertSessionHasNoErrors();
+        $path = $user->fresh()->profile_photo_path;
+        $this->assertStringStartsWith('profile-photos/s3/', $path);
+        Storage::disk('local')->assertMissing($previous);
+        $this->assertSame('PutObject', $handler->getLastCommand()->getName());
+        $this->assertFalse($handler->getLastRequest()->hasHeader('x-amz-acl'));
+        $this->assertSame('/storage/v1/s3/profile-photos/'.$path, $handler->getLastRequest()->getUri()->getPath());
+
+        $this->get(route('profile-photo.show'))->assertOk()->assertHeader('Content-Type', 'image/png')->assertContent($file->getContent());
+        $this->delete(route('profile-photo.destroy'))->assertRedirect();
+        $this->assertSame('DeleteObject', $handler->getLastCommand()->getName());
+        $this->assertSame($path, $handler->getLastCommand()['Key']);
+        $this->assertNull($user->fresh()->profile_photo_path);
+    }
 
     #[TestWith([false])]
     #[TestWith([true])]
