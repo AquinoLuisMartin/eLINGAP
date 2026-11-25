@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.4.1",
         "ext-gd": "*",
+        "ext-zip": "*",
         "aws/aws-sdk-php": "~3.337",
         "bacon/bacon-qr-code": "~2.0.8",
         "dompdf/dompdf": "~3.1",
