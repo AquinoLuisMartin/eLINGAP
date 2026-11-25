@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\UpdateAccountRequest;
+use App\Models\User;
 use App\Services\Auth\ProfilePhotos;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -48,8 +51,7 @@ class ProfilePhotoController extends Controller
         $path = $photos->store($request->file('photo'));
 
         try {
-            $previous = $user->profile_photo_path;
-            $user->update(['profile_photo_path' => $path]);
+            $previous = $this->replacePhotoPath($user, $path);
         } catch (Throwable $exception) {
             rescue(fn () => $photos->delete($path));
 
@@ -65,14 +67,29 @@ class ProfilePhotoController extends Controller
 
     public function destroy(Request $request, ProfilePhotos $photos): RedirectResponse
     {
-        $user = $request->user();
-        $previous = $user->profile_photo_path;
-        $user->update(['profile_photo_path' => null]);
+        $previous = $this->replacePhotoPath($request->user(), null);
         if ($this->validPhotoPath($previous)) {
             rescue(fn () => $photos->delete($previous));
         }
 
         return back()->with('status', 'Profile photo removed.');
+    }
+
+    private function replacePhotoPath(User $user, ?string $path): ?string
+    {
+        $previous = DB::transaction(function () use ($user, $path): ?string {
+            $account = User::query()->lockForUpdate()->findOrFail($user->getKey());
+            $previous = $account->profile_photo_path;
+            if (! $account->update(['profile_photo_path' => $path])) {
+                throw new RuntimeException('The profile photo path could not be saved.');
+            }
+
+            return $previous;
+        });
+
+        $user->setAttribute('profile_photo_path', $path)->syncOriginalAttribute('profile_photo_path');
+
+        return $previous;
     }
 
     private function validPhotoPath(mixed $path): bool

@@ -9,6 +9,8 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use League\Flysystem\UnableToCreateDirectory;
+use League\Flysystem\UnableToWriteFile;
 use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -40,6 +42,11 @@ return Application::configure(basePath: dirname(__DIR__))
                     'provider_status' => $exception instanceof S3Exception ? $exception->getStatusCode() : null,
                     'provider_code' => is_string($providerCode) && preg_match('/^[A-Za-z0-9_]{1,48}$/D', $providerCode) ? $providerCode : null,
                 ]), report: false);
+
+                if (! $request->expectsJson() && ($exception instanceof S3Exception
+                    || $exception instanceof UnableToWriteFile || $exception instanceof UnableToCreateDirectory)) {
+                    return back()->withErrors(['photo' => 'The profile photo could not be saved. Please try again.']);
+                }
             }
 
             if ($response->isServerError() && $request->routeIs('payout-schedules.create')) {

@@ -23,9 +23,12 @@ class ProfilePhotoTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_failed_s3_upload_logs_a_short_diagnostic(): void
+    public function test_failed_s3_upload_reports_an_error_and_keeps_the_existing_photo(): void
     {
+        Storage::fake('local');
         $this->actingAs($user = User::factory()->create());
+        $previous = UploadedFile::fake()->image('previous.png')->store('profile-photos', 'local');
+        $user->update(['profile_photo_path' => $previous]);
         config(['uploads.profile_photo_disk' => 's3']);
         $failure = new S3Exception('Synthetic private diagnostic detail', new Command('PutObject'), ['code' => 'AccessDenied']);
         $this->mock(ProfilePhotos::class)->shouldReceive('store')->once()->andThrow($failure);
@@ -38,8 +41,26 @@ class ProfilePhotoTest extends TestCase
             'provider_code' => 'AccessDenied',
         ]);
 
-        $this->post(route('profile-photo.update'), ['photo' => UploadedFile::fake()->image('synthetic.png')])->assertServerError();
-        $this->assertNull($user->fresh()->profile_photo_path);
+        $this->from(route('dashboard'))->post(route('profile-photo.update'), ['photo' => UploadedFile::fake()->image('synthetic.png')])
+            ->assertRedirect(route('dashboard'))
+            ->assertSessionHasErrors(['photo' => 'The profile photo could not be saved. Please try again.']);
+
+        $this->assertSame($previous, $user->fresh()->profile_photo_path);
+        Storage::disk('local')->assertExists($previous);
+    }
+
+    public function test_replacement_cleans_up_the_current_photo_if_the_session_user_is_stale(): void
+    {
+        Storage::fake('local');
+        $this->actingAs($user = User::factory()->create());
+        $current = UploadedFile::fake()->image('current.png')->store('profile-photos', 'local');
+        User::query()->whereKey($user->getKey())->update(['profile_photo_path' => $current]);
+
+        $this->post(route('profile-photo.update'), ['photo' => UploadedFile::fake()->image('replacement.png')])
+            ->assertSessionHasNoErrors();
+
+        Storage::disk('local')->assertMissing($current);
+        Storage::disk('local')->assertExists($user->fresh()->profile_photo_path);
     }
 
     public function test_s3_upload_replaces_a_local_photo_and_the_private_route_can_view_and_remove_it(): void
