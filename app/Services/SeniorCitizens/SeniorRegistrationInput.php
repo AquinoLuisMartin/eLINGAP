@@ -2,6 +2,8 @@
 
 namespace App\Services\SeniorCitizens;
 
+use App\Enums\NameSuffix;
+use App\Models\IdType;
 use App\Models\SeniorCitizen;
 use App\Services\Sms\SmsText;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,7 +14,7 @@ use Illuminate\Validation\Validator as InputValidator;
 
 class SeniorRegistrationInput
 {
-    public const UPPERCASE_FIELDS = ['first_name', 'middle_name', 'last_name', 'name_suffix', 'address', 'representative_name', 'representative_relationship'];
+    public const UPPERCASE_FIELDS = ['first_name', 'middle_name', 'last_name', 'address', 'representative_name', 'representative_relationship'];
 
     public static function nameRules(): array
     {
@@ -22,7 +24,7 @@ class SeniorRegistrationInput
             'first_name' => ['required', 'string', 'max:100', $letters],
             'middle_name' => ['nullable', 'string', 'max:100', $letters],
             'last_name' => ['required', 'string', 'max:100', $letters],
-            'name_suffix' => ['nullable', 'string', 'max:20', $letters],
+            'name_suffix' => ['nullable', 'string', Rule::enum(NameSuffix::class)],
         ];
     }
 
@@ -43,6 +45,10 @@ class SeniorRegistrationInput
 
     public static function normalize(array $input): array
     {
+        if (array_key_exists('name_suffix', $input)) {
+            $input['name_suffix'] = NameSuffix::normalize($input['name_suffix']);
+        }
+
         foreach (self::UPPERCASE_FIELDS as $field) {
             if (is_string($input[$field] ?? null)) {
                 $input[$field] = mb_strtoupper(trim($input[$field]), 'UTF-8');
@@ -79,8 +85,10 @@ class SeniorRegistrationInput
         ];
     }
 
-    public static function rules(array $input, bool $requireAuthorizationFile = true): array
+    public static function rules(array $input, bool $requireAuthorizationFile = true, bool $requireIdentityDocuments = false): array
     {
+        $identityDocumentRules = ['required', File::types(['pdf', 'jpg', 'jpeg', 'png', 'webp'])->max(10240)];
+
         return [
             ...self::requirementsRules($input),
             'barangay_id' => ['required', 'integer', Rule::exists('barangays', 'id')->where('is_active', true)],
@@ -90,7 +98,11 @@ class SeniorRegistrationInput
             'address' => ['required', 'string', 'max:1000'],
             'osca_id_number' => ['missing'],
             'photo' => ['prohibited'],
-            'identification_file' => ['nullable', File::types(['pdf', 'jpg', 'jpeg', 'png'])->max(5120)],
+            'identification_file' => $requireIdentityDocuments ? $identityDocumentRules : ['nullable', File::types(['pdf', 'jpg', 'jpeg', 'png'])->max(5120)],
+            ...($requireIdentityDocuments ? [
+                'birth_certificate_file' => $identityDocumentRules,
+                'id_type_id' => ['bail', 'required', 'integer', Rule::exists('id_types', 'id')->where('is_active', true)->whereNot('code', IdType::NO_VALID_ID)],
+            ] : []),
             ...self::representativeRules($input, requireAuthorizationFile: $requireAuthorizationFile),
         ];
     }
@@ -116,9 +128,9 @@ class SeniorRegistrationInput
             ->whereRaw('lower(last_name) = ?', [mb_strtolower($input['last_name'])]);
     }
 
-    public static function validator(array $input, ?array $fields = null, bool $requireAuthorizationFile = true): InputValidator
+    public static function validator(array $input, ?array $fields = null, bool $requireAuthorizationFile = true, bool $requireIdentityDocuments = false): InputValidator
     {
-        $rules = self::rules($input, $requireAuthorizationFile);
+        $rules = self::rules($input, $requireAuthorizationFile, $requireIdentityDocuments);
         if ($fields !== null) {
             $rules = array_intersect_key($rules, array_flip($fields));
         }
@@ -136,9 +148,13 @@ class SeniorRegistrationInput
             'first_name.regex' => 'First name may contain only letters and spaces.',
             'middle_name.regex' => 'Middle name may contain only letters and spaces.',
             'last_name.regex' => 'Last name may contain only letters and spaces.',
-            'name_suffix.regex' => 'Name suffix may contain only letters and spaces.',
+            'name_suffix.enum' => 'Select Jr., Sr., II, III, IV, or V for the name suffix.',
             'requirements_checks.*.accepted' => 'Please check all required document requirements before continuing.',
             'requirements_checks.*.required' => 'Please check all required document requirements before continuing.',
+            'id_type_id.required' => 'Select the government-issued ID type.',
+            'id_type_id.exists' => 'Select an active government-issued ID type. A valid ID is required to continue.',
+            'birth_certificate_file.required' => 'Upload the birth certificate or proof of age.',
+            'identification_file.required' => 'Upload the government-issued ID.',
             'photo.max' => 'The photo field must not be greater than 2MB.',
             'birth_date.before_or_equal' => 'The applicant must be at least 60 years old on the application date.',
             'contact_number.regex' => 'Enter a valid Philippine mobile number: 10 digits starting with 9 after +63.',

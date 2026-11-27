@@ -1,5 +1,5 @@
 @php
-    $officeAddress = $officeDetails['office_address'] ?? 'Santa Maria Municipal Hall, R. Mercado Street (J.C. De Jesus St. / Poblacion area), Santa Maria, Bulacan';
+    $officeAddress = $officeDetails['office_address'] ?? 'Sta. Maria Municipal Hall, R. Mercado Street (J.C. De Jesus St. / Poblacion area), Sta. Maria, Bulacan';
     $officePhone = $officeDetails['support_phone'] ?? '+63 44 288 2604';
     $officeHours = $officeDetails['office_hours'] ?? 'Monday to Friday: 8:00 AM – 5:00 PM';
 @endphp

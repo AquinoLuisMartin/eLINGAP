@@ -81,22 +81,9 @@
 
 {{-- Logout Confirmation Modal --}}
 @if ($logoutConfirmOpen)
-    <div class="modal-backdrop logout-modal-backdrop" role="dialog" aria-modal="true" x-data="{}" x-trap.inert.noscroll="true" aria-labelledby="logout-modal-title" wire:keydown.escape="$set('logoutConfirmOpen', false)" wire:click.self="closeModal">
-        <div class="modal-card logout-modal">
-            <div class="logout-icon">
-                <x-admin.icon name="log-out" size="20" />
-            </div>
-            <h2 id="logout-modal-title">Are you sure you want to log out?</h2>
-
-            <div class="modal-actions">
-                <button type="button" class="secondary-button" wire:click="$set('logoutConfirmOpen', false)">Cancel</button>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="danger-button">
-                        <x-admin.icon name="log-out" size="16" /> Log Out
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
+    <x-logout-confirmation x-data="{}" x-trap.inert.noscroll="true" wire:keydown.escape="$set('logoutConfirmOpen', false)" wire:click.self="closeModal">
+        <x-slot:cancel>
+            <button type="button" class="secondary-button" wire:click="$set('logoutConfirmOpen', false)">Cancel</button>
+        </x-slot:cancel>
+    </x-logout-confirmation>
 @endif

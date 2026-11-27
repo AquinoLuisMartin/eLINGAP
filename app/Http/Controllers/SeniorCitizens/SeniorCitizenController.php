@@ -11,6 +11,7 @@ use App\Models\Barangay;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
 use App\Services\SeniorCitizens\IdCardLayout;
+use App\Services\SeniorCitizens\IdentityDocuments;
 use App\Services\SeniorCitizens\RegistrySearch;
 use App\Services\SeniorCitizens\SeniorRegistration;
 use App\Services\SeniorCitizens\SeniorRegistrationInput;
@@ -21,6 +22,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 class SeniorCitizenController extends Controller
@@ -63,7 +65,7 @@ class SeniorCitizenController extends Controller
             'seniorCitizen' => $seniorCitizen,
             'registrationApplicant' => $seniorCitizen->registrationApplicantDetails(),
             'photo' => $seniorCitizen->documents()->where('document_type', 'PHOTO')->latest('id')->first(),
-            'documents' => $seniorCitizen->documents()->where('document_type', '!=', 'PHOTO')->latest('id')->get(['id', 'document_type', 'created_at']),
+            'documents' => $seniorCitizen->documents()->where('document_type', '!=', 'PHOTO')->with('idType:id,name')->latest('id')->get(['id', 'document_type', 'id_type_id', 'created_at']),
             'milestoneAges' => Program::query()->whereNotNull('benefit_code')->get(['benefit_rules'])->flatMap(fn ($program) => array_keys($program->benefit_rules['milestones'] ?? []))->unique()->sort()->values(),
             'barangays' => Barangay::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ]);
@@ -99,14 +101,19 @@ class SeniorCitizenController extends Controller
         ]);
     }
 
-    public function document(SeniorCitizen $seniorCitizen, int $document): BinaryFileResponse
+    public function document(SeniorCitizen $seniorCitizen, int $document, IdentityDocuments $documents): BinaryFileResponse|StreamedResponse
     {
         Gate::authorize('view', $seniorCitizen);
         $file = $seniorCitizen->documents()->findOrFail($document);
-        $extension = match ($file->mime_type) {
-            'application/pdf' => 'pdf', 'image/png' => 'png', 'image/webp' => 'webp', default => 'jpg',
-        };
-        $response = response()->download(Storage::disk('local')->path($file->path), 'supporting-document.'.$extension, ['Content-Type' => $file->mime_type]);
+        if ($file->stored_size !== null) {
+            return $documents->preview($file);
+        }
+
+        $extension = IdentityDocuments::PREVIEW_EXTENSIONS[$file->mime_type] ?? null;
+        $response = response()->file(Storage::disk('local')->path($file->path), [
+            'Content-Type' => $extension ? $file->mime_type : 'application/octet-stream',
+            'X-Content-Type-Options' => 'nosniff',
+        ])->setContentDisposition($extension ? 'inline' : 'attachment', 'supporting-document.'.($extension ?? 'bin'));
         $response->setPrivate();
         $response->headers->addCacheControlDirective('no-store');
 

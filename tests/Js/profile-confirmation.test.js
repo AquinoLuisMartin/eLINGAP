@@ -41,9 +41,11 @@ test('summary contains only changed fields with original and normalized submitte
     fields.civil_status.value = 'MARRIED';
     fields.contact_number.value = '918-000-0002';
     fields.middle_name.value = 'new name';
+    fields.name_suffix.value = 'Jr.';
     assert.deepEqual(profileChanges(form, original, barangays), [
         { field: 'barangay_id', label: 'Barangay', previous: 'Origin barangay', updated: 'Destination barangay' },
         { field: 'middle_name', label: 'Middle name', previous: 'Not provided', updated: 'NEW NAME' },
+        { field: 'name_suffix', label: 'Name suffix', previous: 'Not provided', updated: 'Jr.' },
         { field: 'civil_status', label: 'Civil status', previous: 'Widowed', updated: 'Married' },
         { field: 'contact_number', label: 'Mobile Number', previous: '+63 917-000-0001', updated: '+63 918-000-0002' },
     ]);

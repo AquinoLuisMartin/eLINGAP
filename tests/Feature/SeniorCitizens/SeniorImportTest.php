@@ -53,7 +53,7 @@ class SeniorImportTest extends TestCase
         $senior = SeniorCitizen::sole();
         $this->assertSame('SYNTHETIC ÑANDÚ', $senior->first_name);
         $this->assertSame('SYNTHETIC ADDRESS', $senior->address);
-        $this->assertSame('JR', $senior->name_suffix);
+        $this->assertSame('Jr.', $senior->name_suffix);
         $this->assertSame('+639672348976', $senior->contact_number);
         $this->assertSame('000123', $senior->osca_id_number);
         $this->assertSame('1950-01-02', $senior->birth_date->format('Y-m-d'));
@@ -72,6 +72,17 @@ class SeniorImportTest extends TestCase
         $this->assertSame($audit->new_values['batch_id'], $senior->histories()->sole()->changes['batch_id']);
         $this->post(route('registrations.import.store', $token), ['reviewed' => 1])->assertStatus(410);
         $this->assertDatabaseCount('senior_citizens', 1);
+    }
+
+    public function test_import_accepts_the_legacy_spelling_of_an_abbreviated_barangay(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $barangay = Barangay::create(['name' => 'Sta. Cruz', 'code' => 'SCR']);
+        $token = $this->preview([[...$this->row(), 'barangay' => 'Santa Cruz']]);
+
+        $this->get(route('registrations.import.show', $token))->assertSee('Sta. Cruz');
+        $this->post(route('registrations.import.store', $token), ['reviewed' => 1])->assertRedirect();
+        $this->assertDatabaseHas('senior_citizens', ['barangay_id' => $barangay->id]);
     }
 
     public function test_exact_duplicates_are_skipped_but_saved_records_are_not_overwritten(): void
@@ -106,6 +117,7 @@ class SeniorImportTest extends TestCase
     #[TestWith(['birth_date', '02/30/1950'])]
     #[TestWith(['barangay', 'Unknown barangay'])]
     #[TestWith(['civil_status', 'UNLISTED'])]
+    #[TestWith(['name_suffix', 'VI'])]
     #[TestWith(['representative_contact', '123'])]
     #[TestWith(['osca_id_number', 'invalid@ID'])]
     public function test_invalid_rows_block_the_entire_import(string $field, string $value): void

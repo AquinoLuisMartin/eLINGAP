@@ -1,23 +1,29 @@
-<div data-print-workspace class="w-full min-w-0 space-y-5" x-data="{ printReadyMessage: '' }" @focus.window="$wire.$refresh()" @id-ready-to-print.window="printReadyMessage = $event.detail.message; $refs.printReady.showModal()">
+<div data-print-workspace class="w-full min-w-0 space-y-4" x-data="{ printReadyMessage: '' }" @focus.window="$wire.$refresh()" @id-ready-to-print.window="printReadyMessage = $event.detail.message; $refs.printReady.showModal()">
     <dialog x-ref="printReady" class="confirm-dialog modal-card" aria-labelledby="print-ready-title" aria-describedby="print-ready-message" wire:ignore>
         <form method="dialog">
             <div class="flex items-center gap-3">
-                <x-lucide-circle-check class="size-6 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                <x-admin.icon name="check" size="22" class="shrink-0 text-[var(--muted)]" />
                 <h2 id="print-ready-title">Ready to print</h2>
             </div>
             <p id="print-ready-message" x-text="printReadyMessage"></p>
             <div class="modal-actions"><button type="submit" class="primary-button" autofocus>Continue to print</button></div>
         </form>
     </dialog>
-    <header class="space-y-3">
-        <a href="{{ route(request('from') === 'registrations' ? 'registrations.index' : 'senior-citizens.index', request()->only(request('from') === 'registrations' ? ['search', 'search_by', 'stage', 'barangay_id', 'page'] : ['search', 'search_by', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])) }}" x-on:click="if (window.history.length > 1) { $event.preventDefault(); window.history.back(); }" class="text-button text-sm">&larr; Back</a>
-        <div class="flex flex-col items-start gap-4 md:flex-row md:justify-between">
+    <header class="flex flex-col items-start gap-2">
+        <a href="{{ route(request('from') === 'registrations' ? 'registrations.index' : 'senior-citizens.index', request()->only(request('from') === 'registrations' ? ['search', 'search_by', 'stage', 'barangay_id', 'page'] : ['search', 'search_by', 'barangay_id', 'status', 'age', 'program_id', 'benefit', 'sort', 'direction', 'page'])) }}" x-on:click="if (window.history.length > 1) { $event.preventDefault(); window.history.back(); }" class="text-button gap-1.5 hover:underline">
+            <x-admin.icon name="chevron-left" size="16" />
+            Back
+        </a>
+        <div class="flex w-full flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="min-w-0">
-                <h1 class="text-2xl font-semibold text-slate-800 dark:text-slate-100">Senior citizen ID</h1>
-                <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm"><span class="min-w-0 wrap-anywhere font-medium text-slate-800 dark:text-slate-100">{{ $senior->full_name }}</span><span class="ui-label tabular-nums">{{ $senior->osca_id_number ? 'OSCA ID '.$senior->osca_id_number : 'OSCA ID not issued' }}</span></p>
+                <h1 class="text-2xl font-semibold tracking-tight text-[var(--ink)]">Senior citizen ID</h1>
+                <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+                    <span class="min-w-0 wrap-anywhere font-medium text-[var(--ink)]">{{ $senior->full_name }}</span>
+                    <span class="ui-label tabular-nums">{{ $senior->osca_id_number ? 'OSCA ID '.$senior->osca_id_number : 'OSCA ID not issued' }}</span>
+                </p>
             </div>
             @can('configureId', \App\Models\SeniorCitizen::class)
-                <button type="button" wire:click="$toggle('officialsOpen')" class="secondary-button shrink-0" aria-controls="id-official-settings" aria-expanded="{{ $officialsOpen ? 'true' : 'false' }}"><x-admin.icon name="settings" size="16" /> Official card settings</button>
+                <button type="button" wire:click="$toggle('officialsOpen')" class="secondary-button shrink-0 gap-2" aria-controls="id-official-settings" aria-expanded="{{ $officialsOpen ? 'true' : 'false' }}"><x-admin.icon name="settings" size="16" /> Official card settings</button>
             @endcan
         </div>
     </header>
@@ -30,7 +36,7 @@
         <livewire:senior-citizens.requirements-review :senior-id="$senior->id" />
         <details class="rounded-lg border border-slate-200 p-4 dark:border-slate-700"><summary class="cursor-pointer text-sm font-medium">Supporting documents</summary><div class="mt-3 flex flex-wrap gap-3">
             @forelse ($documents as $document)
-                <a wire:key="id-review-document-{{ $document->id }}" href="{{ route('senior-citizens.document', [$senior, $document->id]) }}" class="secondary-button">{{ ucfirst(strtolower(str_replace('_', ' ', $document->document_type))) }}</a>
+                <a wire:key="id-review-document-{{ $document->id }}" href="{{ route('senior-citizens.document', [$senior, $document->id]) }}" target="_blank" rel="noopener" class="secondary-button">{{ ucfirst(strtolower(str_replace('_', ' ', $document->document_type))) }}</a>
             @empty
                 <p class="text-sm text-slate-500">No supporting documents uploaded. Check the presented originals.</p>
             @endforelse
@@ -40,12 +46,13 @@
     @if ($card && ! $card['address']['fits'])
         <p role="alert" class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">The address is too long to fit legibly on the ID. Review the address in the senior record before printing.</p>
     @endif
-    <nav aria-label="ID preparation progress" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
-        <ol class="grid gap-2 md:grid-cols-3">
+    <nav aria-label="ID preparation progress" class="w-full rounded-lg border border-[var(--line)] bg-[var(--white)] px-3 sm:px-4">
+        <ol class="flex gap-2 sm:gap-3">
             @foreach ([1 => 'Physical ID preparation', 2 => 'Review and issuance', 3 => 'Print ID'] as $number => $label)
-                <li wire:key="id-step-{{ $number }}" class="min-w-0">
-                    <button type="button" wire:click="goToStep({{ $number }})" wire:loading.attr="disabled" wire:target="goToStep" @if($step === $number) aria-current="step" @endif @class(['flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg p-2 text-left text-sm transition-colors hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-osca-primary disabled:cursor-wait dark:hover:bg-slate-800 dark:focus-visible:outline-blue-300', 'bg-blue-50 font-medium text-osca-primary dark:bg-slate-800 dark:text-blue-300' => $step === $number, 'text-slate-700 dark:text-slate-200' => $step > $number, 'text-slate-500 dark:text-slate-400' => $step < $number])>
-                        <span @class(['flex size-8 shrink-0 items-center justify-center rounded-full text-sm', 'bg-osca-primary text-white' => $step === $number, 'text-osca-primary ring-2 ring-osca-primary ring-inset dark:text-blue-300 dark:ring-blue-300' => $step > $number, 'ring-1 ring-slate-300 ring-inset dark:ring-slate-600' => $step < $number])>@if ($step > $number)<x-admin.icon name="check" size="16" /><span class="sr-only">Completed:</span>@else{{ $number }}@endif</span><span class="min-w-0 wrap-anywhere">{{ $label }}</span>
+                <li wire:key="id-step-{{ $number }}" class="min-w-0 flex-1">
+                    <button type="button" wire:click="goToStep({{ $number }})" wire:loading.attr="disabled" wire:target="goToStep" @if($step === $number) aria-current="step" @endif @class(['flex h-full min-h-11 w-full cursor-pointer flex-col items-start justify-center gap-0.5 border-b-2 px-1.5 py-2 text-left text-sm transition-colors hover:bg-[var(--paper)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--blue)] disabled:cursor-wait sm:px-3', 'border-[var(--blue)] font-semibold text-[var(--blue)] dark:text-blue-300' => $step === $number, 'border-transparent font-medium text-[var(--muted)]' => $step !== $number])>
+                        <span class="text-xs font-normal text-[var(--muted)]">Step {{ $number }}</span>
+                        <span class="wrap-anywhere">{{ $label }}</span>
                     </button>
                 </li>
             @endforeach
@@ -54,14 +61,25 @@
     @if (!$card)
         <x-senior-id.panel title="ID unavailable" description="This record is deceased or transferred. Its QR no longer verifies as valid, and the ID cannot be printed." />
     @elseif ($step === 1)
-        <x-senior-id.panel title="Physical photo and thumbprint" description="Complete these on the printed card. No digital photo or senior signature is required.">
-            <ul class="grid gap-3 lg:grid-cols-3">
-                @foreach (['Photo' => 'Attach a physical photo to the square 1 x 1 inch (2.54 x 2.54 cm) placeholder.', 'Thumbprint' => 'Collect the senior\'s thumbprint after printing.', 'Official signatures' => 'Printed from Official card settings.'] as $item => $detail)
-                    <li wire:key="id-preparation-{{ $loop->index }}" class="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800"><p class="text-sm font-medium text-slate-800 dark:text-slate-100">{{ $item }}</p><p class="mt-1 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{{ $detail }}</p></li>
+        <section class="min-w-0 rounded-lg border border-[var(--line)] bg-[var(--white)]" aria-labelledby="physical-preparation-title">
+            <div class="staff-panel-heading">
+                <h2 id="physical-preparation-title" class="text-lg font-semibold text-[var(--ink)]">Physical photo and thumbprint</h2>
+                <p class="text-sm text-[var(--muted)]">Complete the photo and thumbprint after printing.</p>
+            </div>
+            <dl class="divide-y divide-[var(--line)] px-4 sm:px-5">
+                @foreach (['Photo' => 'Attach a 1 × 1 inch (2.54 × 2.54 cm) photo to the square on the printed card.', 'Thumbprint' => 'Have the senior place their thumbprint in the space provided on the printed card.', 'Official signatures' => 'The card uses the signatures configured in Official card settings.'] as $item => $detail)
+                    <div wire:key="id-preparation-{{ $loop->index }}" class="flex flex-col gap-1 py-2.5 text-sm sm:flex-row sm:gap-4 sm:py-3">
+                        <dt class="font-medium leading-relaxed text-[var(--ink)] sm:w-36 sm:shrink-0">{{ $item }}</dt>
+                        <dd class="m-0 min-w-0 max-w-prose leading-relaxed text-[var(--muted)]">{{ $detail }}</dd>
+                    </div>
                 @endforeach
-            </ul>
-            <div class="mt-5 flex justify-end border-t border-slate-200 pt-4 dark:border-slate-700"><button type="button" wire:click="next" wire:loading.attr="disabled" class="primary-button w-full sm:w-auto">Continue to review</button></div>
-        </x-senior-id.panel>
+            </dl>
+            <div class="flex justify-end border-t border-[var(--line)] px-4 py-3 sm:px-5">
+                <button type="button" wire:click="next" wire:loading.attr="disabled" class="primary-button w-full gap-2 sm:w-auto">
+                    Continue to review <x-admin.icon name="arrow-right" size="16" />
+                </button>
+            </div>
+        </section>
     @elseif ($step === 2)
         <x-senior-id.panel class="p-4! [&>div]:mt-3 [&>p]:max-w-none" title="Review the card">
             <dl class="grid gap-x-6 gap-y-3 wrap-anywhere text-sm text-(--navy) sm:grid-cols-2 lg:grid-cols-3 dark:text-slate-100">

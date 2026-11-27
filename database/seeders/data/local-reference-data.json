@@ -106,12 +106,12 @@
             "is_active": true
         },
         {
-            "name": "Santa Clara",
+            "name": "Sta. Clara",
             "code": "SCL",
             "is_active": true
         },
         {
-            "name": "Santa Cruz",
+            "name": "Sta. Cruz",
             "code": "SCR",
             "is_active": true
         },
@@ -134,7 +134,7 @@
     "programs": [
         {
             "name": "Annual December Senior Assistance",
-            "agency": "OSCA Santa Maria",
+            "agency": "OSCA Sta. Maria",
             "budget": "0.00",
             "starts_on": null,
             "ends_on": null,
@@ -148,7 +148,7 @@
         },
         {
             "name": "LGU Age 90 Cash Gift",
-            "agency": "OSCA Santa Maria",
+            "agency": "OSCA Sta. Maria",
             "budget": "0.00",
             "starts_on": null,
             "ends_on": null,
@@ -162,7 +162,7 @@
         },
         {
             "name": "LGU Age 100 Cash Gift",
-            "agency": "OSCA Santa Maria",
+            "agency": "OSCA Sta. Maria",
             "budget": "0.00",
             "starts_on": null,
             "ends_on": null,
@@ -190,7 +190,7 @@
         },
         {
             "name": "Localized Social Pension",
-            "agency": "OSCA Santa Maria",
+            "agency": "OSCA Sta. Maria",
             "budget": "0.00",
             "starts_on": null,
             "ends_on": null,
@@ -204,7 +204,7 @@
         },
         {
             "name": "Paglingap kay Lolo at Lola",
-            "agency": "OSCA Santa Maria",
+            "agency": "OSCA Sta. Maria",
             "budget": "0.00",
             "starts_on": null,
             "ends_on": null,
@@ -246,7 +246,7 @@
         },
         {
             "name": "T.S.S. - Tulong sa Senior",
-            "agency": "OSCA Santa Maria",
+            "agency": "OSCA Sta. Maria",
             "budget": "0.00",
             "starts_on": null,
             "ends_on": null,
@@ -309,7 +309,7 @@
     "system_configurations": [
         {
             "key": "municipality",
-            "value": "Santa Maria",
+            "value": "Sta. Maria",
             "type": "string"
         },
         {

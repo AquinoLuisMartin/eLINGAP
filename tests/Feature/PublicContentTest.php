@@ -81,11 +81,11 @@ class PublicContentTest extends TestCase
     public function test_visit_section_displays_supplied_office_information_when_settings_are_missing(): void
     {
         $this->get('/')->assertOk()
-            ->assertSee('Santa Maria Municipal Hall, R. Mercado Street (J.C. De Jesus St. / Poblacion area), Santa Maria, Bulacan')
+            ->assertSee('Sta. Maria Municipal Hall, R. Mercado Street (J.C. De Jesus St. / Poblacion area), Sta. Maria, Bulacan')
             ->assertSee('+63 44 288 2604')
             ->assertSee('Monday to Friday: 8:00 AM – 5:00 PM')
             ->assertSee('Closed on weekends and public holidays.')
-            ->assertSee('query=Santa+Maria+Municipal+Hall', false)
+            ->assertSee('query=Sta.+Maria+Municipal+Hall', false)
             ->assertDontSee('Address not configured')->assertDontSee('Office hours not configured');
     }
 
@@ -114,7 +114,7 @@ class PublicContentTest extends TestCase
         $this->get('/')->assertOk()->assertSee('Programs and welfare benefits')->assertSee('Visit the office')
             ->assertDontSee('href="#services"', false)->assertDontSee('id="services"', false)
             ->assertDontSee('>Contact</a>', false)->assertDontSee('OSCA services')
-            ->assertDontSee('For the seniors of Santa Maria')->assertDontSee('Explore programs')->assertDontSee('Plan your visit')
+            ->assertDontSee('For the seniors of Sta. Maria')->assertDontSee('Explore programs')->assertDontSee('Plan your visit')
             ->assertDontSee('&rarr;', false)->assertDontSee('&nearr;', false)->assertDontSee('&darr;', false)
             ->assertSee('aria-label="Program directory"', false)
             ->assertSee('rel="noopener noreferrer"', false);

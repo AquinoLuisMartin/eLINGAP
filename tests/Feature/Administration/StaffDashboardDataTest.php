@@ -23,6 +23,7 @@ class StaffDashboardDataTest extends TestCase
         $this->assertSame(0, $response->viewData('milestoneCount'));
         $response->assertSee('No milestone programs configured');
         $response->assertSee('No verified seniors with a barangay recorded yet.');
+        $response->assertSee('No verified seniors in these age groups yet.');
         $response->assertSee('aria-valuetext="0 verified seniors (0.0%)"', false)
             ->assertSee('Male share of verified seniors')
             ->assertSee('Female share of verified seniors');
@@ -85,13 +86,30 @@ class StaffDashboardDataTest extends TestCase
         $this->travelTo(now()->setDate(2026, 11, 22)->startOfDay());
         $barangay = Barangay::create(['name' => 'Synthetic area', 'code' => 'SYN']);
 
-        foreach (['1966-11-23', '1966-11-22', '1956-11-23', '1956-11-22', '1946-11-23', '1946-11-22', '1936-11-23', '1936-11-22'] as $index => $birthDate) {
-            $this->senior($barangay, $index, $birthDate);
+        foreach ([
+            ['1966-11-23', 'MALE'],
+            ['1966-11-22', 'MALE'],
+            ['1956-11-23', 'MALE'],
+            ['1956-11-22', 'MALE'],
+            ['1946-11-23', 'FEMALE'],
+            ['1946-11-22', 'FEMALE'],
+            ['1936-11-23', 'FEMALE'],
+            ['1936-11-22', 'MALE'],
+        ] as $index => [$birthDate, $sex]) {
+            $this->senior($barangay, $index, $birthDate, $sex);
         }
+        $this->senior($barangay, 8, '1966-11-22', 'FEMALE', 'PENDING');
 
         $response = $this->actingAs(User::factory()->create())->get(route('dashboard'))->assertOk();
 
-        $this->assertSame([2, 2, 2, 1], $response->viewData('ageGroups')->values()->all());
+        $this->assertSame([
+            '60–69' => ['total' => 2, 'male' => 2, 'female' => 0],
+            '70–79' => ['total' => 2, 'male' => 1, 'female' => 1],
+            '80–89' => ['total' => 2, 'male' => 0, 'female' => 2],
+            '90+' => ['total' => 1, 'male' => 1, 'female' => 0],
+        ], $response->viewData('ageGroups')->all());
+        $response->assertSeeTextInOrder(['60–69', '28.6%', 'Male 2', 'Female 0', '70–79'])
+            ->assertSeeText('7 total across age groups');
     }
 
     public function test_milestone_totals_follow_the_active_program_rules(): void
@@ -113,8 +131,8 @@ class StaffDashboardDataTest extends TestCase
         $this->assertSame(0, $response->viewData('milestoneCount'));
     }
 
-    private function senior(Barangay $barangay, int $index, string $birthDate): void
+    private function senior(Barangay $barangay, int $index, string $birthDate, string $sex = 'FEMALE', string $status = 'VERIFIED'): void
     {
-        SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant '.$index, 'birth_date' => $birthDate, 'sex' => 'FEMALE', 'address' => 'Test address', 'status' => 'VERIFIED']);
+        SeniorCitizen::create(['barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'last_name' => 'Applicant '.$index, 'birth_date' => $birthDate, 'sex' => $sex, 'address' => 'Test address', 'status' => $status]);
     }
 }

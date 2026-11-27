@@ -281,10 +281,21 @@ class Dashboard extends Component
 
     private function logsQuery(): Builder
     {
-        $audit = DB::table('audit_logs')->selectRaw('id, created_at, user_id, ? as category, action as detail, ? as status', ['Audit Trail', 'Recorded']);
-        $login = DB::table('login_logs')->selectRaw('id, created_at, case when event = ? then null else user_id end as user_id, ? as category, event as detail, case when success then ? else ? end as status', ['PASSWORD_RESET', 'Login Events', 'Success', 'Failed']);
+        $audit = DB::table('audit_logs')->selectRaw(
+            'id, created_at, user_id, ? as category, action as detail, ? as status, case when auditable_type = ? then auditable_id end as senior_id',
+            ['Audit Trail', 'Recorded', SeniorCitizen::class],
+        );
+        $login = DB::table('login_logs')->selectRaw('id, created_at, case when event = ? then null else user_id end as user_id, ? as category, event as detail, case when success then ? else ? end as status, null as senior_id', ['PASSWORD_RESET', 'Login Events', 'Success', 'Failed']);
 
         return $this->withOperators(DB::query()->fromSub($audit->unionAll($login), 'events')->select('events.*'), 'events.user_id')
+            ->leftJoin('senior_citizens as senior', 'senior.id', '=', 'events.senior_id')
+            ->leftJoin('audit_logs as edit', fn ($join) => $join->on('edit.id', '=', 'events.id')
+                ->whereNotNull('events.senior_id')->where('events.detail', 'senior_citizen.updated'))
+            ->selectRaw("trim(concat_ws(' ', senior.first_name, senior.middle_name, senior.last_name, senior.name_suffix)) as senior_name")
+            ->selectRaw("edit.old_values->>'first_name' as old_first_name, edit.new_values->>'first_name' as new_first_name,
+                edit.old_values->>'middle_name' as old_middle_name, edit.new_values->>'middle_name' as new_middle_name,
+                edit.old_values->>'last_name' as old_last_name, edit.new_values->>'last_name' as new_last_name,
+                edit.old_values->>'name_suffix' as old_name_suffix, edit.new_values->>'name_suffix' as new_name_suffix")
             ->when(in_array($this->logCategory, ['Audit Trail', 'Login Events'], true), fn ($query) => $query->where('category', $this->logCategory))
             ->when(trim($this->search) !== '', fn ($query) => $query->where(fn ($query) => $query
                 ->whereRaw('lower(detail) like ?', ['%'.mb_strtolower(trim($this->search)).'%'])

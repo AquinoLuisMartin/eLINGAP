@@ -31,7 +31,8 @@
 
 .staff-shell :where(.page-intro, .welcome-row) .section-kicker { display: none; }
 
-.staff-shell .admin-content :where(.page-intro, .welcome-row, .staff-page-heading) h2 {
+.staff-shell .admin-content :where(.page-intro, .welcome-row) h2,
+.admin-shell .admin-content :where(.staff-page-heading) h2 {
     margin: 0;
     font-size: clamp(23px, 2.5vw, 28px);
     font-weight: 600;
@@ -96,7 +97,8 @@
 .staff-shell .admin-content form[method=GET] { align-items: end; }
 .staff-shell .admin-content form[method=GET] > label :where(input, select) { margin-top: 0; }
 .staff-shell .admin-content :where(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]), select) { min-height: 44px; }
-.staff-shell .admin-content :where(.primary-button, .secondary-button, a.bg-osca-primary, button.bg-osca-primary) { min-height: 44px; padding: 10px 16px; border-radius: 7px; font-size: 14px; line-height: 1.4; }
+.staff-shell .admin-content :where(.primary-button, .secondary-button, a.bg-osca-primary, button.bg-osca-primary),
+.admin-workspace .staff-page-actions .primary-button { min-height: 44px; padding: 10px 16px; border-radius: 7px; font-size: 14px; line-height: 1.4; }
 .staff-shell .admin-content :where(button, input, select, textarea):disabled { cursor: not-allowed; opacity: .55; }
 .staff-shell .admin-content summary { width: fit-content; max-width: 100%; cursor: pointer; line-height: 1.6; }
 .staff-shell .admin-content :where(summary, .table-scroll, .staff-table):focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }

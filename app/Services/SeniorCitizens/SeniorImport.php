@@ -5,6 +5,7 @@ namespace App\Services\SeniorCitizens;
 use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\SeniorCitizen;
+use App\Support\PlaceName;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
@@ -20,7 +21,10 @@ class SeniorImport
         $rows = [];
         foreach ($source as $sourceRow) {
             $data = $sourceRow['values'];
-            $matches = $barangays->filter(fn ($barangay) => in_array(mb_strtoupper(trim($data['barangay'] ?? '')), [mb_strtoupper($barangay->name), mb_strtoupper($barangay->code)], true));
+            $barangayInput = $data['barangay'] ?? '';
+            $nameKey = PlaceName::comparisonKey($barangayInput);
+            $codeKey = mb_strtoupper(trim($barangayInput));
+            $matches = $barangays->filter(fn ($barangay) => $nameKey === PlaceName::comparisonKey($barangay->name) || $codeKey === mb_strtoupper($barangay->code));
             $data['barangay_id'] = $matches->count() === 1 ? $matches->first()->id : null;
             $data['sex'] = match (mb_strtoupper($data['sex'] ?? '')) {
                 'M', 'MALE' => 'MALE', 'F', 'FEMALE' => 'FEMALE', 'OTHER' => 'OTHER', default => $data['sex'] ?? '',

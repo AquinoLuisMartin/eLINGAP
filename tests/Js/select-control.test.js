@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import uiSelect, { filterOptions, menuPosition, readOptions, visibleText } from '../../resources/js/select-control.js';
 
-function control() {
+function control(settings) {
     const attributes = new Map();
     const native = new EventTarget();
     Object.assign(native, {
@@ -33,7 +33,7 @@ function control() {
         focus() { focused = index; globalThis.document.activeElement = this; },
         scrollIntoView() {},
     }));
-    const state = uiSelect();
+    const state = uiSelect(settings);
     state.$refs = {
         native,
         trigger: { focus() { focused = 'trigger'; }, getBoundingClientRect: () => ({ top: 40, bottom: 84, left: 10, width: 240 }) },
@@ -137,6 +137,32 @@ test('opening a searchable field focuses search and resets the previous query', 
     assert.equal(state.open, true);
     assert.equal(state.query, '');
     assert.equal(focused(), 'search');
+});
+
+test('inline menus focus search without measuring the trigger or opening a popover', () => {
+    const { state, focused } = control({ inline: true });
+    state.$refs.trigger.getBoundingClientRect = () => assert.fail('Inline menus use normal layout');
+    state.$refs.menu = { showPopover() { assert.fail('Inline menus stay inside the form'); } };
+
+    state.show();
+
+    assert.equal(state.open, true);
+    assert.equal(focused(), 'search');
+});
+
+test('Enter in inline search selects a unique match and returns focus to the trigger', () => {
+    const { state, native, buttons, focused } = control({ inline: true });
+    state.show();
+    state.query = 'december';
+    state.$refs.options.querySelectorAll = () => [buttons[1]];
+    let prevented = false;
+
+    state.menuKey({ key: 'Enter', target: state.$refs.search, preventDefault() { prevented = true; } });
+
+    assert.equal(native.value, '42');
+    assert.equal(state.open, false);
+    assert.equal(focused(), 'trigger');
+    assert.equal(prevented, true);
 });
 
 test('arrow keys skip disabled options and wrap without selecting or submitting', () => {

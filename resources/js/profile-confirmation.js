@@ -5,7 +5,7 @@ const labels = {
     name_suffix: 'Name suffix', birth_date: 'Birth date', sex: 'Sex', civil_status: 'Civil status',
     contact_number: 'Mobile Number', address: 'House No. / Street / Purok / Sitio / Subdivision',
 };
-const uppercase = new Set(['first_name', 'middle_name', 'last_name', 'name_suffix', 'address']);
+const uppercase = new Set(['first_name', 'middle_name', 'last_name', 'address']);
 
 function normalize(field, value) {
     const text = String(value ?? '').trim();

@@ -1,17 +1,18 @@
 @php
-    $pageTitles = [
-        'dashboard' => 'Dashboard',
-        'records' => 'Senior Records Registry',
-        'programs' => 'Benefits & Programs',
-        'users' => 'User Accounts',
-        'system-logs' => 'System Logs',
-        'configuration' => 'System Configuration',
-        'help' => 'Help & Support',
+    $pages = [
+        'dashboard' => ['Dashboard', 'layout-dashboard'],
+        'records' => ['Senior Records Registry', 'contact-round'],
+        'programs' => ['Benefits & Programs', 'hand-heart'],
+        'users' => ['User Accounts', 'users'],
+        'system-logs' => ['System Logs', 'clipboard-list'],
+        'configuration' => ['System Configuration', 'settings'],
+        'help' => ['Help & Support', 'circle-help'],
     ];
-    $currentPageTitle = $pageTitles[$active] ?? 'Dashboard';
+    [$currentPageTitle, $currentPageIcon] = $pages[$active] ?? $pages['dashboard'];
+    $headerDate = now();
 @endphp
 
-<div class="admin-shell"
+<div class="admin-shell admin-workspace"
     :class="theme === 'dark' ? 'theme-dark' : 'theme-light'"
     x-data="{
         profileOpen: @js($errors->has('photo')),
@@ -37,6 +38,7 @@
                 <button type="button" class="mobile-menu-button icon-button" @click="sidebarTrigger = $event.currentTarget; sidebarOpen = !sidebarOpen; if (sidebarOpen) $nextTick(() => document.querySelector('#admin-navigation a')?.focus())" aria-label="Toggle navigation" aria-controls="admin-navigation" :aria-expanded="sidebarOpen">
                     <x-admin.icon name="menu" size="20" />
                 </button>
+                <span class="admin-page-icon"><x-admin.icon :name="$currentPageIcon" size="20" /></span>
                 <div>
                     <span class="eyebrow">System Administration</span>
                     <h1>{{ $currentPageTitle }}</h1>
@@ -46,7 +48,7 @@
             <div class="header-actions">
                 <div class="header-date">
                     <x-admin.icon name="calendar-days" size="16" />
-                    <span>{{ now()->format('l, F j, Y') }}</span>
+                    <time datetime="{{ $headerDate->toDateString() }}">{{ $headerDate->format('l, F j, Y') }}</time>
                 </div>
 
                 <livewire:task-notifications />

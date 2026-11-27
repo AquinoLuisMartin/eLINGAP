@@ -31,26 +31,30 @@ class DashboardController extends Controller
         $milestoneAges = Program::query()->where('status', 'ACTIVE')->get(['benefit_rules'])
             ->flatMap(fn ($program) => array_keys($program->benefit_rules['milestones'] ?? []))
             ->map(fn ($age) => (int) $age)->filter(fn ($age) => $age >= 60)->unique()->sort()->values();
-        $totals = (clone $active)->toBase()->selectRaw(
-            'count(*) as total,
+        $countsBySex = (clone $active)->toBase()->selectRaw(
+            'sex, count(*) as total,
              count(case when birth_date >= ? and birth_date < ? then 1 end) as age_60_69,
              count(case when birth_date >= ? and birth_date < ? then 1 end) as age_70_79,
              count(case when birth_date >= ? and birth_date < ? then 1 end) as age_80_89,
              count(case when birth_date < ? then 1 end) as age_90_plus',
             [$after70, $after60, $after80, $after70, $after90, $after80, $after90]
-        )->first();
-        $ageGroups = [
-            '60–69' => (int) $totals->age_60_69,
-            '70–79' => (int) $totals->age_70_79,
-            '80–89' => (int) $totals->age_80_89,
-            '90+' => (int) $totals->age_90_plus,
-        ];
+        )->groupBy('sex')->get()->keyBy('sex');
+        $ageGroups = collect([
+            '60–69' => 'age_60_69',
+            '70–79' => 'age_70_79',
+            '80–89' => 'age_80_89',
+            '90+' => 'age_90_plus',
+        ])->map(fn (string $column): array => [
+            'total' => (int) $countsBySex->sum($column),
+            'male' => (int) ($countsBySex->get('MALE')->{$column} ?? 0),
+            'female' => (int) ($countsBySex->get('FEMALE')->{$column} ?? 0),
+        ]);
         $barangays = (clone $active)->toBase()->join('barangays', 'barangays.id', '=', 'senior_citizens.barangay_id')
             ->selectRaw('barangays.name, count(*) as total')->groupBy('barangays.id', 'barangays.name')
             ->orderByDesc('total')->orderBy('barangays.name')->get();
 
         return view('dashboard.index', [
-            'activeCount' => (int) $totals->total,
+            'activeCount' => (int) $countsBySex->sum('total'),
             'readyCount' => Application::query()->where('status', ApplicationStatus::Approved->value)->count(),
             'benefitCounts' => BenefitEntitlement::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
             'milestoneAges' => $milestoneAges,
@@ -62,8 +66,8 @@ class DashboardController extends Controller
             'barangayCount' => $barangays->count(),
             'barangays' => $barangays->take(8),
             'otherBarangays' => $barangays->skip(8),
-            'ageGroups' => collect($ageGroups),
-            'genders' => (clone $active)->selectRaw('sex, count(*) as total')->groupBy('sex')->pluck('total', 'sex'),
+            'ageGroups' => $ageGroups,
+            'genders' => $countsBySex->pluck('total', 'sex'),
         ]);
     }
 }

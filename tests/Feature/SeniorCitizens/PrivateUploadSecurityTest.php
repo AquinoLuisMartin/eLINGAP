@@ -65,6 +65,7 @@ class PrivateUploadSecurityTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'senior_citizen.created', 'user_id' => $staff->id]);
 
         $documentResponse = $this->get(route('senior-citizens.document', [$senior, $document->id]))->assertOk()
+            ->assertHeader('Content-Disposition', 'inline; filename=supporting-document.pdf')
             ->assertHeader('X-Content-Type-Options', 'nosniff');
         $this->assertStringContainsString('no-store', $documentResponse->headers->get('Cache-Control'));
 

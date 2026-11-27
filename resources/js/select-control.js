@@ -24,7 +24,7 @@ export function visibleText(node) {
     return Array.from(node.childNodes ?? [], visibleText).join('');
 }
 
-export default function uiSelect({ searchable = null } = {}) {
+export default function uiSelect({ searchable = null, inline = false } = {}) {
     let observer;
     let reset;
     let originalTabindex;
@@ -120,21 +120,23 @@ export default function uiSelect({ searchable = null } = {}) {
             this.sync();
             if (this.disabled) return;
             this.query = '';
-            this.reposition();
+            if (!inline) this.reposition();
             this.$dispatch('ui-select-open', this.$el);
             this.open = true;
             this.$nextTick(() => {
                 if (!this.open) return;
-                showMenu(this.$refs.menu);
-                this.reposition();
-                stopTracking?.();
-                stopTracking = trackMenu(() => this.reposition());
+                if (!inline) {
+                    showMenu(this.$refs.menu);
+                    this.reposition();
+                    stopTracking?.();
+                    stopTracking = trackMenu(() => this.reposition());
+                }
                 const buttons = this.optionButtons();
                 const selected = buttons.find(button => Number(button.dataset.index) === this.selectedIndex);
                 const target = selected || (focusLast ? buttons.at(-1) : buttons[0]);
-                if (this.searchEnabled && !focusLast) this.$refs.search.focus({ preventScroll: true });
-                else target?.focus({ preventScroll: true });
-                selected?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                if (this.searchEnabled && !focusLast) this.$refs.search.focus({ preventScroll: !inline });
+                else target?.focus({ preventScroll: !inline });
+                if (!inline) selected?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
             });
         },
 
@@ -166,8 +168,8 @@ export default function uiSelect({ searchable = null } = {}) {
             const wasOpen = this.open;
             this.open = false;
             stopTracking?.();
-            hideMenu(this.$refs.menu);
-            if (restoreFocus && wasOpen) this.$refs.trigger.focus({ preventScroll: true });
+            if (!inline) hideMenu(this.$refs.menu);
+            if (restoreFocus && wasOpen) this.$refs.trigger.focus({ preventScroll: !inline });
         },
 
         tab(event) {
@@ -224,6 +226,11 @@ export default function uiSelect({ searchable = null } = {}) {
 
         menuKey(event) {
             const buttons = this.optionButtons();
+            if (inline && event.key === 'Enter' && event.target === this.$refs.search && this.query.trim() && buttons.length === 1) {
+                event.preventDefault();
+                this.choose(Number(buttons[0].dataset.index));
+                return;
+            }
             const index = buttons.indexOf(document.activeElement);
             let target;
             if (event.key === 'ArrowDown') target = buttons[(index + 1) % buttons.length];

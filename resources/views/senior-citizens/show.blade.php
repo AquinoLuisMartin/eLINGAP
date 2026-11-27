@@ -105,8 +105,8 @@
                         </div>
                         <div class="space-y-3">
                             @forelse ($documents as $document)
-                                <a href="{{ route('senior-citizens.document', [$seniorCitizen, $document->id]) }}" class="flex min-h-11 w-full items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-osca-primary dark:hover:bg-slate-800 dark:focus-visible:outline-blue-300">
-                                        <span class="min-w-0 flex-1"><span class="block break-words text-sm text-slate-800 dark:text-slate-100">{{ str_replace('_', ' ', ucfirst(strtolower($document->document_type))) }}</span><span class="block text-xs text-slate-500">{{ $document->created_at->format('M j, Y') }}</span></span>
+                                <a href="{{ route('senior-citizens.document', [$seniorCitizen, $document->id]) }}" target="_blank" rel="noopener" class="flex min-h-11 w-full items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-osca-primary dark:hover:bg-slate-800 dark:focus-visible:outline-blue-300">
+                                        <span class="min-w-0 flex-1"><span class="block break-words text-sm text-slate-800 dark:text-slate-100">{{ $document->idType?->name ?? str_replace('_', ' ', ucfirst(strtolower($document->document_type))) }}</span><span class="block text-xs text-slate-500">{{ $document->created_at->format('M j, Y') }}</span></span>
                                         <span class="text-sm text-osca-primary underline underline-offset-4 dark:text-blue-300">View<span class="sr-only"> {{ str_replace('_', ' ', strtolower($document->document_type)) }}</span></span>
                                 </a>
                             @empty

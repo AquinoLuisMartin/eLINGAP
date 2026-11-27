@@ -69,7 +69,9 @@ class RoleRoutingTest extends TestCase
     {
         $this->actingAs($this->staff)
             ->get(route('dashboard'))
-            ->assertOk();
+            ->assertOk()
+            ->assertSeeHtml('class="profile-logout" aria-haspopup="dialog"')
+            ->assertSee('Are you sure you want to log out?');
     }
 
     public function test_admin_dashboard_entry_redirects_to_administration(): void

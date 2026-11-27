@@ -3,6 +3,7 @@
 namespace App\Livewire\Registrations;
 
 use App\Models\Barangay;
+use App\Models\IdType;
 use App\Models\SeniorCitizen;
 use App\Services\OfficeSettings;
 use App\Services\SeniorCitizens\SeniorRegistration;
@@ -20,6 +21,7 @@ class IdApplication extends Component
 {
     use WithFileUploads;
 
+    private const REQUIREMENTS_FIELDS = ['requirements_checks', 'requirements_checks.identity', 'requirements_checks.residency', 'requirements_checks.authorization', 'id_type_id', 'birth_certificate_file', 'identification_file'];
     private const PERSONAL_FIELDS = ['first_name', 'middle_name', 'last_name', 'name_suffix', 'birth_date', 'sex', 'civil_status'];
 
     private const REPRESENTATIVE_FIELDS = ['representative_name', 'representative_relationship', 'representative_contact'];
@@ -39,9 +41,11 @@ class IdApplication extends Component
     #[Locked]
     public array $returnContext = ['from' => 'registry'];
 
-    public array $form = ['requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'first_name' => '', 'middle_name' => '', 'last_name' => '', 'name_suffix' => '', 'birth_date' => '', 'sex' => '', 'civil_status' => '', 'barangay_id' => '', 'address' => '', 'contact_number' => '', 'representative_name' => '', 'representative_relationship' => '', 'representative_contact' => ''];
+    public array $form = ['requirements_checks' => ['identity' => false, 'residency' => false, 'authorization' => false], 'id_type_id' => '', 'first_name' => '', 'middle_name' => '', 'last_name' => '', 'name_suffix' => '', 'birth_date' => '', 'sex' => '', 'civil_status' => '', 'barangay_id' => '', 'address' => '', 'contact_number' => '', 'representative_name' => '', 'representative_relationship' => '', 'representative_contact' => ''];
 
     public $authorizationFile;
+
+    public $birthCertificateFile;
 
     public $identificationFile;
 
@@ -61,12 +65,14 @@ class IdApplication extends Component
     public function updatedForm(mixed $value, ?string $key = null): void
     {
         $affected = match (true) {
-            $key === null, str_starts_with($key, 'requirements_checks') => 0,
+            $key === null, in_array($key, self::REQUIREMENTS_FIELDS, true) => 0,
             in_array($key, self::PERSONAL_FIELDS, true) => 1,
             default => 2,
         };
-        $this->completedSteps = array_filter($this->completedSteps, fn ($step) => $step < $affected, ARRAY_FILTER_USE_KEY);
-        $this->informationReviewed = false;
+        $this->invalidateFrom($affected);
+        if ($key === 'id_type_id') {
+            $this->resetValidation('form.id_type_id');
+        }
         if (! $this->needsRepresentative()) {
             foreach (self::REPRESENTATIVE_FIELDS as $field) {
                 $this->resetValidation('form.'.$field);
@@ -79,9 +85,27 @@ class IdApplication extends Component
         }
     }
 
+    public function updatedBirthCertificateFile(): void
+    {
+        $this->invalidateFrom(0);
+        $this->resetValidation('birthCertificateFile');
+    }
+
+    public function updatedIdentificationFile(): void
+    {
+        $this->invalidateFrom(0);
+        $this->resetValidation('identificationFile');
+    }
+
+    private function invalidateFrom(int $step): void
+    {
+        $this->completedSteps = array_filter($this->completedSteps, fn ($completed) => $completed < $step, ARRAY_FILTER_USE_KEY);
+        $this->informationReviewed = false;
+    }
+
     public function mount(bool $modal = false): void
     {
-        $this->reset('form', 'step', 'completedSteps', 'registeredSeniorId', 'authorizationFile', 'identificationFile', 'informationReviewed');
+        $this->reset('form', 'step', 'completedSteps', 'registeredSeniorId', 'authorizationFile', 'birthCertificateFile', 'identificationFile', 'informationReviewed');
         $this->form['contact_number'] = '9';
         $this->form['representative_contact'] = '9';
         $this->resetValidation();
@@ -107,28 +131,45 @@ class IdApplication extends Component
             $form = array_diff_key($form, array_flip(self::REPRESENTATIVE_FIELDS));
         }
 
-        return SeniorRegistrationInput::normalize([...$form, 'applicant_type' => $this->needsRepresentative() ? 'REPRESENTATIVE' : 'SELF', 'requirements_status' => 'CHECKED', 'review_reason' => '', 'authorization_file' => $this->needsRepresentative() ? $this->authorizationFile : null, 'identification_file' => $this->identificationFile]);
+        return SeniorRegistrationInput::normalize([
+            ...$form,
+            'applicant_type' => $this->needsRepresentative() ? 'REPRESENTATIVE' : 'SELF',
+            'requirements_status' => 'CHECKED',
+            'review_reason' => '',
+            'authorization_file' => $this->needsRepresentative() ? $this->authorizationFile : null,
+            'birth_certificate_file' => $this->birthCertificateFile,
+            'identification_file' => $this->identificationFile,
+        ]);
     }
 
-    private function validateInput(?array $fields = null): array
+    private function inputException(ValidationException $exception): ValidationException
+    {
+        $errors = [];
+        foreach ($exception->errors() as $field => $messages) {
+            $property = match ($field) {
+                'authorization_file' => 'authorizationFile',
+                'birth_certificate_file' => 'birthCertificateFile',
+                'identification_file' => 'identificationFile',
+                default => 'form.'.$field,
+            };
+            $errors[$property] = $messages;
+        }
+
+        return ValidationException::withMessages($errors);
+    }
+
+    private function validateInput(array $fields): void
     {
         $input = $this->input();
-        foreach (SeniorRegistrationInput::UPPERCASE_FIELDS as $field) {
+        foreach ([...SeniorRegistrationInput::UPPERCASE_FIELDS, 'name_suffix'] as $field) {
             if (array_key_exists($field, $input)) {
                 $this->form[$field] = $input[$field];
             }
         }
         try {
-            return SeniorRegistrationInput::validator($input, $fields, requireAuthorizationFile: false)->validate();
+            SeniorRegistrationInput::validator($input, $fields, requireAuthorizationFile: false, requireIdentityDocuments: true)->validate();
         } catch (ValidationException $exception) {
-            $errors = [];
-            foreach ($exception->errors() as $field => $messages) {
-                $property = match ($field) {
-                    'authorization_file' => 'authorizationFile', 'identification_file' => 'identificationFile', default => 'form.'.$field,
-                };
-                $errors[$property] = $messages;
-            }
-            throw ValidationException::withMessages($errors);
+            throw $this->inputException($exception);
         }
     }
 
@@ -136,7 +177,7 @@ class IdApplication extends Component
     {
         Gate::authorize('create', SeniorCitizen::class);
         $fields = match ($this->step) {
-            0 => ['requirements_checks', 'requirements_checks.identity', 'requirements_checks.residency', 'requirements_checks.authorization'],
+            0 => self::REQUIREMENTS_FIELDS,
             1 => self::PERSONAL_FIELDS,
             2 => ['barangay_id', 'address', 'contact_number', 'representative_name', 'representative_relationship', 'representative_contact'],
             default => [],
@@ -199,19 +240,18 @@ class IdApplication extends Component
         }
         $this->validate(['informationReviewed' => ['accepted']]);
         try {
-            $data = $this->validateInput();
+            $senior = $registration->create($this->input(), requireAuthorizationFile: false, requireIdentityDocuments: true);
         } catch (ValidationException $exception) {
             $keys = array_keys($exception->errors());
             $this->step = match (true) {
-                collect($keys)->contains(fn ($key) => str_starts_with($key, 'form.requirements_')) => 0,
-                collect($keys)->contains(fn ($key) => in_array($key, array_map(fn ($field) => 'form.'.$field, self::PERSONAL_FIELDS))) => 1,
-                collect($keys)->contains(fn ($key) => str_starts_with($key, 'form.')) => 2,
-                default => 3,
+                array_intersect($keys, self::REQUIREMENTS_FIELDS) !== [] => 0,
+                array_intersect($keys, self::PERSONAL_FIELDS) !== [] => 1,
+                in_array('authorization_file', $keys, true) => 3,
+                default => 2,
             };
-            $this->completedSteps = array_filter($this->completedSteps, fn ($step) => $step < $this->step, ARRAY_FILTER_USE_KEY);
-            throw $exception;
+            $this->invalidateFrom($this->step);
+            throw $this->inputException($exception);
         }
-        $senior = $registration->create($data, requireAuthorizationFile: false);
         $this->registeredSeniorId = $senior->id;
         $this->finishSubmission($prepareId);
     }
@@ -231,6 +271,7 @@ class IdApplication extends Component
     {
         return view('livewire.registrations.id-application', [
             'barangays' => Barangay::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'idTypes' => IdType::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'code', 'name']),
             'office' => $settings->values(),
         ]);
     }

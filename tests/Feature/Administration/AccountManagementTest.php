@@ -26,10 +26,11 @@ class AccountManagementTest extends TestCase
         $password = Str::password();
         $payload = $user->only(['role_id', 'employee_id', 'first_name', 'last_name']);
 
-        $this->actingAs($admin)->get(route('administration.users.create'))->assertSee('Create user account');
+        $this->actingAs($admin)->get(route('administration.users.create'))->assertSee('Create user account')->assertSeeHtml('value="Jr."');
         $response = $this->post(route('administration.users.store'), [
             ...$payload,
             'employee_id' => Str::upper($user->employee_id),
+            'name_suffix' => 'jr',
             'email' => Str::upper($user->email),
             'password' => $password,
             'password_confirmation' => $password,
@@ -38,6 +39,7 @@ class AccountManagementTest extends TestCase
 
         $created = User::where('employee_id', $user->employee_id)->firstOrFail();
         $this->assertDatabaseHas('users', $payload);
+        $this->assertSame('Jr.', $created->name_suffix);
         $this->assertTrue(Hash::check($response->viewData('credential'), $created->password_hash));
         $this->assertFalse(Hash::check($password, $created->password_hash));
         $this->assertNull($created->last_login_at);
@@ -55,9 +57,11 @@ class AccountManagementTest extends TestCase
         $this->put(route('administration.users.update', $user), [
             ...$user->only(['role_id', 'email', 'first_name', 'last_name']),
             'employee_id' => $newEmployeeId,
+            'name_suffix' => 'IV',
         ])->assertRedirect(route('administration.users.index'));
 
         $this->assertSame($newEmployeeId, $user->fresh()->employee_id);
+        $this->assertSame('IV', $user->fresh()->name_suffix);
         $this->assertDatabaseCount('audit_logs', 1);
         $this->assertDatabaseHas('audit_logs', ['user_id' => $admin->id, 'action' => 'user.updated', 'auditable_id' => $user->id]);
     }
@@ -66,8 +70,8 @@ class AccountManagementTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
 
-        $this->actingAs($admin)->post(route('administration.users.store'), [])
-            ->assertInvalid(['role_id', 'employee_id', 'first_name', 'last_name']);
+        $this->actingAs($admin)->post(route('administration.users.store'), ['name_suffix' => 'VI'])
+            ->assertInvalid(['role_id', 'employee_id', 'first_name', 'last_name', 'name_suffix']);
 
         $this->assertDatabaseCount('users', 1);
         $this->assertDatabaseCount('audit_logs', 0);

@@ -328,20 +328,19 @@
     .registry-filters { grid-template-columns: minmax(0, 1fr); }
 }
 
-.staff-shell .admin-content .account-form .account-field-label,
-.staff-shell .admin-content .account-form .account-section-title {
-    color: var(--ink);
-    font-weight: 500;
-}
-
-.staff-shell .admin-content .account-form :is(input, .ui-select-trigger) {
-    min-height: 46px;
-    background: var(--white);
-}
-
-.staff-shell .admin-content .account-form button[type='submit'] {
+.account-form input[type='text'] {
     min-height: 44px;
-    font-weight: 500;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--ink);
+    background: var(--paper);
+    font-size: 15px;
+}
+
+.account-form input[type='text']:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: -2px;
 }
 
 .staff-shell .admin-content .user-accounts :is(.primary-button, .secondary-button) {

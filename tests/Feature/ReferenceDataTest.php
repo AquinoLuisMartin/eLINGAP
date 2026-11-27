@@ -122,7 +122,7 @@ class ReferenceDataTest extends TestCase
         $this->seed(OfficeLocationSeeder::class);
         $this->seed(OfficeLocationSeeder::class);
 
-        $this->assertDatabaseHas('system_configurations', ['key' => 'municipality', 'value' => 'Santa Maria']);
+        $this->assertDatabaseHas('system_configurations', ['key' => 'municipality', 'value' => 'Sta. Maria']);
         $this->assertDatabaseHas('system_configurations', ['key' => 'province', 'value' => 'Preserved province']);
         $this->assertDatabaseCount('system_configurations', 2);
     }
@@ -132,10 +132,30 @@ class ReferenceDataTest extends TestCase
         $this->seed(DatabaseSeeder::class);
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertDatabaseHas('system_configurations', ['key' => 'municipality', 'value' => 'Santa Maria']);
+        $this->assertDatabaseHas('system_configurations', ['key' => 'municipality', 'value' => 'Sta. Maria']);
         $this->assertDatabaseHas('system_configurations', ['key' => 'province', 'value' => 'Bulacan']);
+        $this->assertDatabaseHas('barangays', ['code' => 'SCL', 'name' => 'Sta. Clara']);
+        $this->assertDatabaseHas('barangays', ['code' => 'SCR', 'name' => 'Sta. Cruz']);
+        $this->assertDatabaseHas('programs', ['agency' => 'OSCA Sta. Maria']);
         $this->assertDatabaseCount('sms_templates', 9);
         $this->assertDatabaseEmpty('users');
+    }
+
+    public function test_place_name_migration_updates_existing_reference_labels_in_place(): void
+    {
+        $barangayId = DB::table('barangays')->insertGetId(['code' => 'SCL', 'name' => 'Santa Clara']);
+        DB::table('programs')->insert(['name' => 'Synthetic program', 'agency' => 'OSCA Santa Maria']);
+        SystemConfiguration::forceCreate(['key' => 'office_address', 'value' => 'Municipal Hall, SANTA MARIA']);
+        SystemConfiguration::forceCreate(['key' => 'unrelated', 'value' => 'Santa Clara']);
+        $migration = require database_path('migrations/2026_11_26_002711_abbreviate_santa_in_place_names.php');
+
+        $migration->up();
+        $migration->up();
+
+        $this->assertDatabaseHas('barangays', ['id' => $barangayId, 'code' => 'SCL', 'name' => 'Sta. Clara']);
+        $this->assertDatabaseHas('programs', ['name' => 'Synthetic program', 'agency' => 'OSCA Sta. Maria']);
+        $this->assertDatabaseHas('system_configurations', ['key' => 'office_address', 'value' => 'Municipal Hall, Sta. MARIA']);
+        $this->assertDatabaseHas('system_configurations', ['key' => 'unrelated', 'value' => 'Santa Clara']);
     }
 
     private function source(array $data): string
@@ -154,7 +174,7 @@ class ReferenceDataTest extends TestCase
             'barangays' => [['name' => 'Synthetic barangay', 'code' => 'SYN', 'is_active' => true]],
             'programs' => [['name' => 'Synthetic program', 'agency' => 'Synthetic office', 'benefit_code' => 'synthetic-reference', 'budget' => 0, 'status' => 'UPCOMING', 'benefit_rules' => '{"cadence":"ANNUAL"}']],
             'sms_templates' => [['name' => 'Synthetic template', 'body' => 'Synthetic requirements notice.', 'is_active' => true]],
-            'system_configurations' => [['key' => 'municipality', 'value' => 'Santa Maria', 'type' => 'string'], ['key' => 'province', 'value' => 'Bulacan', 'type' => 'string']],
+            'system_configurations' => [['key' => 'municipality', 'value' => 'Sta. Maria', 'type' => 'string'], ['key' => 'province', 'value' => 'Bulacan', 'type' => 'string']],
         ];
     }
 }

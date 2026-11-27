@@ -4,7 +4,9 @@ namespace Tests\Feature\Administration;
 
 use App\Livewire\Administration\Dashboard;
 use App\Models\AuditLog;
+use App\Models\Barangay;
 use App\Models\LoginLog;
+use App\Models\SeniorCitizen;
 use App\Models\SmsMessage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -41,6 +43,33 @@ class EventLogTest extends TestCase
             ->assertSee('Created a program - System / unavailable operator')
             ->call('navigate', 'system-logs')
             ->assertSee('Created a program - System / unavailable operator');
+    }
+
+    public function test_audit_trail_identifies_the_senior_and_shows_name_edits_without_other_values(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $staff = User::factory()->create(['first_name' => 'Synthetic', 'last_name' => 'Editor']);
+        $barangay = Barangay::create(['name' => 'Synthetic district', 'code' => 'SYN']);
+        $senior = SeniorCitizen::create([
+            'barangay_id' => $barangay->id, 'first_name' => 'SYNTHETIC', 'middle_name' => 'MIDDLE',
+            'last_name' => '<Synthetic previous>', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE',
+            'address' => 'PRIVATE PREVIOUS ADDRESS', 'contact_number' => '+639170000001', 'status' => 'VERIFIED',
+        ]);
+        AuditLog::create(['user_id' => $staff->id, 'action' => 'senior_citizen.verified', 'auditable_type' => SeniorCitizen::class, 'auditable_id' => $senior->id]);
+
+        $this->actingAs($staff)->put(route('senior-citizens.update', $senior), [
+            'barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'middle_name' => '',
+            'last_name' => 'Updated', 'birth_date' => '1948-01-01', 'sex' => 'FEMALE',
+            'address' => 'PRIVATE UPDATED ADDRESS', 'contact_number' => '+639170000002',
+        ])->assertRedirect(route('senior-citizens.show', $senior))->assertSessionHasNoErrors();
+        $this->get(route('administration.dashboard', ['tab' => 'system-logs']))->assertForbidden();
+
+        Livewire::actingAs($admin)->test(Dashboard::class)
+            ->call('navigate', 'system-logs')->set('logCategory', 'Audit Trail')
+            ->assertSeeInOrder(['Updated a senior citizen record - OSCA Staff Synthetic Editor', 'Senior citizen:', 'SYNTHETIC UPDATED', 'Middle name changed from MIDDLE to Not recorded', 'Last name changed from <Synthetic previous> to UPDATED'])
+            ->assertSeeInOrder(['Verified a senior citizen record - OSCA Staff Synthetic Editor', 'Senior citizen:', 'SYNTHETIC UPDATED'])
+            ->assertDontSee('<Synthetic previous>', false)
+            ->assertDontSee(['PRIVATE PREVIOUS ADDRESS', 'PRIVATE UPDATED ADDRESS', '+639170000001', '+639170000002', 'First name changed']);
     }
 
     public function test_operator_search_respects_the_selected_event_category(): void

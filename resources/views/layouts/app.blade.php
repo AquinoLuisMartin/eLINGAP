@@ -29,9 +29,14 @@
     @php($recordsSection = request()->routeIs('registrations.import.*') ? 'registry' : (request()->routeIs('registrations.*') || request('from') === 'registrations' ? 'registrations' : 'registry'))
     @php($lastLoginAt = array_key_exists('last_login_at', $user->getAttributes()) ? $user->last_login_at : null)
     @php($navigationId = $isAdmin ? 'admin-navigation' : 'osca-navigation')
-    <div class="admin-shell {{ $isAdmin ? '' : 'staff-shell osca-workspace' }}" x-data="{
+    <div class="admin-shell {{ $isAdmin ? 'admin-workspace' : 'staff-shell osca-workspace' }}" x-data="{
         profileOpen: @js($errors->has('photo')),
         profileTrigger: null,
+        logoutConfirmOpen: false,
+        cancelLogout() {
+            this.logoutConfirmOpen = false;
+            this.$nextTick(() => this.profileTrigger?.focus());
+        },
         ...workspaceSidebar({ id: @js($navigationId), key: @js($isAdmin ? 'elingap-admin-navigation' : 'elingap-staff-navigation') }),
         ...workspaceTheme(),
     }" x-init="initSidebar()" :class="theme === 'dark' ? 'theme-dark' : 'theme-light'" @mousemove.window="trackSidebarPointer($event)" @storage.window="syncTheme($event)" @keydown.escape.window="if (profileOpen) profileTrigger?.focus(); else if (sidebarOpen) sidebarTrigger?.focus(); profileOpen = false; sidebarOpen = false" @resize.window="syncSidebarViewport()">
@@ -94,7 +99,7 @@
                     <div class="header-account" @click.outside="profileOpen = false">
                         <button type="button" class="profile-avatar" @click="profileTrigger = $event.currentTarget; profileOpen = !profileOpen" aria-label="Open account menu" aria-controls="osca-account-panel" :aria-expanded="profileOpen"><x-profile-photo :user="$user" /></button>
                         <aside id="osca-account-panel" class="profile-menu" x-data="anchoredDropdown()" x-effect="profileOpen ? show() : close()" :style="position" x-trap.inert.noscroll="profileOpen" aria-label="Account details" x-show="profileOpen" x-transition @click.stop style="display: none;">
-                            <x-account-menu :user="$user" :office="$officeDetails['office_name'] ?? 'Office of the Senior Citizen Affairs'" :last-login="$lastLoginAt" />
+                            <x-account-menu :user="$user" :office="$officeDetails['office_name'] ?? 'Office of the Senior Citizen Affairs'" :last-login="$lastLoginAt" :confirm-logout="! $isAdmin" />
                     </aside>
                     </div>
                 </div>
@@ -105,6 +110,13 @@
                 @yield('content')
             </main>
         </div>
+        @unless ($isAdmin)
+            <x-logout-confirmation x-show="logoutConfirmOpen" x-cloak x-trap.inert.noscroll.noreturn="logoutConfirmOpen" @keydown.escape.stop="cancelLogout()" @click.self="cancelLogout()">
+                <x-slot:cancel>
+                    <button type="button" class="secondary-button" @click="cancelLogout()">Cancel</button>
+                </x-slot:cancel>
+            </x-logout-confirmation>
+        @endunless
         <x-confirm-dialog />
         <x-printing-completion />
     </div>

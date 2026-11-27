@@ -7,11 +7,13 @@ use App\Livewire\SeniorCitizens\IdManager;
 use App\Livewire\SeniorCitizens\IdOfficialSettings;
 use App\Livewire\SeniorCitizens\RequirementsReview;
 use App\Models\Barangay;
+use App\Models\IdType;
 use App\Models\SeniorCitizen;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
@@ -24,11 +26,12 @@ class RequirementsReviewTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        Livewire::test(IdApplication::class)->call('next')
+        $application = Livewire::test(IdApplication::class)->call('next')
             ->assertSet('step', 0)
             ->assertHasErrors(['form.requirements_checks.identity', 'form.requirements_checks.residency'])
             ->set('form.requirements_checks.identity', true)->call('next')
-            ->assertSet('step', 0)->assertHasErrors('form.requirements_checks.residency')
+            ->assertSet('step', 0)->assertHasErrors('form.requirements_checks.residency');
+        $this->withIdentityDocuments($application)
             ->set('form.requirements_checks.residency', true)->call('next')
             ->assertSet('step', 1)->assertHasNoErrors();
 
@@ -41,7 +44,7 @@ class RequirementsReviewTest extends TestCase
         $this->actingAs($staff);
         $this->travelTo(now()->setDate(2026, 10, 14)->startOfDay());
 
-        $component = Livewire::test(IdApplication::class)->set('form', $this->input())
+        $component = $this->withIdentityDocuments(Livewire::test(IdApplication::class)->set('form', $this->input()))
             ->call('next')->call('next')->call('next')
             ->set('informationReviewed', true)->call('submit')->assertHasNoErrors();
 
@@ -71,7 +74,7 @@ class RequirementsReviewTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        Livewire::test(IdApplication::class)->set('form', $this->input())
+        $this->withIdentityDocuments(Livewire::test(IdApplication::class)->set('form', $this->input()))
             ->call('next')->call('next')->call('next')
             ->set('form.requirements_checks.identity', false)->set('informationReviewed', true)
             ->call('submit')->assertHasErrors('form.requirements_checks.identity')->assertSet('step', 0);
@@ -212,6 +215,17 @@ class RequirementsReviewTest extends TestCase
         $response->assertSee(route('registrations.index', ['search' => 'Synthetic', 'stage' => 'PENDING', 'page' => 2]));
     }
 
+    private function withIdentityDocuments(Testable $application): Testable
+    {
+        Storage::fake('local');
+        config(['uploads.senior_document_disk' => 'local']);
+
+        return $application
+            ->set('form.id_type_id', IdType::query()->where('code', 'national_id')->sole()->id)
+            ->set('birthCertificateFile', UploadedFile::fake()->createWithContent('certificate.pdf', "%PDF-1.4\nSynthetic certificate"))
+            ->set('identificationFile', UploadedFile::fake()->createWithContent('identification.pdf', "%PDF-1.4\nSynthetic identification"));
+    }
+
     private function pending(): SeniorCitizen
     {
         $input = $this->input();
@@ -225,7 +239,7 @@ class RequirementsReviewTest extends TestCase
         $barangay = Barangay::create(['name' => 'Synthetic Barangay', 'code' => 'REVIEW']);
 
         return [
-            'barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'middle_name' => '', 'last_name' => 'Applicant', 'name_suffix' => '', 'civil_status' => '',
+            'barangay_id' => $barangay->id, 'first_name' => 'Synthetic', 'middle_name' => '', 'last_name' => 'Applicant', 'name_suffix' => null, 'civil_status' => '',
             'birth_date' => '1950-01-01', 'sex' => 'FEMALE', 'address' => 'Synthetic address', 'contact_number' => '+639171234567',
             'applicant_type' => 'SELF', 'representative_name' => '', 'representative_relationship' => '', 'representative_contact' => '',
             'requirements_status' => 'CHECKED', 'requirements_checks' => ['identity' => true, 'residency' => true, 'authorization' => false],

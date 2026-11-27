@@ -7,23 +7,26 @@
     <x-staff.page-header title="Registrations">
         @can('create', \App\Models\SeniorCitizen::class)
             <livewire:senior-citizens.application-launcher />
-            <a class="secondary-button" href="{{ route('senior-id.reprint-approvals') }}">Reprint Approvals</a>
+            <a class="secondary-button gap-2" href="{{ route('senior-id.reprint-approvals') }}">
+                <x-admin.icon name="clipboard-list" size="16" />
+                Reprint Approvals
+            </a>
         @endcan
     </x-staff.page-header>
 
-    <div class="staff-summary-grid grid-cols-3" role="group" aria-label="Registration metrics">
+    <dl class="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4" aria-label="Registration metrics">
         @foreach (['verified' => ['Approved / ID pending', 'clock-3'], 'issued' => ['ID issued', 'file-check-2'], 'inactive' => ['Inactive records', 'archive']] as $column => [$label, $icon])
-            <div class="staff-summary-item flex flex-col gap-2 px-3! py-3! sm:flex-row sm:items-center sm:gap-3 sm:px-5!" wire:key="registration-metric-{{ $column }}">
-                <span class="hidden size-9 shrink-0 place-items-center rounded-md bg-[var(--paper)] text-[var(--blue)] sm:grid dark:text-blue-300">
-                    <x-admin.icon :name="$icon" size="17" />
-                </span>
-                <div class="flex grow flex-col justify-between">
-                    <span class="staff-summary-label leading-tight">{{ $label }}</span>
-                    <span class="staff-summary-value leading-tight">{{ number_format($counts->{$column} ?? 0) }}</span>
-                </div>
+            <div class="grid min-w-0 content-start gap-2 rounded-lg border border-[var(--line)] bg-[var(--white)] p-3 sm:p-4" wire:key="registration-metric-{{ $column }}">
+                <dt class="flex items-start gap-2 text-sm font-medium text-[var(--muted)]">
+                    <x-admin.icon :name="$icon" class="mt-0.5 shrink-0" />
+                    {{ $label }}
+                </dt>
+                <dd class="text-2xl leading-none font-semibold tracking-tight tabular-nums wrap-anywhere sm:text-[2rem]">
+                    {{ number_format($counts->{$column} ?? 0) }}
+                </dd>
             </div>
         @endforeach
-    </div>
+    </dl>
 
     <section class="staff-results-panel" aria-labelledby="registration-results-title">
         <div class="staff-panel-heading flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -75,8 +78,8 @@
             @if ($canPrint)
                 <details class="group border-b border-[var(--line)]" @if ($errors->hasAny(['senior_ids', 'senior_ids.*', 'layout', 'paper', 'purpose', 'reviewed'])) open @endif>
                     <summary class="flex min-h-11 w-full! list-none flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2 text-sm hover:bg-[var(--paper)] focus-visible:outline-offset-[-2px]! sm:px-5 [&::-webkit-details-marker]:hidden">
-                        <span class="inline-flex items-center gap-2 font-medium text-[var(--blue)] dark:text-blue-300">
-                            <x-lucide-printer width="16" height="16" aria-hidden="true" />
+                        <span class="inline-flex items-center gap-2 font-medium text-[var(--ink)]">
+                            <x-lucide-printer width="16" height="16" class="shrink-0 text-[var(--muted)]" aria-hidden="true" />
                             ID printing
                         </span>
                         <span class="inline-flex items-center gap-2 text-xs text-[var(--muted)]">
@@ -90,7 +93,10 @@
                             <div class="field-label w-64 max-w-full"><label data-select-label>Print layout</label><x-select label="Print layout" name="layout" x-model="printLayout" @change="selected = []"><option value="single">Single ID</option><option value="batch" selected>Batch (4 per A4/Letter page)</option></x-select></div>
                             <div class="field-label w-40 max-w-full"><label data-select-label>Paper size</label><x-select label="Paper size" name="paper"><option value="short">Short</option><option value="long">Long</option><option value="a4">A4</option></x-select>
                             </div>
-                            <button type="submit" class="primary-button shrink-0" :disabled="selected.length === 0">Print selected IDs</button>
+                            <button type="submit" class="primary-button shrink-0 gap-2" :disabled="selected.length === 0">
+                                <x-lucide-printer width="16" height="16" aria-hidden="true" />
+                                Print selected IDs
+                            </button>
                         </div>
                         <p id="registration-print-help" class="text-sm text-[var(--muted)]">Select rows using the Print column. Reprints require approval. Print at 100% and record each result.</p>
                         <label class="flex items-start gap-3 text-sm"><input type="checkbox" name="reviewed" value="1" required class="mt-1 shrink-0"><span>I reviewed the selected records and verified that all card details are correct before issuance and printing. <span class="field-required" aria-hidden="true">*</span></span></label>
@@ -113,7 +119,22 @@
                     </thead>
                     <tbody>
                         @forelse ($registrations as $senior)
-                            @php($idStatus = $senior->idPrintingStatus())
+                            @php
+                                $registrationIcon = match ($senior->status->value) {
+                                    'VERIFIED' => 'user-round-check',
+                                    'ARCHIVED' => 'archive',
+                                    'DECEASED' => 'user-round-minus',
+                                    'TRANSFERRED' => 'arrow-right',
+                                    default => 'clock-3',
+                                };
+                                $idStatus = $senior->idPrintingStatus();
+                                $idIcon = match ($idStatus) {
+                                    'Printed' => 'check',
+                                    'Approved' => 'file-check-2',
+                                    'Rejected' => 'x',
+                                    default => 'clock-3',
+                                };
+                            @endphp
                             <tr class="group focus-within:bg-blue-50/60 hover:bg-blue-50/60 dark:focus-within:bg-blue-950/30 dark:hover:bg-blue-950/30" wire:key="registration-record-{{ $senior->id }}">
                                 @if ($canPrint)
                                     @php($printDisabled = $senior->status->value !== 'VERIFIED' || ! $senior->verified_at || $senior->died_on || $senior->death_declared_at || ! $senior->canGenerateIdPrint() || ($senior->id_prints_exists && ! $senior->latestIdPrintAttempt))
@@ -130,14 +151,17 @@
                                 <td class="min-w-36 whitespace-normal!">
                                     <div class="flex flex-col items-start gap-0.5">
                                         <span class="inline-flex items-center gap-1.5 font-medium">
-                                            <span @class(['size-1.5 shrink-0 rounded-full', 'bg-emerald-600 dark:bg-emerald-400' => $senior->status->value === 'VERIFIED', 'bg-slate-400' => $senior->status->value !== 'VERIFIED']) aria-hidden="true"></span>
+                                            <x-admin.icon :name="$registrationIcon" size="15" class="shrink-0 text-[var(--muted)]" />
                                             {{ ucfirst(strtolower($senior->status->value)) }}
                                         </span>
                                         <x-milestone-badge :senior="$senior" compact />
                                     </div>
                                 </td>
                                 <td>
-                                    <x-badge :status="$idStatus" @class(['gap-1.5 before:size-1.5 before:shrink-0 before:rounded-full before:bg-slate-400', 'before:bg-amber-500!' => in_array($idStatus, ['Pending Printing', 'Pending Approval']), 'before:bg-emerald-600! dark:before:bg-emerald-400!' => in_array($idStatus, ['Printed', 'Approved'])]) />
+                                    <span class="ui-label gap-1.5">
+                                        <x-admin.icon :name="$idIcon" size="14" class="shrink-0 text-[var(--muted)]" />
+                                        {{ ucfirst(strtolower($idStatus)) }}
+                                    </span>
                                     @if ($senior->lastConfirmedIdPrint)<p class="mt-1 whitespace-normal text-xs text-[var(--muted)]">{{ $senior->lastConfirmedIdPrint->confirmed_at->format('M j, Y g:i A') }}<br>{{ $senior->lastConfirmedIdPrint->confirmedBy?->full_name }}</p>@endif
                                 </td>
                                 <td class="w-44 border-l border-[var(--line)] bg-[var(--white)] group-even:bg-[var(--paper)] xl:sticky xl:right-0 xl:z-10">

@@ -9,7 +9,7 @@ class OfficeLocationSeeder extends Seeder
 {
     public function run(): void
     {
-        foreach (['municipality' => 'Santa Maria', 'province' => 'Bulacan'] as $key => $value) {
+        foreach (['municipality' => 'Sta. Maria', 'province' => 'Bulacan'] as $key => $value) {
             $setting = SystemConfiguration::firstOrNew(['key' => $key]);
             if (blank($setting->value)) {
                 $setting->forceFill(['value' => $value, 'type' => 'string'])->save();

@@ -1,15 +1,15 @@
 <div class="office-configuration">
 <section class="page-intro"><div><p class="section-kicker">Administration</p><h2>System Configuration</h2></div></section>
 @php
-    $defaults = ['municipality' => 'Santa Maria', 'province' => 'Bulacan'];
+    $defaults = ['municipality' => 'Sta. Maria', 'province' => 'Bulacan'];
     $placeholders = [
         'organization_name' => 'eLINGAP Senior Citizen Information System',
         'office_name' => 'Office of the Senior Citizens Affairs (OSCA)',
-        'municipality' => 'Santa Maria',
+        'municipality' => 'Sta. Maria',
         'province' => 'Bulacan',
         'support_email' => 'e.g., osca.santamaria@bulacan.gov.ph',
         'support_phone' => 'e.g., (044) 123-4567 or 09XX-XXX-XXXX',
-        'office_address' => 'e.g., Municipal Hall Compound, Santa Maria, Bulacan',
+        'office_address' => 'e.g., Municipal Hall Compound, Sta. Maria, Bulacan',
         'office_hours' => 'e.g., Mon–Fri, 8:00 AM – 5:00 PM',
     ];
 @endphp

@@ -4,7 +4,7 @@
     $senior = $card['senior'];
     $address = $card['address'];
     $officeName = $card['office']['office_name'] ?? 'Office of the Senior Citizen Affairs';
-    $municipality = mb_strtoupper(($card['office']['organization_name'] ?? null) ?: 'Municipality of Santa Maria');
+    $municipality = mb_strtoupper(($card['office']['organization_name'] ?? null) ?: 'Municipality of Sta. Maria');
     $contact = preg_replace('/^(?:\+63|0)(9\d{2})(\d{3})(\d{4})$/', '0$1-$2-$3', $senior->contact_number ?: ($senior->representative_contact ?? ''));
 @endphp
 <article class="id-card" aria-label="Front of senior citizen ID">

@@ -366,6 +366,7 @@ class OscaConsultationTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $senior = $this->senior();
+        SystemConfiguration::where('key', 'municipality')->update(['value' => 'Sta. Maria']);
 
         $this->post(route('senior-citizens.transfers.store', $senior), [...$this->externalTransfer(),
             'destination_municipality' => 'Santa Maria', 'destination_province' => 'Bulacan',

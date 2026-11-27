@@ -1,4 +1,4 @@
-@props(['searchable' => null, 'label' => null])
+@props(['searchable' => null, 'label' => null, 'inline' => false])
 @php
     $model = $attributes->wire('model')->value();
     $alpineModel = $attributes->get('x-model');
@@ -8,13 +8,13 @@
         $defaults['aria-label'] = $label;
     }
 @endphp
-<span {{ $attributes->only('class')->class(['ui-select']) }} x-data="uiSelect({ searchable: @js($searchable) })"
+<span {{ $attributes->only('class')->class(['ui-select']) }} x-data="uiSelect({ searchable: @js($searchable), inline: @js($inline) })"
     @if ($model) x-effect="$wire.$get(@js($model)); $nextTick(() => sync())"
     @elseif ($alpineModel) x-effect="{{ $alpineModel }}; $nextTick(() => sync())" @endif
     @click.outside="close()" @focusout="$nextTick(() => { if (!$el.contains(document.activeElement)) close() })"
     @keydown.escape="if (open) { $event.stopPropagation(); $event.preventDefault(); close(true) }"
     @keydown.tab="tab($event)"
-    @resize.window="if (open) reposition()" @scroll.window.capture="scrolled($event)"
+    @unless ($inline) @resize.window="if (open) reposition()" @scroll.window.capture="scrolled($event)" @endunless
     @ui-select-open.window="if ($event.detail !== $el) close()">
     <select {{ $attributes->except('class')->class(['w-full'])->merge($defaults) }} x-ref="native" :class="{ 'ui-select-native': enhanced }"
         :aria-hidden="enhanced ? 'true' : null" @focus="if (enhanced) $refs.trigger.focus()"
@@ -29,7 +29,7 @@
             <span class="min-w-0 truncate text-left" x-text="selectedLabel"></span>
             <x-lucide-chevron-down aria-hidden="true" width="16" height="16" />
         </button>
-        <span x-ref="menu" x-show="open" class="ui-select-menu" :style="position" @keydown="menuKey($event)">
+        <span x-ref="menu" x-show="open" @class(['ui-select-menu', 'ui-select-menu-inline' => $inline]) :style="position" @keydown="menuKey($event)">
             <span x-show="searchEnabled" class="ui-select-search">
                 <input x-ref="search" type="search" x-model="query" :aria-label="'Search ' + label.toLocaleLowerCase()"
                     :placeholder="'Search ' + label.toLocaleLowerCase()" :aria-controls="id + '-options'" autocomplete="off"

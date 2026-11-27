@@ -35,7 +35,7 @@ class OfficeConfigurationTest extends TestCase
     {
         $this->get($path)->assertOk()->assertSee('Office of the Senior Citizen Affairs')
             ->assertDontSee('Address not configured')->assertDontSee('Contact number not configured')
-            ->assertDontSee('Office hours not configured')->assertSee('Santa Maria Municipal Hall')
+            ->assertDontSee('Office hours not configured')->assertSee('Sta. Maria Municipal Hall')
             ->assertSee('+63 44 288 2604')->assertSee('google.com/maps/search')
             ->assertDontSee('Saturday &amp; Sunday', false);
     }

@@ -242,3 +242,58 @@ input.profile-photo-input[type='file'] { position: absolute; width: 1px; height:
 .admin-content .intro-actions { width: fit-content; max-width: 100%; flex-wrap: wrap; }
 .admin-content .intro-actions > * { flex: 0 1 auto; }
 .admin-content :where(.welcome-row, .page-intro) .primary-button { align-self: flex-start; }
+
+.admin-workspace .admin-sidebar { box-shadow: none; }
+.admin-workspace .sidebar-brand { margin-bottom: 26px; }
+.admin-workspace .is-expanded .brand-copy { flex: 1; min-width: 0; max-width: none; }
+.admin-workspace .brand-copy small { overflow: hidden; text-overflow: ellipsis; }
+.admin-workspace .sidebar-nav { min-width: 0; }
+.admin-workspace .nav-label { margin: 0 0 7px 10px; font-size: 11px; }
+.admin-workspace .admin-navigation-group + .admin-navigation-group {
+    margin-top: 17px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+}
+
+.admin-workspace .nav-item { min-height: 44px; }
+.admin-workspace .nav-item:focus-visible { outline-offset: -2px; }
+.admin-workspace .nav-item.is-active { color: #1d4ed8; background: #e8f0ff; box-shadow: none; font-weight: 650; }
+.admin-workspace.theme-dark .nav-item.is-active { color: #dbeafe; background: #213e65; }
+.admin-workspace.theme-dark .nav-label { color: #a1b1c3; }
+
+.admin-workspace .admin-header { min-height: 72px; padding-block: 12px; }
+.admin-workspace .header-title { min-width: 0; }
+.admin-workspace .header-title .eyebrow { font-size: 11px; letter-spacing: .09em; }
+.admin-workspace .header-date { color: #526278; font-size: 13px; }
+.admin-workspace.theme-dark .header-date { color: #aab9cc; }
+.admin-workspace .admin-page-icon {
+    display: grid;
+    flex: 0 0 40px;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    color: #245abe;
+    background: #eaf2ff;
+}
+
+.admin-workspace.theme-dark .admin-page-icon { color: #a9caff; background: #263f60; }
+
+@media (min-width: 761px) {
+    .admin-workspace .admin-sidebar:not(.is-expanded) .nav-item { justify-content: center; padding-inline: 0; }
+    .admin-workspace .admin-sidebar:not(.is-expanded) :is(.nav-label, .nav-item span) {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+    }
+}
+
+@media (max-width: 760px) {
+    .admin-workspace .admin-page-icon { display: none; }
+    .admin-workspace .admin-header { gap: 8px; }
+    .admin-workspace .header-title { gap: 7px; }
+    .admin-workspace .mobile-menu-button { width: 40px; height: 44px; flex: 0 0 40px; }
+}

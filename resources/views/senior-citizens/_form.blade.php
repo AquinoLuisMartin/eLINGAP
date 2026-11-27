@@ -13,7 +13,7 @@
 </div>
 <div class="flex min-w-0 flex-col gap-[7px]">
     <label for="name_suffix" class="block font-medium">Name suffix</label>
-    <input data-senior-name pattern="[\p{L}\p{M} ]+" title="Letters and spaces only" id="name_suffix" name="name_suffix" value="{{ old('name_suffix', $seniorCitizen->name_suffix ?? '') }}" class="mt-1 w-full rounded border p-2 uppercase">
+    <x-name-suffix-select id="name_suffix" name="name_suffix" :value="old('name_suffix', $seniorCitizen->name_suffix ?? null)" class="mt-1 w-full" />
 </div>
 <div class="flex min-w-0 flex-col gap-[7px]">
     <label for="birth_date" class="block font-medium">Birth date</label>

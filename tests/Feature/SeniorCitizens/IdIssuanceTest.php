@@ -62,10 +62,10 @@ class IdIssuanceTest extends TestCase
         $this->assertSame($contact, $senior->fresh()->contact_number);
     }
 
-    #[TestWith([null, 'MUNICIPALITY OF SANTA MARIA'])]
-    #[TestWith(['', 'MUNICIPALITY OF SANTA MARIA'])]
+    #[TestWith([null, 'MUNICIPALITY OF STA. MARIA'])]
+    #[TestWith(['', 'MUNICIPALITY OF STA. MARIA'])]
     #[TestWith(['Synthetic organization', 'SYNTHETIC ORGANIZATION'])]
-    public function test_id_preview_displays_the_organization_below_the_office_with_a_santa_maria_fallback(?string $organization, string $expected): void
+    public function test_id_preview_displays_the_organization_below_the_office_with_a_sta_maria_fallback(?string $organization, string $expected): void
     {
         $this->actingAs(User::factory()->create());
         $senior = $this->senior();
@@ -251,31 +251,40 @@ class IdIssuanceTest extends TestCase
         DB::transaction(fn () => DB::table('senior_citizen_id_credentials')->insert($duplicate));
     }
 
-    public function test_public_verification_exposes_no_personal_information_and_archiving_does_not_invalidate(): void
+    public function test_public_verification_displays_the_linked_name_and_id_while_the_credential_is_valid(): void
     {
         $this->actingAs(User::factory()->create());
-        $senior = $this->senior(['osca_id_number' => '26-0088', 'id_generated_at' => now()]);
+        $senior = $this->senior([
+            'last_name' => '<Applicant>', 'middle_name' => 'Sample', 'name_suffix' => 'Jr.',
+            'osca_id_number' => '26-0088', 'id_generated_at' => now(),
+        ]);
+        SystemConfiguration::query()->where('key', 'office_name')->delete();
         $credential = app(IdCredential::class)->createForIssued($senior);
         $this->app['auth']->forgetGuards();
         $url = route('id.verify', ['token' => $credential->verification_token]);
-        $response = $this->get($url)->assertOk()->assertSee('Verified')->assertHeader('Cache-Control', 'no-store, private')->assertHeader('Referrer-Policy', 'no-referrer');
-        foreach ([$senior->full_name, $senior->address, $senior->contact_number, $senior->osca_id_number, $senior->birth_date->format('m/d/Y'), $credential->verification_token] as $privateValue) {
-            $response->assertDontSee($privateValue);
-        }
+        $this->get($url)->assertOk()
+            ->assertSee('Verified')->assertSee('OSCA Sta. Maria')->assertSee('OSCA ID No.')
+            ->assertSee('Synthetic Sample <Applicant> Jr.')->assertDontSee('<Applicant>', false)
+            ->assertSee($senior->osca_id_number)
+            ->assertDontSee([$senior->address, $senior->contact_number, $senior->birth_date->toDateString(), $senior->birth_date->format('m/d/Y'), $credential->verification_token])
+            ->assertHeader('Cache-Control', 'no-store, private')->assertHeader('Referrer-Policy', 'no-referrer')
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+
         $senior->update(['status' => 'ARCHIVED']);
-        $this->get($url)->assertSee('Verified');
+        $this->get($url)->assertSee('Verified')->assertSee($senior->full_name)->assertSee($senior->osca_id_number);
         $senior->update(['status' => 'DECEASED', 'died_on' => today()]);
-        $this->get($url)->assertSee('Not valid')->assertDontSee('deceased');
+        $this->get($url)->assertSee('Not valid')->assertDontSee(['deceased', $senior->full_name, $senior->osca_id_number, 'OSCA ID No.']);
         $senior->update(['status' => 'PENDING', 'died_on' => null, 'verified_at' => null]);
-        $this->get($url)->assertSee('Not valid');
+        $this->get($url)->assertSee('Not valid')->assertDontSee([$senior->full_name, $senior->osca_id_number, 'OSCA ID No.']);
         $senior->update(['status' => 'VERIFIED', 'verified_at' => now()]);
-        $this->get($url)->assertSee('Verified');
+        $this->get($url)->assertSee('Verified')->assertSee($senior->full_name)->assertSee($senior->osca_id_number);
     }
 
     public function test_unknown_qr_has_a_generic_result(): void
     {
-        $this->get(route('id.verify', ['token' => str_repeat('a', 64)]))->assertOk()->assertSee('Not valid')->assertDontSee('Verified');
-        $this->get(route('id.verify', ['token' => 'malformed']))->assertOk()->assertSee('Not valid');
+        $this->get(route('id.verify', ['token' => str_repeat('a', 64)]))
+            ->assertOk()->assertSee('Not valid')->assertSee('OSCA Sta. Maria')->assertDontSee(['Verified', 'OSCA ID No.']);
+        $this->get(route('id.verify', ['token' => 'malformed']))->assertOk()->assertSee('Not valid')->assertDontSee('OSCA ID No.');
     }
 
     public function test_archived_issued_ids_can_be_prepared_without_resetting_registration(): void

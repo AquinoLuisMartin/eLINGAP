@@ -38,8 +38,20 @@ class AdminIconTest extends TestCase
 
     #[TestWith(['dashboard', 'layout-dashboard'])]
     #[TestWith(['help', 'circle-help'])]
+    #[TestWith(['arrow-right', 'arrow-right'])]
+    #[TestWith(['key-round', 'key-round'])]
+    #[TestWith(['log-in', 'log-in'])]
+    #[TestWith(['shield-alert', 'shield-alert'])]
+    #[TestWith(['user-round-check', 'user-round-check'])]
+    #[TestWith(['user-round-minus', 'user-round-minus'])]
+    #[TestWith(['user-round-plus', 'user-round-plus'])]
+    #[TestWith(['user-round-x', 'user-round-x'])]
+    #[TestWith(['id-card', 'id-card'])]
+    #[TestWith(['printer', 'printer'])]
+    #[TestWith(['printer-check', 'printer-check'])]
+    #[TestWith(['printer-x', 'printer-x'])]
     #[TestWith(['unknown-icon', 'circle'])]
-    public function test_legacy_aliases_and_unknown_names_keep_their_fallback(string $name, string $expected): void
+    public function test_icon_names_aliases_and_fallback_resolve_to_the_expected_asset(string $name, string $expected): void
     {
         $html = Blade::render('<x-admin.icon :name="$name" />', ['name' => $name]);
         $canonical = Blade::render('<x-icon :name="$name" width="18" height="18" aria-hidden="true" />', ['name' => 'lucide-'.$expected]);

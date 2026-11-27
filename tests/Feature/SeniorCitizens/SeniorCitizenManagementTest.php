@@ -100,12 +100,12 @@ class SeniorCitizenManagementTest extends TestCase
     public function test_direct_registration_rejects_invalid_name_characters(): void
     {
         $this->actingAs($this->user('OSCA_STAFF'))->post(route('senior-citizens.store'), [
-            'first_name' => 'Test123', 'middle_name' => 'Test!', 'last_name' => 'Test-Name', 'name_suffix' => 'Jr.',
+            'first_name' => 'Test123', 'middle_name' => 'Test!', 'last_name' => 'Test-Name', 'name_suffix' => 'VI',
         ])->assertSessionHasErrors([
             'first_name' => 'First name may contain only letters and spaces.',
             'middle_name' => 'Middle name may contain only letters and spaces.',
             'last_name' => 'Last name may contain only letters and spaces.',
-            'name_suffix' => 'Name suffix may contain only letters and spaces.',
+            'name_suffix' => 'Select Jr., Sr., II, III, IV, or V for the name suffix.',
         ]);
 
         $this->assertDatabaseCount('senior_citizens', 0);
@@ -118,7 +118,7 @@ class SeniorCitizenManagementTest extends TestCase
 
         $this->actingAs($this->user('OSCA_STAFF'))->put(route('senior-citizens.update', $senior), [
             ...$senior->only(['barangay_id', 'sex', 'address']), 'birth_date' => '1948-01-01', 'contact_number' => '917-123-4567',
-            'first_name' => 'Test123', 'middle_name' => 'Test!', 'last_name' => 'Test-Name', 'name_suffix' => 'Jr.',
+            'first_name' => 'Test123', 'middle_name' => 'Test!', 'last_name' => 'Test-Name', 'name_suffix' => 'VI',
         ])->assertSessionHasErrors(['first_name', 'middle_name', 'last_name', 'name_suffix']);
 
         $this->assertSame($original, $senior->fresh()->getAttributes());

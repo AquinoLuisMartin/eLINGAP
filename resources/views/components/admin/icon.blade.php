@@ -12,6 +12,9 @@
         'file-text', 'file-check-2', 'archive', 'log-out', 'clock-3',
         'house', 'contact-round', 'clipboard-pen-line', 'banknote', 'messages-square',
         'chart-no-axes-combined', 'hand-heart',
+        'arrow-right', 'key-round', 'log-in', 'shield-alert',
+        'user-round-check', 'user-round-minus', 'user-round-plus', 'user-round-x',
+        'id-card', 'printer', 'printer-check', 'printer-x',
     ];
     $icon = match ($name) {
         'dashboard' => 'layout-dashboard',

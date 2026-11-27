@@ -14,10 +14,10 @@ class IdCardLayoutTest extends TestCase
 {
     public function test_printed_address_keeps_the_complete_street_without_repeating_the_locality(): void
     {
-        $address = app(IdCardAddress::class)->format('Unit 20, Sample Street, sample barangay, Santa Maria, Bulacan', 'Sample Barangay', ['municipality' => 'Santa Maria', 'province' => 'Bulacan']);
+        $address = app(IdCardAddress::class)->format('Unit 20, Sample Street, Santa Clara, Santa Maria, Bulacan', 'Sta. Clara', ['municipality' => 'Sta. Maria', 'province' => 'Bulacan']);
 
         $this->assertTrue($address['fits']);
-        $this->assertSame('UNIT 20, SAMPLE STREET, SAMPLE BARANGAY, SANTA MARIA, BULACAN', implode(' ', $address['lines']));
+        $this->assertSame('UNIT 20, SAMPLE STREET, STA. CLARA, STA. MARIA, BULACAN', implode(' ', $address['lines']));
         $this->assertGreaterThanOrEqual(4.5, $address['fontSize']);
     }
 

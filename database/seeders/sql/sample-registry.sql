@@ -131,7 +131,7 @@ BEGIN
         'SYN-SCH-2026-' || upper(sp.benefit_code),
         CASE WHEN sp.benefit_code = 'national-milestones' THEN 'MILESTONES' ELSE min(sp.period_key) END,
         DATE '2026-10-21', payout_at,
-        'SYNTHETIC - Santa Maria', 'SYNTHETIC - ' || pr.name,
+        'SYNTHETIC - Sta. Maria', 'SYNTHETIC - ' || pr.name,
         (SELECT json_agg(id ORDER BY id) FROM barangays WHERE code = ANY(codes)),
         coalesce(pr.default_amount, 500), sum(sp.amount),
         (pr.benefit_rules::jsonb || jsonb_build_object('government_level', pr.government_level, 'program_name', pr.name))::json,

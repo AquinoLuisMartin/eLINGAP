@@ -1,4 +1,4 @@
-@props(['user', 'office', 'lastLogin' => null, 'adminDashboard' => false])
+@props(['user', 'office', 'lastLogin' => null, 'adminDashboard' => false, 'confirmLogout' => false])
 
 <div class="account-menu-content">
     <div class="profile-menu-header">
@@ -35,7 +35,9 @@
     </section>
     <div class="account-menu-footer">
         @if ($adminDashboard)
-            <button type="button" class="profile-logout" @click="profileOpen = false; $wire.set('logoutConfirmOpen', true)"><x-admin.icon name="log-out" size="18" /><span>Log out</span></button>
+            <button type="button" class="profile-logout" aria-haspopup="dialog" @click="profileOpen = false; $wire.set('logoutConfirmOpen', true)"><x-admin.icon name="log-out" size="18" /><span>Log out</span></button>
+        @elseif ($confirmLogout)
+            <button type="button" class="profile-logout" aria-haspopup="dialog" @click="profileOpen = false; $nextTick(() => logoutConfirmOpen = true)"><x-admin.icon name="log-out" size="18" /><span>Log out</span></button>
         @else
             <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="profile-logout"><x-admin.icon name="log-out" size="18" /><span>Log out</span></button></form>
         @endif

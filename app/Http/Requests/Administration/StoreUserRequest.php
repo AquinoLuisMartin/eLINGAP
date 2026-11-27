@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Administration;
 
+use App\Enums\NameSuffix;
 use App\Enums\UserRole;
 use App\Models\User;
 use App\Rules\EmployeeIdInput;
@@ -27,7 +28,7 @@ class StoreUserRequest extends FormRequest
             'first_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
-            'name_suffix' => ['nullable', 'string', 'max:20'],
+            'name_suffix' => ['nullable', 'string', Rule::enum(NameSuffix::class)],
             'is_active' => ['boolean'],
         ];
     }
@@ -37,6 +38,9 @@ class StoreUserRequest extends FormRequest
     {
         if (is_string($this->input('employee_id'))) {
             $this->merge(['employee_id' => EmployeeId::normalize($this->input('employee_id'))]);
+        }
+        if ($this->has('name_suffix')) {
+            $this->merge(['name_suffix' => NameSuffix::normalize($this->input('name_suffix'))]);
         }
     }
 }

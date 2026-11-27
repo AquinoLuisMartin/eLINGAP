@@ -21,7 +21,7 @@ class BenefitProgramSeeder extends Seeder
             ['tss', 'T.S.S. - Tulong sa Senior', 'LGU', null, ['cadence' => 'ON_DEMAND', 'office_review' => true], true],
         ];
         foreach ($definitions as [$code, $name, $level, $amount, $rules, $provisional]) {
-            Program::firstOrCreate(['benefit_code' => $code], ['name' => $name, 'agency' => $level === 'LGU' ? 'OSCA Santa Maria' : $level.' Government', 'government_level' => $level, 'default_amount' => $amount, 'benefit_rules' => $rules, 'provisional' => $provisional, 'status' => 'UPCOMING']);
+            Program::firstOrCreate(['benefit_code' => $code], ['name' => $name, 'agency' => $level === 'LGU' ? 'OSCA Sta. Maria' : $level.' Government', 'government_level' => $level, 'default_amount' => $amount, 'benefit_rules' => $rules, 'provisional' => $provisional, 'status' => 'UPCOMING']);
         }
     }
 }

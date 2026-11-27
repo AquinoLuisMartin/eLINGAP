@@ -26,6 +26,8 @@ class EditProfileFieldsTest extends TestCase
 
         $options = $xpath->query('//main/form//select[@name="sex"]/option');
         $this->assertSame(['MALE', 'FEMALE'], array_map(fn ($option) => $option->getAttribute('value'), iterator_to_array($options)));
+        $suffixes = $xpath->query('//main/form//select[@name="name_suffix"]/option');
+        $this->assertSame(['', 'Jr.', 'Sr.', 'II', 'III', 'IV', 'V'], array_map(fn ($option) => $option->getAttribute('value'), iterator_to_array($suffixes)));
         foreach (['applicant_type', 'representative_name', 'representative_relationship', 'representative_contact', 'authorization_file'] as $field) {
             $this->assertSame(0, $xpath->query('//main/form//*[@name="'.$field.'"]')->length);
         }
