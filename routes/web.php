@@ -113,10 +113,13 @@ Route::middleware(['auth', 'auth.session', 'active', EnsureCurrentCredentials::c
     Route::get('sms/templates', [SmsTemplateController::class, 'index'])->name('sms.templates.index');
     Route::get('sms/templates/create', [SmsTemplateController::class, 'create'])->name('sms.templates.create');
     Route::post('sms/templates', [SmsTemplateController::class, 'store'])->name('sms.templates.store');
+    Route::delete('sms/templates/{template}', [SmsTemplateController::class, 'destroy'])->name('sms.templates.destroy');
     Route::get('sms/messages', [SmsMessageController::class, 'index'])->name('sms.messages.index');
     Route::get('sms/messages/create', [SmsMessageController::class, 'create'])->name('sms.messages.create');
     Route::get('sms/messages/recipients', [SmsMessageController::class, 'recipients'])->name('sms.messages.recipients');
     Route::post('sms/messages', [SmsMessageController::class, 'store'])->middleware('throttle:20,1,sms-send')->name('sms.messages.store');
+    Route::get('sms/messages/birthday/{seniorCitizen}', [SmsMessageController::class, 'birthday'])->name('sms.messages.birthday');
+    Route::post('sms/messages/birthday/{seniorCitizen}', [SmsMessageController::class, 'sendBirthday'])->middleware('throttle:20,1,sms-send')->name('sms.messages.birthday.store');
     Route::get('sms/blasts', [SmsBlastController::class, 'index'])->name('sms.blasts.index');
     Route::get('messaging', [SmsBlastController::class, 'create'])->name('sms.blasts.create');
     Route::get('sms/blasts/create', [SmsBlastController::class, 'create']);

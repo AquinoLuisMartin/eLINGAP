@@ -23,7 +23,11 @@ class ReferenceDataTest extends TestCase
         $this->artisan('app:sync-reference-data', ['--source' => $this->source($this->data())])->assertSuccessful();
 
         foreach (array_keys($this->data()) as $table) {
-            $this->assertDatabaseEmpty($table);
+            if ($table === 'sms_templates') {
+                $this->assertDatabaseMissing($table, ['name' => 'Synthetic template']);
+            } else {
+                $this->assertDatabaseEmpty($table);
+            }
         }
     }
 
@@ -35,7 +39,7 @@ class ReferenceDataTest extends TestCase
         $this->artisan('app:sync-reference-data', ['--source' => $source, '--commit' => true])->assertSuccessful();
         DB::table('barangays')->update(['name' => 'Preserved barangay', 'is_active' => false]);
         DB::table('programs')->update(['name' => 'Preserved program', 'default_amount' => 999]);
-        DB::table('sms_templates')->update(['body' => 'Preserved template']);
+        DB::table('sms_templates')->where('name', 'Synthetic template')->update(['body' => 'Preserved template']);
         DB::table('system_configurations')->where('key', 'municipality')->update(['value' => 'Preserved town']);
         $user = User::factory()->create();
         $account = $user->fresh()->getAttributes();
@@ -48,7 +52,7 @@ class ReferenceDataTest extends TestCase
         $this->assertDatabaseHas('system_configurations', ['key' => 'municipality', 'value' => 'Preserved town']);
         $this->assertDatabaseCount('barangays', 1);
         $this->assertDatabaseCount('programs', 1);
-        $this->assertDatabaseCount('sms_templates', 1);
+        $this->assertDatabaseCount('sms_templates', 2);
         $this->assertDatabaseCount('users', 1);
         $this->assertSame($account, $user->fresh()->getAttributes());
         $this->assertDatabaseEmpty('senior_citizens');
@@ -137,7 +141,7 @@ class ReferenceDataTest extends TestCase
         $this->assertDatabaseHas('barangays', ['code' => 'SCL', 'name' => 'Sta. Clara']);
         $this->assertDatabaseHas('barangays', ['code' => 'SCR', 'name' => 'Sta. Cruz']);
         $this->assertDatabaseHas('programs', ['agency' => 'OSCA Sta. Maria']);
-        $this->assertDatabaseCount('sms_templates', 9);
+        $this->assertDatabaseCount('sms_templates', 10);
         $this->assertDatabaseEmpty('users');
     }
 

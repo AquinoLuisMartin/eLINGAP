@@ -3,7 +3,7 @@
 @section('content')
     <x-workspace-navigation section="messaging" />
     <x-staff.page-header :title="$selectedPayout ? 'Payout SMS announcement' : 'New SMS broadcast'">
-        <a href="{{ route('sms.blasts.index') }}" class="secondary-button">View SMS History</a>
+        <a href="{{ route('sms.blasts.index') }}" class="primary-button">View SMS History</a>
     </x-staff.page-header>
     @can('manage', \App\Models\BenefitSchedule::class)
         <form method="GET" action="{{ route('sms.blasts.create') }}" class="panel mb-5 flex flex-wrap items-end gap-4">
@@ -17,7 +17,7 @@
                 </x-select>
 
             </div>
-            <button type="submit" class="secondary-button">Open message</button>
+            <button type="submit" class="primary-button">Open message</button>
         </form>
     @endcan
     @if ($selectedPayout)
@@ -63,36 +63,22 @@
             <input type="hidden" name="barangay_id" :value="barangay" value="{{ request('barangay_id') }}">
             <input type="hidden" name="program_id" :value="program" value="{{ request('program_id') }}">
             <h3 class="text-lg font-semibold">Compose message</h3>
-            <div class="field-label"><label data-select-label>Quick template</label><x-select label="Quick template" id="broadcast-template" x-model="selectedTemplate" x-on:change="chooseTemplate($event)">
+            <div class="field-label"><label data-select-label>Quick template</label><x-select label="Quick template" id="broadcast-template" x-model="selectedTemplate" x-on:change="chooseTemplate($event.target.value)">
                     <option value="">Select a template</option>
                     <template x-for="quickTemplate in programTemplates()" :key="quickTemplate.id">
-                        <option :value="quickTemplate.id" :data-body="quickTemplate.body" x-text="quickTemplate.title"></option>
+                        <option :value="quickTemplate.id" x-text="quickTemplate.title"></option>
                     </template>
-                    <option value="__new__">+ Create new template...</option>
                 </x-select>
             </div>
             <p x-cloak x-show="program && programTemplates().length === 0" class="text-sm text-[var(--muted)]">No template for this program.</p>
             <label class="field-label">Message
-                <textarea id="broadcast-message" x-ref="message" x-model="broadcastBody" name="message" rows="8" maxlength="1600" required aria-describedby="sms-count sms-placeholder-note" placeholder="Write a message"></textarea>
+                <textarea id="broadcast-message" x-ref="message" x-model="broadcastBody" name="message" rows="8" maxlength="1600" required aria-describedby="sms-count" placeholder="Write a message"></textarea>
             </label>
-            <p id="sms-placeholder-note" class="text-sm text-[var(--muted)]">Fill [Petsa], [Oras], and [Lugar/Venue] before sending.</p>
             <p id="sms-count" class="text-sm text-[var(--muted)]" aria-live="polite">0 characters</p>
             <label class="flex items-start gap-3 rounded-lg border border-[var(--line)] p-4 text-sm"><input x-ref="confirmed" type="checkbox" name="confirmed" value="1" required class="mt-1"> <span>I reviewed the audience and message, and confirm this broadcast.</span></label>
             <div class="staff-form-actions"><button type="submit" class="primary-button" :disabled="audiencePreview || eligibleRecipients === 0">Queue broadcast</button><a href="{{ route('sms.blasts.index') }}" class="secondary-button">Cancel</a></div>
         </form>
     </div>
-    <dialog x-ref="templateDialog" aria-labelledby="new-template-title" class="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-6 text-slate-900 shadow-xl backdrop:bg-slate-950/50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
-        <form x-on:submit.prevent="saveTemplate()" class="flex flex-col gap-5">
-            <div><h2 id="new-template-title" class="text-xl font-semibold">Create new template</h2><p class="mt-2 text-sm text-slate-500">Saved in this browser only.</p></div>
-            <label class="field-label">Template Title<input x-model="templateTitle" maxlength="120" required autofocus></label>
-            <label class="field-label">Message Body<textarea x-model="templateBody" rows="6" maxlength="1600" required></textarea></label>
-            <p x-cloak x-show="templateError" x-text="templateError" role="alert" class="text-sm text-red-700 dark:text-red-300"></p>
-            <div class="flex flex-wrap justify-end gap-3">
-                <button type="button" class="secondary-button" x-on:click="$refs.templateDialog.close()">Cancel</button>
-                <button type="submit" class="primary-button">Use template</button>
-            </div>
-        </form>
-    </dialog>
     </div>
     @endif
 @endsection

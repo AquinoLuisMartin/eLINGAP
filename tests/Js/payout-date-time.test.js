@@ -115,6 +115,29 @@ test('invalid typed hours or minutes cannot create a submission value', () => {
     }
 });
 
+test('start and end controls restrict typed and pasted digits before updating the time', () => {
+    for (const field of ['hour', 'endHour', 'minute', 'endMinute']) {
+        const isHour = field.toLowerCase().endsWith('hour');
+        const { state } = setup('2026-11-20T09:00');
+        const previous = isHour ? '09' : '30';
+        state[field] = previous;
+        const cases = isHour
+            ? [['13', previous], ['00', previous], ['a', ''], ['a129', '12'], ['1', '1'], ['01', '01'], ['0', '0']]
+            : [['60', previous], ['99', previous], ['a', ''], ['x599', '59'], ['00', '00'], ['0', '0']];
+
+        for (const [value, expected] of cases) {
+            const input = {
+                value, selectionStart: value.length,
+                setSelectionRange(start, end) { this.selectionStart = start; this.selectionEnd = end; },
+            };
+            state.restrictTimeInput(input, field, isHour);
+
+            assert.equal(input.value, expected, `${field}: ${value}`);
+            assert.equal(input.selectionStart, expected.length);
+        }
+    }
+});
+
 test('saved end times and server resets update the typed end controls', () => {
     const state = payoutDateTime('2026-11-20T09:00', '2026-11-20T15:45');
     const watchers = {};
@@ -130,4 +153,30 @@ test('saved end times and server resets update the typed end controls', () => {
     assert.equal(state.endHour, '');
     assert.equal(state.endTime, '');
     assert.equal(state.date, '2026-11-20');
+});
+
+test('form submission requires the end to be strictly later on the same local date', () => {
+    for (const [start, end, period, blocked] of [
+        ['08:00', '2', 'AM', true],
+        ['08:00', '8', 'AM', true],
+        ['08:00', '2', 'PM', false],
+        ['11:59', '12', 'PM', false],
+        ['12:00', '12', 'AM', true],
+        ['00:00', '12', 'PM', false],
+    ]) {
+        const { state } = setup(`2026-11-20T${start}`);
+        state.endHour = end;
+        state.endPeriod = period;
+        state.update();
+        const effects = [];
+        state.$refs = { payoutEndHour: { focus: () => effects.push('focus') } };
+
+        state.validateRange({
+            preventDefault: () => effects.push('prevent'),
+            stopImmediatePropagation: () => effects.push('stop'),
+        });
+
+        assert.equal(Boolean(state.rangeError), blocked, `${start} to ${end}:00 ${period}`);
+        assert.deepEqual(effects, blocked ? ['prevent', 'stop', 'focus'] : []);
+    }
 });

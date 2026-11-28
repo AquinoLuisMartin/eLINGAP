@@ -116,6 +116,34 @@ test('invalid edits do not overwrite stored templates', t => {
     assert.deepEqual(readTemplates('user-1'), {});
 });
 
+test('deleting an older browser template removes it from the library and Broadcast', t => {
+    const { target, values } = browser(t);
+    const local = { ...sample, id: 'local-1' };
+    values.set('user-1', JSON.stringify({ [local.id]: local, [sample.id]: sample }));
+    const editor = initialize(smsTemplateEditor({ key: 'user-1' }));
+    const composer = initialize(broadcastComposer({ key: 'user-1' }));
+    target.addEventListener('sms-templates-updated', event => composer.refreshTemplates(event));
+
+    editor.deleteTemplate(local.id);
+
+    assert.deepEqual(editor.displayedTemplates, [sample]);
+    assert.deepEqual(composer.availableTemplates(), [sample]);
+    assert.deepEqual(readTemplates('user-1'), { [sample.id]: sample });
+    assert.match(editor.notice, /deleted/);
+});
+
+test('deleting a shared template submits its server form', t => {
+    browser(t);
+    const editor = initialize(smsTemplateEditor({ key: 'user-1', deleteUrl: '/sms/templates/__template__' }));
+    let submitted;
+    editor.$refs = { deleteForm: { requestSubmit() { submitted = this.action; } } };
+
+    editor.deleteTemplate(sample.id);
+
+    assert.equal(submitted, '/sms/templates/1');
+    assert.equal(editor.notice, '');
+});
+
 test('both audience filters recalculate eligible and excluded counters from the server', async t => {
     const { target } = browser(t);
     target.location = { origin: 'https://example.test' };

@@ -36,7 +36,8 @@ class RegistrySearch
                     '80+' => $query->where('birth_date', '<=', today()->subYears(80)),
                 };
             })
-            ->when($filters['program_id'] ?? null, fn ($query, $programId) => $query->whereHas('activeAssignments', fn ($assignments) => $assignments->where('program_id', $programId)))
+            ->when($filters['program_id'] ?? null, fn ($query, $programId) => $query->has('activeAssignments', '=', 1)
+                ->whereRelation('activeAssignments', 'program_id', $programId))
             ->when($filters['benefit'] ?? null, function ($query, $benefit) {
                 match ($benefit) {
                     'PENSIONER' => $query->where(fn ($pensions) => $pensions->where('has_national_pension', true)->orWhere('has_local_pension', true)),

@@ -55,9 +55,9 @@ class SmsService
         });
     }
 
-    public function queue(string $recipientNumber, string $message, ?int $userId = null, ?int $seniorCitizenId = null, ?int $blastId = null, ?int $entitlementId = null): SmsMessage
+    public function queue(string $recipientNumber, string $message, ?int $userId = null, ?int $seniorCitizenId = null, ?int $blastId = null, ?int $entitlementId = null, ?int $birthdayYear = null, ?int $templateId = null): SmsMessage
     {
-        return DB::transaction(function () use ($recipientNumber, $message, $userId, $seniorCitizenId, $blastId, $entitlementId): SmsMessage {
+        return DB::transaction(function () use ($recipientNumber, $message, $userId, $seniorCitizenId, $blastId, $entitlementId, $birthdayYear, $templateId): SmsMessage {
             $smsMessage = SmsMessage::create([
                 'recipient_number' => $recipientNumber,
                 'message' => $message,
@@ -65,6 +65,8 @@ class SmsService
                 'senior_citizen_id' => $seniorCitizenId,
                 'sms_blast_id' => $blastId,
                 'benefit_entitlement_id' => $entitlementId,
+                'birthday_year' => $birthdayYear,
+                'sms_template_id' => $templateId,
                 'status' => SmsStatus::Queued,
                 'queued_at' => now(),
             ]);

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\BenefitStatus;
+use App\Enums\SmsStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,5 +35,15 @@ class BenefitEntitlement extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(BenefitPayment::class);
+    }
+
+    public function payoutNotifications(): HasMany
+    {
+        return $this->hasMany(SmsMessage::class);
+    }
+
+    public function activePayoutNotifications(): HasMany
+    {
+        return $this->payoutNotifications()->whereIn('status', [SmsStatus::Queued, SmsStatus::Sent]);
     }
 }

@@ -8,6 +8,7 @@ use App\Http\Requests\Sms\SendSmsRequest;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
 use App\Models\SmsMessage;
+use App\Services\Sms\BirthdayGreetings;
 use App\Services\Sms\SmsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -60,6 +61,34 @@ class SmsMessageController extends Controller
 
         return response()->json(['recipients' => $recipients->take(15)->all(), 'has_more' => $recipients->count() > 15])
             ->header('Cache-Control', 'no-store');
+    }
+
+    public function birthday(Request $request, SeniorCitizen $seniorCitizen, BirthdayGreetings $greetings): View
+    {
+        abort_unless($request->user()->isOscaStaff(), 403);
+        Gate::authorize('create', SmsMessage::class);
+        $draft = $greetings->draft($seniorCitizen);
+
+        return view('sms.messages.create', ['birthday' => [
+            ...$draft,
+            'senior' => $seniorCitizen,
+            'display_number' => preg_replace('/^\+63(\d{3})(\d{3})(\d{4})$/', '$1-$2-$3', $draft['number']),
+            'message' => str_replace('[Senior Name]', $seniorCitizen->full_name, $draft['template']->body),
+        ]]);
+    }
+
+    public function sendBirthday(Request $request, SeniorCitizen $seniorCitizen, BirthdayGreetings $greetings): RedirectResponse
+    {
+        abort_unless($request->user()->isOscaStaff(), 403);
+        Gate::authorize('create', SmsMessage::class);
+        $data = $request->validate([
+            'birthday_year' => ['required', 'integer'],
+            'recipient_number' => ['required', 'string', 'max:30'],
+            'message' => ['required', 'string', 'max:1600'],
+        ]);
+        $greetings->queue($seniorCitizen, (int) $data['birthday_year'], $data['recipient_number'], $data['message'], $request->user()->id);
+
+        return redirect()->route('sms.messages.index')->with('status', 'Birthday greeting queued for delivery.');
     }
 
     private function recipientOption(SeniorCitizen $senior): array

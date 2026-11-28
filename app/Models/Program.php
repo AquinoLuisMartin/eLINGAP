@@ -10,6 +10,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['name', 'agency', 'budget', 'starts_on', 'ends_on', 'status', 'description', 'created_by', 'benefit_code', 'government_level', 'benefit_rules', 'default_amount', 'provisional'])]
 class Program extends Model
 {
+    public const NATIONAL_PENSION = 'national-social-pension';
+
+    public const LOCAL_PENSION = 'local-social-pension';
+
     public function benefitEntitlements(): HasMany
     {
         return $this->hasMany(BenefitEntitlement::class);

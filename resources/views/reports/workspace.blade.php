@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('content')
 <x-staff.page-header :title="$title">
-    <a href="{{ route('reports.index') }}" class="secondary-button">Back to reports</a>
+    <a href="{{ route('reports.index') }}" class="primary-button">Back to reports</a>
 </x-staff.page-header>
 <div class="mb-5 flex flex-wrap items-baseline justify-between gap-2 text-sm text-[var(--muted)]">
     <p>Verified senior population: <strong class="text-[var(--ink)]">{{ number_format($population->sum('population')) }}</strong> across all barangays</p>

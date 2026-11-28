@@ -8,17 +8,13 @@
     <form class="mb-5 flex flex-wrap items-end gap-3" method="GET" action="{{ route('sms.messages.index') }}">
         <div class="ui-field w-full sm:w-56">
             <label for="sms-status">Delivery status</label>
-            <x-select id="sms-status" name="status">
+            <x-select id="sms-status" name="status" onchange="this.form.requestSubmit()">
                 <option value="">All statuses</option>
                 @foreach (\App\Enums\SmsStatus::cases() as $status)
                     <option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ ucfirst(strtolower($status->value)) }}</option>
                 @endforeach
             </x-select>
         </div>
-        <x-button type="submit" variant="secondary">Apply filter</x-button>
-        @if (request()->filled('status'))
-            <a class="secondary-button" href="{{ route('sms.messages.index') }}">Clear filter</a>
-        @endif
     </form>
     <p x-cloak x-show="notice" x-text="notice" role="status" class="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-950 dark:text-green-200"></p>
     @if (session('status'))<x-feedback class="mb-4">{{ session('status') }}</x-feedback>@endif

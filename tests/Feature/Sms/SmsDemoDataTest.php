@@ -30,11 +30,11 @@ class SmsDemoDataTest extends TestCase
 
         $this->seed(ProgramSmsTemplateSeeder::class);
 
-        $this->assertDatabaseCount('sms_templates', 9);
+        $this->assertDatabaseCount('sms_templates', 10);
         $this->assertDatabaseMissing('sms_templates', ['name' => 'Inactive sample program - Iskedyul']);
         $template = SmsTemplate::where('name', 'T.S.S. - Tulong sa Senior')->sole();
         $this->assertStringContainsString('Pagsusuri ng inyong kahilingan', $template->body);
-        foreach (SmsTemplate::all() as $saved) {
+        foreach (SmsTemplate::whereNotNull('program_id')->get() as $saved) {
             foreach (['[Petsa]', '[Oras]', '[Lugar/Venue]', 'OSCA ID o valid ID', 'authorization letter', 'Dumating sa oras', 'Walang bayad'] as $required) {
                 $this->assertStringContainsString($required, $saved->body);
             }
@@ -45,7 +45,7 @@ class SmsDemoDataTest extends TestCase
 
         $this->seed(ProgramSmsTemplateSeeder::class);
 
-        $this->assertDatabaseCount('sms_templates', 9);
+        $this->assertDatabaseCount('sms_templates', 10);
         $this->assertDatabaseHas('sms_templates', ['id' => $template->id, 'body' => 'Office-approved custom wording.', 'is_active' => false]);
         $this->actingAs(User::factory()->create())->get(route('sms.templates.index'))
             ->assertSee('Office-approved custom wording.')->assertDontSee(' - Iskedyul')->assertDontSee(' - Mga kinakailangan');
@@ -68,11 +68,11 @@ class SmsDemoDataTest extends TestCase
         $this->assertFalse($old->fresh()->is_active);
         $this->assertSame('Previous saved schedule wording', $message->fresh()->message);
         $this->assertSame($old->id, $message->fresh()->sms_template_id);
-        $this->assertDatabaseCount('sms_templates', 11);
+        $this->assertDatabaseCount('sms_templates', 12);
         $this->get(route('sms.templates.index'))->assertOk()->assertDontSee('Previous saved schedule wording')->assertDontSee(' - Iskedyul')->assertDontSee(' - Mga kinakailangan');
-        $compose = $this->get(route('sms.blasts.create'))->assertOk()->assertSee('[Lugar/Venue]');
+        $compose = $this->get(route('sms.blasts.create'))->assertOk();
         $this->assertCount(9, $compose->viewData('templates'));
-        $this->assertSame(1, $compose->viewData('templates')->where('program_id', $program->id)->count());
+        $this->assertSame($canonical->body, $compose->viewData('templates')->where('program_id', $program->id)->sole()->body);
     }
 
     public function test_broadcast_history_matches_synthetic_program_beneficiaries_without_sending_sms(): void

@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 
 class IdPrinting
 {
-    public function __construct(private IdCardLayout $layout, private SeniorEligibilityRecord $records) {}
+    public function __construct(private IdCardLayout $layout, private SeniorEligibilityRecord $records, private IdCredential $credentials) {}
 
     public function generate(array $ids, string $paper, string $layout = 'single', bool $issuePending = false): array
     {
@@ -29,7 +29,7 @@ class IdPrinting
                 Gate::authorize('manageId', $senior);
                 $this->synchronizeLegacy($senior);
                 if ($issuePending) {
-                    abort_unless($senior->status->value === 'VERIFIED' && $senior->verified_at && $senior->smsContact(), 422, 'Verify the record before issuing or printing its ID.');
+                    abort_unless($senior->status->value === 'VERIFIED' && $senior->verified_at, 422, 'Verify the record before issuing or printing its ID.');
                     abort_if($senior->died_on || $senior->death_declared_at, 422, 'A deceased record cannot receive an ID.');
                 }
                 if ($senior->idPrintAttempts()->where('status', 'GENERATED')->exists()) {
@@ -44,6 +44,7 @@ class IdPrinting
                     $this->records->issueId($senior);
                     $senior->refresh();
                 }
+                $this->credentials->createForIssued($senior);
                 $attempt = new IdPrintAttempt;
                 $attempt->forceFill(['senior_citizen_id' => $senior->id, 'reprint_request_id' => $approval?->id,
                     'purpose' => $printed ? 'REPRINT' : 'FIRST_PRINT', 'status' => 'GENERATED',

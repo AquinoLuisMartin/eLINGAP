@@ -8,6 +8,7 @@ use App\Models\Application;
 use App\Models\BenefitEntitlement;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
+use App\Services\Sms\BirthdayGreetings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -15,7 +16,7 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): View|RedirectResponse
+    public function __invoke(Request $request, BirthdayGreetings $greetings): View|RedirectResponse
     {
         if ($request->user()->isAdmin()) {
             return redirect()->route('administration.dashboard');
@@ -54,6 +55,7 @@ class DashboardController extends Controller
             ->orderByDesc('total')->orderBy('barangays.name')->get();
 
         return view('dashboard.index', [
+            'birthdays' => $greetings->alerts(),
             'activeCount' => (int) $countsBySex->sum('total'),
             'readyCount' => Application::query()->where('status', ApplicationStatus::Approved->value)->count(),
             'benefitCounts' => BenefitEntitlement::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Benefits;
 
+use App\Enums\BenefitStatus;
 use App\Models\BenefitEntitlement;
 use App\Models\BenefitSchedule;
 use App\Models\Program;
@@ -38,7 +39,7 @@ class SeniorRecord extends Component
     #[Locked]
     public ?array $classificationReview = null;
 
-    public function reviewAssignment(): void
+    public function reviewAssignment(BenefitAssignment $assignments): void
     {
         Gate::authorize('manage', BenefitSchedule::class);
         $this->assignmentReview = null;
@@ -46,6 +47,7 @@ class SeniorRecord extends Component
         $senior = SeniorCitizen::findOrFail($this->seniorId);
         abort_unless($senior->status->value === 'VERIFIED' && $senior->verified_at && $senior->id_generated_at && $senior->osca_id_number && ! $senior->died_on && ! $senior->death_declared_at, 422, 'Register, verify and generate the OSCA ID before assigning benefits.');
         $program = Program::findOrFail($data['programId']);
+        $assignments->ensurePensionAvailable($senior, $program);
         $active = $senior->activeAssignments()->get(['id', 'program_id']);
         if ($active->isNotEmpty() && ! $active->contains('program_id', $program->id)) {
             throw ValidationException::withMessages(['programId' => 'Choose one of the existing active program assignments.']);
@@ -105,13 +107,14 @@ class SeniorRecord extends Component
         $this->notice = 'OSCA ID generated. The issuance date is recorded for eligibility.';
     }
 
-    public function reviewClassifications(): void
+    public function reviewClassifications(SeniorEligibilityRecord $service): void
     {
         Gate::authorize('manage', BenefitSchedule::class);
         $validated = $this->validate([
             'classifications.is_bedridden' => ['required', 'boolean'], 'classifications.is_indigent' => ['required', 'boolean'],
             'classifications.has_national_pension' => ['required', 'boolean'], 'classifications.has_local_pension' => ['required', 'boolean'],
         ]);
+        $service->validatePensionClassifications(SeniorCitizen::findOrFail($this->seniorId), $validated['classifications']);
         $this->classificationReview = $validated['classifications'];
         $this->notice = '';
     }
@@ -124,6 +127,7 @@ class SeniorRecord extends Component
     public function updatedClassifications(): void
     {
         $this->classificationReview = null;
+        $this->resetValidation('pension');
     }
 
     public function saveClassifications(SeniorEligibilityRecord $service): void
@@ -137,11 +141,17 @@ class SeniorRecord extends Component
 
     public function render()
     {
+        $senior = SeniorCitizen::with('activeAssignments.program')->findOrFail($this->seniorId);
+
         return view('livewire.benefits.senior-record', [
-            'senior' => SeniorCitizen::with('activeAssignments.program')->findOrFail($this->seniorId),
+            'senior' => $senior,
             'classificationLabels' => self::CLASSIFICATION_LABELS,
-            'programs' => Program::query()->where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name']),
-            'entitlements' => BenefitEntitlement::query()->where('senior_citizen_id', $this->seniorId)->with(['program', 'payments' => fn ($query) => $query->latest('paid_at')->latest('id'), 'payments.recordedBy'])->latest('id')->paginate(10, ['*'], 'seniorBenefitsPage'),
+            'unavailablePensions' => BenefitAssignment::unavailablePensionPrograms($senior),
+            'activeProgramCodes' => $senior->activeAssignments->pluck('program.benefit_code'),
+            'programs' => Program::query()->where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name', 'benefit_code']),
+            'entitlements' => BenefitEntitlement::query()->whereBelongsTo($senior)->where('status', BenefitStatus::Claimed)
+                ->with(['program', 'payments' => fn ($query) => $query->whereNull('reversed_at')->latest('paid_at')->latest('id'), 'payments.recordedBy'])
+                ->latest('id')->paginate(10, ['*'], 'seniorBenefitsPage'),
         ]);
     }
 }

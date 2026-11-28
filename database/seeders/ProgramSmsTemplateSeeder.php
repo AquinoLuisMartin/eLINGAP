@@ -36,8 +36,11 @@ class ProgramSmsTemplateSeeder extends Seeder
                     $name = Str::limit($program->name, 120, '');
                     $body = "OSCA | {$program->name}\n{$purpose}\nPetsa: [Petsa]\nOras: [Oras]\nLugar: [Lugar/Venue]\nDalhin: OSCA ID o valid ID{$documents}. Kung pinapayagan ang kinatawan, kailangan ang authorization letter at valid ID ng kinatawan.\nDumating sa oras. Walang bayad; huwag magbigay ng pera o personal na impormasyon sa hindi awtorisadong tao.";
                     $template = SmsTemplate::query()->where('program_id', $program->id)->first()
-                        ?? SmsTemplate::query()->whereNull('program_id')->whereNull('superseded_by_id')->where('name', $name)->first()
-                        ?? new SmsTemplate(['name' => $name, 'body' => $body, 'is_active' => true]);
+                        ?? SmsTemplate::query()->whereNull('program_id')->whereNull('superseded_by_id')->where('name', $name)->first();
+                    if ($template === null && SmsTemplate::onlyTrashed()->where('program_id', $program->id)->exists()) {
+                        return;
+                    }
+                    $template ??= new SmsTemplate(['name' => $name, 'body' => $body, 'is_active' => true]);
                     $template->fill(['program_id' => $program->id])->save();
                     SmsTemplate::query()->whereKeyNot($template->id)->whereIn('name', [Str::limit($program->name, 85).' - Iskedyul', Str::limit($program->name, 85).' - Mga kinakailangan'])
                         ->update(['is_active' => false, 'superseded_by_id' => $template->id]);

@@ -46,6 +46,7 @@
                     @elseif ($schedule->status === 'APPROVED' && $entry->status->value === 'UNPAID')<button type="button" class="primary-button" wire:click="claim({{ $entry->id }})" data-confirm-title="Confirm receipt for {{ $entry->seniorCitizen->full_name }}?" data-confirm="Confirm the verified claimant received the cash payout." data-confirm-label="Confirm receipt" wire:loading.attr="disabled">Confirm payment</button>@endif
                 @endcan
                 @foreach ($entry->payments as $payment)<p wire:key="schedule-payment-{{ $payment->id }}" class="text-xs">{{ $payment->reversed_at ? 'Reversed claim' : 'Claimed' }}</p>@endforeach
+                @if ($entry->already_notified)<p class="text-xs">Already Notified</p>@endif
             </td></tr>
         @empty
             <tr><td colspan="6">No recipients currently assigned. Existing claims, missing eligibility, and previously assigned entitlements are excluded from automatic preparation.</td></tr>
@@ -64,12 +65,30 @@
                     <label class="field-label">SMS announcement<textarea wire:model="message" rows="10" maxlength="1600"></textarea><span class="field-helper">[PERIOD] and [AMOUNT] use each recipient's original entitlement.</span></label>
                     <button type="button" class="secondary-button" wire:click="previewSms" wire:loading.attr="disabled">Preview actual message and audience</button>
                     @if ($preview)
-                        <div class="rounded-lg border border-slate-200 p-4 dark:border-slate-700"><p class="text-sm">{{ $preview['eligible'] }} recipients / {{ $preview['excluded'] }} excluded</p><pre class="mt-3 whitespace-pre-wrap font-sans text-sm">{{ $preview['example'] ?: 'No eligible recipients with a valid SMS contact.' }}</pre></div>
-                        <label class="text-sm"><input type="checkbox" wire:model="smsApproved"> I reviewed and approve this message and audience.</label>
-                        <button type="button" class="primary-button" wire:click="sendSms" wire:loading.attr="disabled">Approve and queue SMS</button>
+                        <div class="rounded-lg border border-slate-200 p-4 dark:border-slate-700"><p class="text-sm">{{ $preview['eligible'] }} recipients / {{ $preview['excluded'] }} excluded ({{ $preview['already_notified'] ?? 0 }} Already Notified)</p><pre class="mt-3 whitespace-pre-wrap font-sans text-sm">{{ $preview['example'] ?: 'No recipients are eligible for a new payout SMS.' }}</pre></div>
+                        @if ($preview['eligible'] > 0)
+                            <label class="text-sm"><input type="checkbox" wire:model="smsApproved"> I reviewed and approve this message and audience.</label>
+                            <button type="button" class="primary-button" wire:click="sendSms" wire:loading.attr="disabled">Approve and queue SMS</button>
+                        @endif
                     @endif
                 </div>
             </details>
+            @if ($smsOnly)
+                <x-staff.table label="Payout SMS recipients" class="mt-4">
+                    <table><thead><tr><th scope="col">Senior / ID</th><th scope="col">Original period</th><th scope="col">SMS status</th></tr></thead><tbody>
+                        @forelse ($entries as $entry)
+                            <tr wire:key="sms-recipient-{{ $entry->id }}">
+                                <td>{{ $entry->seniorCitizen->full_name }}<p class="text-xs text-slate-500">{{ $entry->seniorCitizen->osca_id_number }}</p></td>
+                                <td>{{ $entry->period_key }}</td>
+                                <td>{{ $entry->already_notified ? 'Already Notified' : 'Not notified' }}</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="3">No recipients are assigned to this schedule.</td></tr>
+                        @endforelse
+                    </tbody></table>
+                </x-staff.table>
+                {{ $entries->links() }}
+            @endif
         @endif
     @endcan
 </x-benefit-panel>

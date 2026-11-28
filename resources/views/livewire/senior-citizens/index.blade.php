@@ -54,7 +54,7 @@
                     </div>
                     <div class="field-label min-w-0"><label data-select-label>Registration status</label><x-select label="Registration status" name="status" wire:model.live="status">
                             <option value="">All statuses</option>
-                            @foreach (\App\Enums\SeniorCitizenStatus::cases() as $statusOption)
+                            @foreach ([\App\Enums\SeniorCitizenStatus::Deceased, \App\Enums\SeniorCitizenStatus::Transferred] as $statusOption)
                                 <option wire:key="registry-status-{{ $statusOption->value }}" value="{{ $statusOption->value }}">{{ ucfirst(strtolower($statusOption->value)) }}</option>
                             @endforeach
                         </x-select>

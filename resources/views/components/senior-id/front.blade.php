@@ -8,7 +8,7 @@
     $contact = preg_replace('/^(?:\+63|0)(9\d{2})(\d{3})(\d{4})$/', '0$1-$2-$3', $senior->contact_number ?: ($senior->representative_contact ?? ''));
 @endphp
 <article class="id-card" aria-label="Front of senior citizen ID">
-    @if ($card['seal'])<img src="{{ $card['seal'] }}" class="id-seal" alt="Municipal seal">@endif
+    <img src="{{ $card['logo'] }}" class="id-seal" alt="eLINGAP logo">
     <header class="id-heading">
         <p class="id-republic">Republic of the Philippines</p>
         <p class="id-office" style="font-size: {{ $typography->fontSize($officeName, 38, 6.3, 4.0, 'DejaVu Serif', 'italic', false) }}pt">{{ $officeName }}</p>

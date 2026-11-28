@@ -1,11 +1,12 @@
 import templateState from './sms-template-state.js';
 
-export default function smsTemplateEditor({ key }) {
+export default function smsTemplateEditor({ key, deleteUrl }) {
     return {
         ...templateState(key),
         draft: null,
         error: '',
         notice: '',
+        deletionError: '',
         get displayedTemplates() {
             const templates = new Map(this.seedTemplates.map(template => [template.id, this.overrides[template.id] ?? template]));
             Object.values(this.overrides).filter(template => template.id.startsWith('local-'))
@@ -26,6 +27,19 @@ export default function smsTemplateEditor({ key }) {
             this.persistTemplate(template);
             this.notice = 'Template updated in this browser. Broadcast templates are synced.';
             this.$refs.editDialog.close();
+        },
+        deleteTemplate(id) {
+            this.notice = '';
+            this.deletionError = '';
+            if (id.startsWith('local-')) {
+                if (this.removeTemplateOverride(id)) this.notice = 'SMS template deleted in this browser.';
+                else this.deletionError = 'Could not delete this template from browser storage.';
+                return;
+            }
+
+            const form = this.$refs.deleteForm;
+            form.action = deleteUrl.replace('__template__', encodeURIComponent(id));
+            form.requestSubmit();
         },
     };
 }

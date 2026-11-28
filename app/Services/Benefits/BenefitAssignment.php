@@ -12,6 +12,23 @@ use Illuminate\Validation\ValidationException;
 
 class BenefitAssignment
 {
+    public const PENSION_CONFLICT = 'A senior citizen can receive only one social pension at a time.';
+
+    public static function unavailablePensionPrograms(SeniorCitizen $senior): array
+    {
+        return array_keys(array_filter([
+            Program::NATIONAL_PENSION => $senior->has_local_pension,
+            Program::LOCAL_PENSION => $senior->has_national_pension,
+        ]));
+    }
+
+    public function ensurePensionAvailable(SeniorCitizen $senior, Program $program): void
+    {
+        if (in_array($program->benefit_code, self::unavailablePensionPrograms($senior), true)) {
+            throw ValidationException::withMessages(['programId' => self::PENSION_CONFLICT]);
+        }
+    }
+
     public function resolve(SeniorCitizen $senior, Program $program): Beneficiary
     {
         Gate::authorize('manage', BenefitSchedule::class);
@@ -42,6 +59,7 @@ class BenefitAssignment
             abort_unless($senior->status->value === 'VERIFIED' && $senior->verified_at && $senior->id_generated_at && $senior->osca_id_number && ! $senior->died_on && ! $senior->death_declared_at, 422, 'Register, verify and generate the OSCA ID before assigning benefits.');
             $program = Program::query()->findOrFail($program->id);
             abort_unless($program->status === 'ACTIVE', 422, 'Only active programs may be assigned.');
+            $this->ensurePensionAvailable($senior, $program);
             if ($senior->activeAssignments()->where('program_id', '!=', $program->id)->exists()) {
                 throw ValidationException::withMessages(['programId' => 'Only one program may be active at a time. Resolve the existing assignment before assigning another program.']);
             }

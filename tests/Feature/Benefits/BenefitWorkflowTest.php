@@ -3,6 +3,7 @@
 namespace Tests\Feature\Benefits;
 
 use App\Enums\BenefitStatus;
+use App\Enums\SmsStatus;
 use App\Jobs\Benefits\PrepareBenefitRecipients;
 use App\Jobs\Sms\SendSmsJob;
 use App\Livewire\Administration\Dashboard;
@@ -539,6 +540,56 @@ class BenefitWorkflowTest extends TestCase
         $service->send($schedule, 'Benefit [PERIOD]', null, $preview['hash']);
     }
 
+    #[TestWith(['QUEUED'])]
+    #[TestWith(['SENT'])]
+    public function test_later_batches_skip_already_notified_recipients(string $status): void
+    {
+        Queue::fake();
+        $first = $this->senior();
+        $second = $this->senior();
+        $schedule = $this->schedule();
+        $this->approve($schedule);
+        $sms = app(BenefitSms::class);
+        $firstPreview = $sms->preview($schedule->fresh(), 'First payout notice', $first->barangay_id);
+        $firstStaff = auth()->user();
+        $otherStaff = User::factory()->create();
+        $composer = Livewire::actingAs($otherStaff)->test(SchedulePanel::class, ['scheduleId' => $schedule->id, 'smsOnly' => true])
+            ->set('message', 'Updated payout notice')->call('previewSms')->assertSet('preview.eligible', 2);
+
+        $this->actingAs($firstStaff);
+        $firstBlast = $sms->send($schedule, 'First payout notice', $first->barangay_id, $firstPreview['hash']);
+        $firstBlast->messages()->sole()->update(['status' => $status]);
+
+        $this->actingAs($otherStaff);
+        $composer->set('smsApproved', true)->call('sendSms')->assertHasErrors('sms');
+        $this->assertDatabaseCount('sms_messages', 1);
+        $composer->call('previewSms')->assertSet('preview.eligible', 1)->assertSet('preview.already_notified', 1)
+            ->assertSee('Already Notified')->set('smsApproved', true)->call('sendSms')->assertHasNoErrors();
+
+        $this->assertDatabaseCount('sms_messages', 2);
+        $this->assertDatabaseHas('sms_messages', ['senior_citizen_id' => $second->id, 'message' => 'Updated payout notice']);
+        $this->assertDatabaseMissing('sms_messages', ['senior_citizen_id' => $first->id, 'message' => 'Updated payout notice']);
+    }
+
+    public function test_payout_sms_can_be_queued_for_another_period_or_program(): void
+    {
+        Queue::fake();
+        $senior = $this->senior(['verified_at' => '2024-01-01', 'id_generated_at' => '2024-01-01',
+            'is_bedridden' => true, 'is_indigent' => true, 'classification_verified_at' => '2024-01-01']);
+        $sms = app(BenefitSms::class);
+        foreach ([['december-assistance', '2026'], ['december-assistance', '2025'], ['october-assistance', '2026']] as [$code, $period]) {
+            $payoutDate = $code === 'october-assistance' ? '2026-10-10 11:00:00' : '2026-12-10 11:00:00';
+            $schedule = $this->schedule($code, ['period_key' => $period, 'amount' => 500, 'scheduled_at' => $payoutDate]);
+            $this->approve($schedule);
+            $preview = $sms->preview($schedule->fresh(), 'Payout [PERIOD]', null);
+            $this->assertSame(1, $preview['eligible']);
+            $this->assertSame(0, $preview['already_notified']);
+            $this->assertSame($senior->id, $sms->send($schedule, 'Payout [PERIOD]', null, $preview['hash'])->messages()->sole()->senior_citizen_id);
+            $senior->activeAssignments()->update(['status' => 'INACTIVE']);
+        }
+        $this->assertDatabaseCount('sms_messages', 3);
+    }
+
     public function test_admin_can_review_but_cannot_manage_staff_workflow(): void
     {
         $senior = $this->senior();
@@ -927,12 +978,39 @@ class BenefitWorkflowTest extends TestCase
         $second = $this->schedule();
         app(BenefitScheduling::class)->reschedule($first->entitlements()->sole(), $second);
         $this->approve($second);
+        $nextBody = $sms->template($second);
+        $this->assertSame(1, $sms->preview($second->fresh(), $nextBody, null)['already_notified']);
         $gateway = $this->mock(SmsGateway::class);
         $gateway->shouldNotReceive('send');
         (new SendSmsJob($message->id))->handle($gateway);
         $this->assertSame('FAILED', $message->fresh()->status->value);
         $this->post(route('sms.messages.retry', $message))->assertStatus(422);
         $this->assertSame(BenefitStatus::Unpaid, $second->entitlements()->sole()->status);
+        $nextPreview = $sms->preview($second->fresh(), $nextBody, null);
+        $replacement = $sms->send($second, $nextBody, null, $nextPreview['hash'])->messages()->sole();
+        $this->assertSame($message->benefit_entitlement_id, $replacement->benefit_entitlement_id);
+        $this->post(route('sms.messages.retry', $message))->assertConflict();
+        $this->assertSame(SmsStatus::Failed, $message->fresh()->status);
+    }
+
+    public function test_a_failed_payout_message_can_be_retried_only_once_while_queued(): void
+    {
+        Queue::fake();
+        $this->senior();
+        $schedule = $this->schedule();
+        $this->approve($schedule);
+        $sms = app(BenefitSms::class);
+        $preview = $sms->preview($schedule->fresh(), 'Payout [PERIOD]', null);
+        $message = $sms->send($schedule, 'Payout [PERIOD]', null, $preview['hash'])->messages()->sole();
+        $message->update(['status' => SmsStatus::Failed]);
+        $failedPreview = $sms->preview($schedule->fresh(), 'Payout [PERIOD]', null);
+        $this->assertSame(1, $failedPreview['eligible']);
+        $this->assertNotSame($preview['hash'], $failedPreview['hash']);
+
+        $this->post(route('sms.messages.retry', $message))->assertRedirect()->assertSessionHas('status', 'Failed SMS queued for retry.');
+        $this->assertSame(SmsStatus::Queued, $message->fresh()->status);
+        $this->post(route('sms.messages.retry', $message))->assertConflict();
+        $this->assertDatabaseCount('sms_messages', 1);
     }
 
     public function test_background_preparation_is_bounded_and_replaying_a_chunk_does_not_duplicate_recipients(): void

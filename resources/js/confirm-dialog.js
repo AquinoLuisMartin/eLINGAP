@@ -28,12 +28,16 @@ export function confirmAction({ title = 'Please confirm', message = '', details 
     return new Promise(resolve => dialog.addEventListener('close', () => resolve(dialog.returnValue === 'confirm' && (!reviewRequired || checkbox.checked)), { once: true }));
 }
 
+export function selectedPrintRecords(form) {
+    return [...form.elements].filter(field => field.name === 'senior_ids[]' && field.checked && !field.disabled);
+}
+
 export function optionsFrom(element) {
     if (element.hasAttribute?.('data-confirm-review')) {
         const details = [['Action', element.dataset.confirmAction]];
         if (element.dataset.confirmRecord) details.push(['Senior citizen', element.dataset.confirmRecord]);
         if (element.elements) {
-            const selected = [...element.elements].filter(field => field.name === 'senior_ids[]' && field.checked);
+            const selected = selectedPrintRecords(element);
             if (selected.length) {
                 details.push(['Selected records', String(selected.length)]);
                 selected.forEach(field => details.push(['Senior citizen', field.dataset.seniorName]));

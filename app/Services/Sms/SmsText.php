@@ -35,6 +35,9 @@ class SmsText
     public static function mobile(?string $number): ?string
     {
         $digits = preg_replace('/[\s()-]/', '', $number ?? '');
+        if (preg_match('/^9\d{9}$/', $digits)) {
+            return '+63'.$digits;
+        }
         if (preg_match('/^09\d{9}$/', $digits)) {
             return '+63'.substr($digits, 1);
         }

@@ -34,16 +34,12 @@
                 View benefits <x-admin.icon name="arrow-up-right" :size="15" />
             </a>
         </div>
-        <dl class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            @foreach (BenefitStatus::cases() as $state)
-                @php
-                    $dot = match ($state) {
-                        BenefitStatus::Pending => 'bg-amber-500',
-                        BenefitStatus::Unpaid => 'bg-rose-500',
-                        BenefitStatus::Unclaimed => 'bg-blue-500',
-                        BenefitStatus::Claimed => 'bg-emerald-500',
-                    };
-                @endphp
+        <dl class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+            @foreach ([
+                [BenefitStatus::Pending, 'bg-amber-500'],
+                [BenefitStatus::Unclaimed, 'bg-blue-500'],
+                [BenefitStatus::Claimed, 'bg-emerald-500'],
+            ] as [$state, $dot])
                 <div class="min-w-0 rounded-md border border-[var(--line)] bg-[var(--paper)] px-3 py-2.5">
                     <dt class="flex items-center gap-2 text-sm text-[var(--muted)]">
                         <span aria-hidden="true" class="size-2 shrink-0 rounded-full {{ $dot }}"></span>
@@ -54,6 +50,29 @@
             @endforeach
         </dl>
     </section>
+
+    @if (isset($birthdays))
+        <section class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+            aria-labelledby="staff-birthdays-title" x-data="birthdayGreetings(@js(route('sms.messages.index')))"
+            @open-birthday-greetings.window="openList()">
+            <div class="space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h3 id="staff-birthdays-title" class="text-lg">Upcoming &amp; Today's Birthdays</h3>
+                    <button type="button" class="text-button hover:underline" aria-haspopup="dialog" aria-controls="birthday-greetings" @click="openList()">
+                        View all {{ number_format($birthdays->count()) }} <x-admin.icon name="arrow-up-right" :size="15" />
+                    </button>
+                </div>
+                <ul class="grid grid-cols-1 gap-3 md:grid-cols-3">
+                    @forelse ($birthdays->take(3) as $birthday)
+                        <x-staff.birthday-alert :birthday="$birthday" />
+                    @empty
+                        <li class="text-sm text-slate-600 dark:text-slate-300">No birthdays this week.</li>
+                    @endforelse
+                </ul>
+            </div>
+            <x-staff.birthday-greetings-dialog :birthdays="$birthdays" />
+        </section>
+    @endif
 
     <div class="grid items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         @include('dashboard.barangay-population')

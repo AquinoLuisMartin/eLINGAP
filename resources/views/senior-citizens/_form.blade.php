@@ -54,7 +54,7 @@
 </div>
 <div class="flex min-w-0 flex-col gap-[7px]">
     <label for="address" class="block font-medium">House No. / Street / Purok / Sitio / Subdivision</label>
-    <textarea id="address" name="address" rows="1" required class="mt-1 min-h-0 w-full overflow-y-auto rounded border p-2 uppercase">{{ old('address', $seniorCitizen->address ?? '') }}</textarea>
+    <textarea id="address" name="address" data-uppercase rows="1" required class="mt-1 min-h-0 w-full overflow-y-auto rounded border p-2 uppercase">{{ old('address', $seniorCitizen->address ?? '') }}</textarea>
 </div>
 @unless (isset($seniorCitizen))
 <div class="flex min-w-0 flex-col gap-[7px] md:col-span-2">

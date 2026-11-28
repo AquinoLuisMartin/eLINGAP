@@ -36,23 +36,19 @@ function page() {
     rows.ownerDocument = root;
     const button = node();
     button.isConnected = true;
-    const printForm = { action: '/print', querySelectorAll: () => [button], matches: () => true };
+    const printForm = { action: '/print', dataset: {}, elements: { namedItem: () => ({ value: 'a4' }) }, querySelectorAll: () => [button], matches: () => true };
     const event = target => ({ target, preventDefault() { this.defaultPrevented = true; }, stopImmediatePropagation() {} });
     return { root, dialog, form, save, later, inputs, viewer, popup, notices, dispatches, button, printForm, event };
-}
-
-function mockRequests(t, handler) {
-    t.mock.method(globalThis, 'fetch', handler);
-    const original = globalThis.FormData;
-    globalThis.FormData = class { constructor(form) { this.form = form; } };
-    t.after(() => { globalThis.FormData = original; });
 }
 
 test('a generated PDF opens completion without saving a print status; each batch record needs a choice', async t => {
     const ui = page();
     const posted = [];
-    mockRequests(t, async (url, options) => {
-        if (url === '/print') return new Response('synthetic-pdf', { headers: { 'Content-Type': 'application/pdf', 'X-ID-Print-Attempts': '[10,11]' } });
+    t.mock.method(globalThis, 'fetch', async (url, options) => {
+        if (url === '/print') {
+            assert.deepEqual(JSON.parse(options.body), { paper: 'a4' });
+            return new Response('synthetic-pdf', { headers: { 'Content-Type': 'application/pdf', 'X-ID-Print-Attempts': '[10,11]' } });
+        }
         if (url === '/pending') return Response.json({ attempts: [
             { id: 10, name: '<script>Synthetic One</script>', osca_id: 'SYN-1' },
             { id: 11, name: 'Synthetic Two', osca_id: 'SYN-2' },
@@ -90,10 +86,70 @@ test('a generated PDF opens completion without saving a print status; each batch
     assert.ok(ui.dispatches.includes('id-print-updated'));
 });
 
+function batchForm(form, layout, rows) {
+    form.dataset.idPrint = 'batch';
+    const fields = { paper: { value: 'a4' }, layout: { value: layout }, reviewed: { checked: true } };
+    form.elements = Object.assign(rows, { namedItem: name => fields[name] });
+}
+
+test('batch generation sends only checked, enabled row IDs as a JSON array', async t => {
+    const ui = page();
+    batchForm(ui.printForm, 'batch', [
+        { name: 'senior_ids[]', value: '', dataset: { seniorId: '42' }, checked: true },
+        { name: 'senior_ids[]', dataset: { seniorId: '43' }, checked: false },
+        { name: 'senior_ids[]', dataset: { seniorId: '44' }, checked: true, disabled: true },
+        { name: 'senior_ids[]', dataset: { seniorId: '45' }, checked: true },
+    ]);
+    const sent = [];
+    t.mock.method(globalThis, 'fetch', async (url, options) => {
+        if (url === '/pending') return Response.json({ attempts: [] });
+        sent.push(JSON.parse(options.body));
+        assert.equal(options.headers['Content-Type'], 'application/json');
+        assert.equal(options.headers['X-CSRF-TOKEN'], 'synthetic-csrf');
+        return new Response('synthetic-pdf', { headers: { 'Content-Type': 'application/pdf', 'X-ID-Print-Attempts': '[10,11]' } });
+    });
+    initPrintingCompletion(ui.root);
+
+    await ui.root.listeners.submit(ui.event(ui.printForm));
+
+    assert.deepEqual(sent, [{ paper: 'a4', layout: 'batch', reviewed: true, senior_ids: ['42', '45'] }]);
+    assert.equal(ui.viewer.location.href.startsWith('blob:'), true);
+});
+
+test('an invalid selection stops before opening a viewer or sending a printing request', async t => {
+    t.mock.method(globalThis, 'fetch', () => { assert.fail('Invalid selections cannot generate a PDF.'); });
+    for (const [layout, count] of [['batch', 0], ['batch', 5], ['single', 2]]) {
+        const ui = page();
+        const rows = Array.from({ length: count }, (_, index) => ({ name: 'senior_ids[]', dataset: { seniorId: String(index + 1) }, checked: true }));
+        batchForm(ui.printForm, layout, rows);
+        ui.root.defaultView.open = () => assert.fail('Invalid selections cannot open a viewer.');
+        initPrintingCompletion(ui.root);
+
+        const submitting = ui.root.listeners.submit(ui.event(ui.printForm));
+
+        assert.match(ui.notices['[data-confirm-message]'].textContent, /Select (exactly one|one to four) ID/);
+        ui.popup.close();
+        await submitting;
+    }
+});
+
+test('a row without its registration ID is rejected before submitting', async t => {
+    const ui = page();
+    batchForm(ui.printForm, 'single', [{ name: 'senior_ids[]', dataset: {}, value: '', checked: true }]);
+    ui.root.defaultView.open = () => assert.fail('A missing ID cannot open a viewer.');
+    t.mock.method(globalThis, 'fetch', () => assert.fail('A missing ID cannot be sent.'));
+    initPrintingCompletion(ui.root);
+
+    const submitting = ui.root.listeners.submit(ui.event(ui.printForm));
+    assert.match(ui.notices['[data-confirm-message]'].textContent, /no valid registration ID/);
+    ui.popup.close();
+    await submitting;
+});
+
 test('blocked popups never start generation and report the error in a popup', async t => {
     const ui = page();
     ui.root.defaultView.open = () => null;
-    mockRequests(t, () => { assert.fail('Generation must not start without a PDF window.'); });
+    t.mock.method(globalThis, 'fetch', () => { assert.fail('Generation must not start without a PDF window.'); });
     initPrintingCompletion(ui.root);
     const submitting = ui.root.listeners.submit(ui.event(ui.printForm));
     assert.equal(ui.popup.open, true);
@@ -105,7 +161,7 @@ test('blocked popups never start generation and report the error in a popup', as
 test('later preserves unresolved results without posting a completion', async t => {
     const ui = page();
     const requests = [];
-    mockRequests(t, async url => {
+    t.mock.method(globalThis, 'fetch', async url => {
         requests.push(url);
         return Response.json({ attempts: [{ id: 10, name: 'Synthetic One', osca_id: 'SYN-1' }] });
     });
@@ -120,7 +176,7 @@ test('loading or refreshing a printing workspace does not automatically open com
     const ui = page();
     ui.root.querySelector = () => ({ dataset: { printWorkspace: '' } });
     const requests = [];
-    mockRequests(t, async url => {
+    t.mock.method(globalThis, 'fetch', async url => {
         requests.push(url);
         return Response.json({ attempts: [{ id: 10, name: 'Synthetic One', osca_id: 'SYN-1' }] });
     });

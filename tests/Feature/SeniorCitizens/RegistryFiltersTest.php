@@ -62,6 +62,69 @@ class RegistryFiltersTest extends TestCase
             ->assertViewHas('seniorCitizens', fn ($records) => $records->modelKeys() === [$second->id, $first->id]);
     }
 
+    public function test_registration_status_filter_offers_deceased_transferred_and_all_statuses(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $barangay = Barangay::create(['name' => 'Synthetic North', 'code' => 'SYN-N']);
+        $verified = $this->senior($barangay);
+        $deceased = $this->senior($barangay, ['status' => 'DECEASED']);
+        $transferred = $this->senior($barangay, ['status' => 'TRANSFERRED']);
+        $component = Livewire::test(Index::class);
+
+        $document = new \DOMDocument;
+        @$document->loadHTML($component->html());
+        $options = (new \DOMXPath($document))->query('//select[@name="status"]/option');
+        $this->assertSame(['' => 'All statuses', 'DECEASED' => 'Deceased', 'TRANSFERRED' => 'Transferred'],
+            collect($options)->mapWithKeys(fn ($option) => [$option->getAttribute('value') => trim($option->textContent)])->all());
+
+        $component->set('status', 'DECEASED')
+            ->assertViewHas('seniorCitizens', fn ($records) => $records->modelKeys() === [$deceased->id])
+            ->set('status', 'TRANSFERRED')
+            ->assertViewHas('seniorCitizens', fn ($records) => $records->modelKeys() === [$transferred->id])
+            ->set('status', '')
+            ->assertViewHas('seniorCitizens', fn ($records) => $records->modelKeys() === [$transferred->id, $deceased->id, $verified->id]);
+    }
+
+    public function test_program_filter_counts_and_paginates_only_resolved_active_assignments(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $barangay = Barangay::create(['name' => 'Synthetic North', 'code' => 'SYN-N']);
+        $this->seed(BenefitProgramSeeder::class);
+        $program = Program::where('benefit_code', 'lgu-age-100')->sole();
+        $other = Program::where('benefit_code', 'lgu-age-90')->sole();
+        $assign = fn (SeniorCitizen $senior, Program $program, string $status = 'ACTIVE') => Beneficiary::create([
+            'senior_citizen_id' => $senior->id, 'program_id' => $program->id, 'status' => $status, 'enrolled_on' => today(),
+        ]);
+
+        $matching = collect([65, 75, ...array_fill(0, 14, 100)])->map(function (int $age) use ($barangay, $program, $assign): int {
+            $senior = $this->senior($barangay, ['birth_date' => today()->subYearsNoOverflow($age)]);
+            $assign($senior, $program);
+
+            return $senior->id;
+        })->reverse()->values()->all();
+
+        $conflict = $this->senior($barangay);
+        $assign($conflict, $program);
+        $assign($conflict, $other);
+        $assign($this->senior($barangay), $program, 'INACTIVE');
+        $otherSenior = $this->senior($barangay);
+        $assign($otherSenior, $other);
+        $this->senior($barangay);
+
+        $counts = ['Total registry' => 16, 'Age 60–69' => 1, 'Age 70–79' => 1, 'Age 80+' => 14];
+        $this->get(route('senior-citizens.index', ['program_id' => $program->id]))->assertOk()
+            ->assertViewHas('counts', $counts)
+            ->assertViewHas('seniorCitizens', fn ($rows) => $rows->modelKeys() === array_slice($matching, 0, 15));
+
+        Livewire::test(Index::class)->call('gotoPage', 2)->set('programId', (string) $program->id)
+            ->assertSet('paginators.page', 1)->assertViewHas('counts', $counts)
+            ->assertViewHas('seniorCitizens', fn ($rows) => $rows->total() === 16 && $rows->lastPage() === 2 && $rows->modelKeys() === array_slice($matching, 0, 15))
+            ->call('nextPage')->assertSet('paginators.page', 2)->assertViewHas('counts', $counts)
+            ->assertViewHas('seniorCitizens', fn ($rows) => $rows->modelKeys() === [$matching[15]])
+            ->set('programId', (string) $other->id)->assertSet('paginators.page', 1)
+            ->assertViewHas('seniorCitizens', fn ($rows) => $rows->total() === 1 && $rows->lastPage() === 1 && $rows->modelKeys() === [$otherSenior->id]);
+    }
+
     public function test_current_filters_survive_navigation_to_a_record(): void
     {
         $this->actingAs(User::factory()->create());

@@ -3,7 +3,7 @@
 <x-workspace-navigation section="payouts" />
 <div class="w-full min-w-0 max-w-full space-y-5">
 <x-staff.page-header :title="$selectedScheduleId ? 'Review payout schedule' : 'New payout schedule'">
-    <a href="{{ route('payout-schedules.index') }}" class="secondary-button">&larr; Back to schedules</a>
+    <a href="{{ route('payout-schedules.index') }}" class="primary-button">&larr; Back to schedules</a>
 </x-staff.page-header>
 @if ($selectedScheduleId)
     <p class="mb-5 text-lg font-medium">{{ $selectedProgram->name }}</p>
@@ -17,7 +17,7 @@
             @if ($canScheduleBenefits)<option value="other" @selected($selectedProgramId === 'other')>Other - enter a new program</option>@endif
         </x-select>
     </div>
-    <div class="flex justify-end"><button type="submit" class="secondary-button w-full sm:w-auto">{{ $selectedProgramId ? 'Change program' : 'Continue to schedule details' }}</button></div>
+    <div class="flex justify-end"><x-button type="submit" class="w-full sm:w-auto">{{ $selectedProgramId ? 'Change program' : 'Continue to schedule details' }}</x-button></div>
 </form>
 @endif
 @if ($selectedProgramId && $useBenefitForm)

@@ -37,7 +37,7 @@ class IdCardLayoutTest extends TestCase
             'osca_id_number' => $draft ? null : '26-0001', 'id_generated_at' => $draft ? null : '2026-10-15']);
         $senior->setRelation('barangay', new Barangay(['name' => 'Sample Barangay']));
         $image = 'data:image/jpeg;base64,'.base64_encode(file_get_contents(base_path('tests/Fixtures/id-photo.jpg')));
-        $card = ['senior' => $senior, 'draft' => $draft, 'age' => 76, 'seal' => $image, 'qr' => $image,
+        $card = ['senior' => $senior, 'draft' => $draft, 'age' => 76, 'logo' => $image, 'qr' => $image,
             'address' => app(IdCardAddress::class)->format($address, 'Sample Barangay', ['municipality' => 'Santa Maria', 'province' => 'Bulacan']),
             'office' => ['office_name' => 'Office for Senior Citizens Affairs', 'organization_name' => 'Municipality of Santa Maria'],
             'headSignature' => $signatures ? $image : null, 'mayorSignature' => $signatures ? $image : null,

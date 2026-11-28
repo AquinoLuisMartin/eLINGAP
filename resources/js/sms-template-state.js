@@ -38,6 +38,21 @@ export default function templateState(key) {
             if (!validTemplate(template)) return;
             this.overrides = { ...readTemplates(key), ...this.overrides, [template.id]: template };
             try { window.localStorage.setItem(key, JSON.stringify(this.overrides)); } catch {}
+            this.publishTemplates();
+        },
+        removeTemplateOverride(id) {
+            const remaining = { ...readTemplates(key), ...this.overrides };
+            delete remaining[id];
+            try {
+                window.localStorage.setItem(key, JSON.stringify(remaining));
+            } catch {
+                return false;
+            }
+            this.overrides = remaining;
+            this.publishTemplates();
+            return true;
+        },
+        publishTemplates() {
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('sms-templates-updated', { detail: { key, templates: this.overrides } }));
             }

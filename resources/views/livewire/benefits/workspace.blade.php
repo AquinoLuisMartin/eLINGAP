@@ -14,7 +14,8 @@
             <details class="min-w-0" @if(!$selectedSchedule) open @endif>
                 <summary class="cursor-pointer text-lg font-semibold">Create a schedule or tracking batch</summary>
             @endif
-                <form wire:submit="createSchedule" class="schedule-form schedule-editor mt-4 grid w-full grid-cols-1 items-start gap-5">
+                <form wire:submit="createSchedule" x-data="payoutDateTime($wire.entangle('form.scheduled_at'), $wire.entangle('form.ends_at'))"
+                    @submit.capture="validateRange($event)" class="schedule-form schedule-editor mt-4 grid w-full grid-cols-1 items-start gap-5">
                     <div class="schedule-fields grid min-w-0 gap-4">
                     @unless ($payoutMode)
                         <div class="field-label"><label data-select-label>Program</label><x-select label="Program" wire:model.live="form.program_id" required><option value="">Select program</option>@foreach ($programs as $program)<option wire:key="schedule-program-{{ $program->id }}" value="{{ $program->id }}">{{ $program->name }}{{ $program->status === 'UPCOMING' ? ' (Upcoming)' : '' }}</option>@endforeach<option value="other">Other - enter a new program</option></x-select></div>
@@ -29,11 +30,15 @@
                             <p class="text-sm text-slate-500">Configure milestone ages and cutoffs in <a class="text-button" href="{{ route('benefits.programs') }}">Program rules</a>.</p>
                         </fieldset>
                     @endif
-                    <div class="flex flex-wrap items-start gap-3" x-data="payoutDateTime($wire.entangle('form.scheduled_at'), $wire.entangle('form.ends_at'))">
+                    <div class="flex flex-wrap items-start gap-3">
                         <label class="field-label w-full sm:w-56"><span data-field-label>Payout date</span><input x-model="date" @input="update()" type="date" :min="$wire.form.eligibility_on" data-validation-field="form.scheduled_at" required></label>
                         <x-payout-time-input label="Start time" />
                         <x-payout-time-input label="End time" :end="true" />
-                        <p x-show="time && endTime" class="field-helper basis-full" aria-live="polite" x-text="time && endTime ? 'Payout: ' + hour + ':' + minute + ' ' + period + ' to ' + endHour + ':' + endMinute + ' ' + endPeriod + ' (Philippine time).' : ''"></p>
+                        @php($endTimeError = $errors->first('form.ends_at'))
+                        <p id="payout-end-time-error" class="field-error basis-full" role="alert" @unless ($endTimeError) x-cloak @endunless
+                            x-show="rangeError || (@js((bool) $endTimeError) && value === @js($form['scheduled_at']) && endValue === @js($form['ends_at']))"
+                            x-text="rangeError || @js($endTimeError)">{{ $endTimeError }}</p>
+                        <p x-show="time && endTime && !rangeError" class="field-helper basis-full" aria-live="polite" x-text="time && endTime && !rangeError ? 'Payout: ' + hour + ':' + minute + ' ' + period + ' to ' + endHour + ':' + endMinute + ' ' + endPeriod + ' (Philippine time).' : ''"></p>
                     </div>
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <label class="field-label"><span data-field-label>Payout location</span><input wire:model="form.location" required maxlength="250" placeholder="Enter payout venue"></label>
@@ -42,7 +47,6 @@
                     <section class="grid grid-cols-1 gap-x-4 gap-y-3 border-t border-[var(--line)] pt-4 sm:grid-cols-2" aria-labelledby="schedule-funding-heading">
                         <h4 id="schedule-funding-heading" class="text-base font-semibold sm:col-span-2">Funding</h4>
                         <label class="field-label"><span data-field-label>Cash aid per recipient (PHP)</span><input wire:model="form.amount" type="text" inputmode="decimal" aria-describedby="schedule-amount-help"><span id="schedule-amount-help" class="field-helper">Blank = pending funding. Milestones use program amounts.</span></label>
-                        <label class="field-label"><span data-field-label>Funds available for this schedule (PHP)</span><input wire:model="form.available_funds" type="text" inputmode="decimal" required></label>
                         @if ($form['program_id'] === 'other' || $selectedProgram?->status === 'UPCOMING')
                             <label class="flex items-start gap-2 text-sm sm:col-span-2"><input type="checkbox" wire:model="historicalClaimsChecked" class="mt-1 shrink-0" required><span data-field-label>I reviewed the program rules and historical claims. Activate this program when the schedule is created.</span></label>
                         @endif

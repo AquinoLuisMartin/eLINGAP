@@ -277,6 +277,22 @@ class IdPrintWorkflowTest extends TestCase
         Livewire::test(IdReprintApprovals::class)->assertForbidden();
     }
 
+    public function test_batch_request_only_generates_print_attempts_for_up_to_four_selected_ids(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $ids = array_map(fn (int $number) => $this->senior($number)->id, range(1, 5));
+        $input = ['paper' => 'a4', 'layout' => 'batch', 'reviewed' => true];
+
+        $this->postJson(route('senior-id.batch-print'), [...$input, 'senior_ids' => $ids])
+            ->assertUnprocessable()->assertJsonValidationErrors('senior_ids');
+        $this->assertDatabaseEmpty('id_print_attempts');
+
+        $selected = [$ids[0], $ids[1], $ids[3], $ids[4]];
+        $this->postJson(route('senior-id.batch-print'), [...$input, 'senior_ids' => array_map('strval', $selected)])
+            ->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertSame($selected, IdPrintAttempt::query()->orderBy('senior_citizen_id')->pluck('senior_citizen_id')->all());
+    }
+
     public function test_batch_confirmations_are_individual_and_allow_only_approved_reprints(): void
     {
         $this->actingAs(User::factory()->create());
@@ -284,7 +300,8 @@ class IdPrintWorkflowTest extends TestCase
         $second = $this->senior(2);
         $input = ['senior_ids' => [$first->id, $second->id], 'paper' => 'short', 'reviewed' => true];
 
-        $this->post(route('senior-id.batch-print'), $input)->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->postJson(route('senior-id.batch-print'), [...$input, 'senior_ids' => [(string) $first->id, (string) $second->id], 'layout' => 'batch'])
+            ->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertSame(2, IdPrintAttempt::where('status', 'GENERATED')->count());
         app(IdPrinting::class)->confirm($first->idPrintAttempts()->sole());
         $this->assertSame('CONFIRMED', $first->idPrintAttempts()->sole()->status);

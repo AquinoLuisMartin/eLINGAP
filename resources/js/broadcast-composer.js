@@ -1,13 +1,5 @@
 import templateState from './sms-template-state.js';
 
-export const broadcastGuidance = 'OSCA: Abiso para sa mga nakumpirmang benepisyaryo.\nPetsa: [Petsa]\nOras: [Oras]\nLugar: [Lugar/Venue]\nDalhin ang OSCA ID o valid ID. Kung pinapayagan ang kinatawan, magdala ng authorization letter at valid ID ng kinatawan. Dumating sa oras. Walang bayad; mag-ingat sa hindi awtorisadong tao.';
-
-export function templateCopy(body = '') {
-    const text = body.trim();
-    if ([['[Petsa]', '[Oras]', '[Lugar/Venue]'], ['(Insert Venue/Place)', '(Insert Date)', '(Insert Time)']].some(tags => tags.every(tag => text.includes(tag)))) return text;
-    return text ? `${text.slice(0, 1600 - broadcastGuidance.length - 2)}\n\n${broadcastGuidance}` : broadcastGuidance;
-}
-
 export default function broadcastComposer({ eligible = 0, excluded = 0, barangay = '', program = '', audienceUrl = '', key = 'sms-templates', message = '' } = {}) {
     const templates = templateState(key);
     return {
@@ -32,11 +24,6 @@ export default function broadcastComposer({ eligible = 0, excluded = 0, barangay
         audienceError: '',
         audienceRequest: 0,
         selectedTemplate: '',
-        previousTemplate: '',
-        get localTemplates() { return Object.values(this.overrides).filter(template => template.id.startsWith('local-')); },
-        templateTitle: '',
-        templateBody: broadcastGuidance,
-        templateError: '',
 
         programTemplates() {
             return this.availableTemplates().filter(template => {
@@ -48,7 +35,6 @@ export default function broadcastComposer({ eligible = 0, excluded = 0, barangay
         matchProgramTemplate() {
             const template = this.program ? this.programTemplates()[0] : null;
             this.selectedTemplate = template?.id ?? '';
-            this.previousTemplate = this.selectedTemplate;
             this.broadcastBody = template?.body ?? '';
             if (this.$refs.confirmed) this.$refs.confirmed.checked = false;
             this.syncMessage();
@@ -84,37 +70,12 @@ export default function broadcastComposer({ eligible = 0, excluded = 0, barangay
             }
         },
 
-        chooseTemplate(event) {
-            if (event.target.value === '__new__') {
-                this.selectedTemplate = this.previousTemplate;
-                this.templateTitle = '';
-                this.templateBody = broadcastGuidance;
-                this.templateError = '';
-                this.$nextTick(() => this.$refs.templateDialog.showModal());
-                return;
-            }
-            this.previousTemplate = event.target.value;
-            const option = event.target.selectedOptions[0];
-            if (option?.dataset.body) {
-                this.broadcastBody = event.target.value.startsWith('local-') ? option.dataset.body : templateCopy(option.dataset.body);
-                this.syncMessage();
-            }
-        },
+        chooseTemplate(id) {
+            const template = this.programTemplates().find(template => template.id === id);
+            if (!template) return;
 
-        saveTemplate() {
-            const title = this.templateTitle.trim();
-            const body = this.templateBody.trim();
-            if (!title || !body || title.length > 120 || body.length > 1600) {
-                this.templateError = 'Enter a title (up to 120 characters) and a message (up to 1600 characters).';
-                return;
-            }
-            const id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-            this.persistTemplate({ id, title, body, active: true, programId: this.program || null });
-            this.selectedTemplate = id;
-            this.previousTemplate = id;
-            this.broadcastBody = body;
+            this.broadcastBody = template.body;
             this.syncMessage();
-            this.$refs.templateDialog.close();
         },
 
         syncMessage() {

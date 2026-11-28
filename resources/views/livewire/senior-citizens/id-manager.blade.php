@@ -95,8 +95,8 @@
                 <figure class="min-w-0 overflow-x-auto"><figcaption class="mb-3 text-center text-sm font-semibold text-(--navy) dark:text-slate-100">Front of ID</figcaption><div class="mx-auto w-fit lg:[zoom:1.1]"><x-senior-id.front :card="$card" /></div></figure>
                 <figure class="min-w-0 overflow-x-auto"><figcaption class="mb-3 text-center text-sm font-semibold text-(--navy) dark:text-slate-100">Back of ID</figcaption><div class="mx-auto w-fit lg:[zoom:1.1]"><x-senior-id.back :card="$card" /></div></figure>
             </div>
-            @if (empty($card['officials']['osca_head_name']) || empty($card['officials']['municipal_mayor_name']) || !$card['seal'])
-                <p class="mt-4 text-sm text-amber-800 dark:text-amber-200">Official names or the municipal seal are missing. Open Official card settings above to complete them here.</p>
+            @if (empty($card['officials']['osca_head_name']) || empty($card['officials']['municipal_mayor_name']))
+                <p class="mt-4 text-sm text-amber-800 dark:text-amber-200">Open Official card settings above to add the missing official names.</p>
             @endif
             <label class="mt-6 flex cursor-pointer items-start gap-3 text-sm">
                 <input type="checkbox" wire:model="reviewed" class="mt-1 shrink-0" aria-required="true" aria-describedby="card-review-description">

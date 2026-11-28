@@ -1,4 +1,4 @@
-import { confirmAction } from './confirm-dialog.js';
+import { confirmAction, selectedPrintRecords } from './confirm-dialog.js';
 
 export function printResults(form) {
     return [...form.querySelectorAll('input[data-print-outcome]:checked')].map(input => ({
@@ -62,7 +62,8 @@ export function renderPrintResults(container, attempts) {
 export async function printingResponse(response) {
     if (response.ok) return response;
     const data = await response.json().catch(() => ({}));
-    throw new Error(Object.values(data.errors || {}).flat().join(' ') || data.message || 'The printing request could not be completed. Please try again.');
+    const errors = [...new Set(Object.values(data.errors || {}).flat())];
+    throw new Error(errors.join(' ') || data.message || 'The printing request could not be completed. Please try again.');
 }
 
 export default function initPrintingCompletion(root = document) {
@@ -126,6 +127,25 @@ export default function initPrintingCompletion(root = document) {
         event.preventDefault();
         event.stopImmediatePropagation();
         if (generating) return;
+
+        const fields = printForm.elements;
+        const payload = { paper: fields.namedItem('paper').value };
+        if (printForm.dataset.idPrint === 'batch') {
+            payload.layout = fields.namedItem('layout').value;
+            payload.reviewed = fields.namedItem('reviewed').checked;
+            payload.senior_ids = selectedPrintRecords(printForm).map(field => field.dataset.seniorId);
+            if (payload.senior_ids.some(id => !/^[1-9]\d*$/.test(id))) {
+                await popup('Printing Error', 'A selected row has no valid registration ID. Refresh the page and select the records again.');
+                return;
+            }
+            const single = payload.layout === 'single';
+            const limit = single ? 1 : 4;
+            if (payload.senior_ids.length < 1 || payload.senior_ids.length > limit) {
+                await popup('Printing Error', single ? 'Select exactly one ID for single printing.' : 'Select one to four IDs for batch printing.');
+                return;
+            }
+        }
+
         const viewer = root.defaultView.open('', '_blank');
         if (!viewer) {
             await popup('Printing Error', 'Allow pop-ups for this portal, then try printing again.');
@@ -137,7 +157,8 @@ export default function initPrintingCompletion(root = document) {
         buttons.forEach(button => { button.disabled = true; });
         try {
             const response = await printingResponse(await fetch(printForm.action, {
-                method: 'POST', body: new FormData(printForm), headers: { Accept: 'application/json' },
+                method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf() },
+                body: JSON.stringify(payload),
             }));
             if (!response.headers.get('Content-Type')?.includes('application/pdf')) throw new Error('The print-ready PDF was not returned. Please sign in again if your session expired.');
             const ids = JSON.parse(response.headers.get('X-ID-Print-Attempts'));

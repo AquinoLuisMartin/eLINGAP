@@ -81,7 +81,7 @@ class BatchIdLayoutTest extends TestCase
         $senior->setRelation('barangay', new Barangay(['name' => 'Synthetic Barangay']));
         $image = 'data:image/jpeg;base64,'.base64_encode(file_get_contents(base_path('tests/Fixtures/id-photo.jpg')));
 
-        return ['senior' => $senior, 'draft' => false, 'age' => 76, 'seal' => $image, 'qr' => $image,
+        return ['senior' => $senior, 'draft' => false, 'age' => 76, 'logo' => $image, 'qr' => $image,
             'address' => app(IdCardAddress::class)->format('Synthetic street', 'Synthetic Barangay', ['municipality' => 'Santa Maria', 'province' => 'Bulacan']),
             'office' => ['office_name' => 'Synthetic office', 'organization_name' => 'Municipality of Santa Maria'],
             'headSignature' => null, 'mayorSignature' => null,

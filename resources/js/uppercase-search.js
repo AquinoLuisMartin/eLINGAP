@@ -14,12 +14,14 @@ export function uppercaseSearch(control) {
 }
 
 export default function initUppercaseSearch(root = document) {
+    const selector = '[data-uppercase-search], [data-uppercase]';
+
     root.addEventListener('input', event => {
-        if (!event.isComposing && event.target.matches?.('[data-uppercase-search]')) uppercaseSearch(event.target);
+        if (!event.isComposing && event.target.matches?.(selector)) uppercaseSearch(event.target);
     }, true);
 
     root.addEventListener('compositionend', event => {
-        if (event.target.matches?.('[data-uppercase-search]') && uppercaseSearch(event.target)) {
+        if (event.target.matches?.(selector) && uppercaseSearch(event.target)) {
             event.target.dispatchEvent(new Event('input', { bubbles: true }));
         }
     }, true);

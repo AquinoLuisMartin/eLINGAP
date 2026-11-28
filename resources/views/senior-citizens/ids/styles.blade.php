@@ -4,7 +4,7 @@
     .id-card * { box-sizing: border-box; }
     .id-card p, .id-card h2 { margin: 0; padding: 0; }
     .id-label { font-size: 5.8pt; font-weight: normal; line-height: 1.05; }
-    .id-seal { position: absolute; top: 3.1mm; left: 2.2mm; width: 16mm; height: 16mm; object-fit: contain; }
+    .id-seal { position: absolute; top: 3.1mm; left: 2.2mm; width: 16mm; height: auto; }
     .id-heading { position: absolute; top: 4.5mm; left: 18.8mm; width: 38mm; text-align: center; }
     .id-republic, .id-office { font-family: DejaVu Serif, Georgia, serif; font-size: 6.7pt; font-style: italic; line-height: 1.15; }
     .id-office { margin-top: 1.4mm !important; font-size: 6.3pt; }

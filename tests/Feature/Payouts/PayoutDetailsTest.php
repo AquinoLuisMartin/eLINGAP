@@ -468,7 +468,7 @@ class PayoutDetailsTest extends TestCase
         $this->assertDatabaseCount('benefit_payments', 0);
     }
 
-    public function test_reversed_claims_remain_in_history_when_a_replacement_payment_is_recorded(): void
+    public function test_reversed_claims_remain_in_payout_history_when_a_replacement_payment_is_recorded(): void
     {
         $staff = User::factory()->create();
         $this->actingAs($staff);
@@ -488,8 +488,8 @@ class PayoutDetailsTest extends TestCase
         $replacement = BenefitPayment::latest('id')->first();
         $this->assertSame([$replacement->id, $original->id], $modal->viewData('record')->payments->modelKeys());
         $history = Livewire::test(SeniorRecord::class, ['seniorId' => $entry->senior_citizen_id])
-            ->assertDontSee($replacement->reference_number)->assertDontSee($original->reference_number)->assertSee('Reversed claim')->assertSee('Claimed');
-        $this->assertSame([$replacement->id, $original->id], $history->viewData('entitlements')->first()->payments->modelKeys());
+            ->assertDontSee($replacement->reference_number)->assertDontSee($original->reference_number)->assertDontSee('Reversed claim')->assertSee('Claimed');
+        $this->assertSame([$replacement->id], $history->viewData('entitlements')->first()->payments->modelKeys());
     }
 
     public function test_announced_requirements_remain_required_while_national_claims_need_no_payment_reference(): void

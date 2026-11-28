@@ -57,6 +57,14 @@ class SeniorCitizenIdController extends Controller
             'paper' => ['required', Rule::in(array_keys(IdCardLayout::PAPERS))],
             'reviewed' => ['required', 'accepted'],
             'layout' => ['sometimes', 'required', 'in:single,batch'],
+        ], [
+            'senior_ids.required' => 'Select at least one ID to print.',
+            'senior_ids.min' => 'Select at least one ID to print.',
+            'senior_ids.max' => 'Select no more than four IDs for a batch.',
+            'senior_ids.*.required' => 'A selected ID is missing. Refresh the page and select the records again.',
+            'senior_ids.*.integer' => 'A selected ID is invalid. Refresh the page and select the records again.',
+            'senior_ids.*.distinct' => 'Select each ID only once.',
+            'senior_ids.*.exists' => 'A selected record is no longer available. Refresh the page and select the records again.',
         ]);
         if (($data['layout'] ?? 'batch') === 'single' && count($data['senior_ids']) !== 1) {
             throw ValidationException::withMessages(['senior_ids' => 'Select exactly one ID for the Single ID layout.']);

@@ -42,12 +42,13 @@ class PayoutTimeRangeTest extends TestCase
         $this->assertDatabaseCount('sms_messages', 0);
     }
 
-    #[TestWith([''])]
-    #[TestWith(['invalid'])]
-    #[TestWith(['2026-12-10T09:00'])]
-    #[TestWith(['2026-12-10T08:59'])]
-    #[TestWith(['2026-12-11T10:00'])]
-    public function test_end_time_must_be_later_on_the_same_payout_date(string $end): void
+    #[TestWith(['', 'The payout end time field is required.'])]
+    #[TestWith(['invalid', 'Choose a valid payout end time.'])]
+    #[TestWith(['2026-12-10T15:00+08:00', 'Choose a valid payout end time.'])]
+    #[TestWith(['2026-12-10T09:00', 'Choose an end time after the start time on the same payout date.'])]
+    #[TestWith(['2026-12-10T08:59', 'Choose an end time after the start time on the same payout date.'])]
+    #[TestWith(['2026-12-11T00:00', 'Choose an end time after the start time on the same payout date.'])]
+    public function test_end_time_must_be_later_on_the_same_payout_date(string $end, string $message): void
     {
         $this->travelTo(now()->setDate(2026, 12, 10)->setTime(8, 0));
         $this->actingAs(User::factory()->create());
@@ -57,10 +58,47 @@ class PayoutTimeRangeTest extends TestCase
         Livewire::test(Workspace::class, ['initialProgramId' => (string) $program->id])
             ->set('form.location', 'Synthetic venue')->set('historicalClaimsChecked', true)
             ->set('form.scheduled_at', '2026-12-10T09:00')->set('form.ends_at', $end)
-            ->call('createSchedule')->assertHasErrors('form.ends_at');
+            ->call('createSchedule')->assertHasErrors('form.ends_at')
+            ->assertSeeHtml('id="payout-end-time-error"')->assertSeeHtml('>'.e($message).'</p>');
 
         $this->assertDatabaseCount('benefit_schedules', 0);
         $this->assertSame('UPCOMING', $program->fresh()->status);
+    }
+
+    public function test_schedule_accepts_midnight_as_the_start_and_noon_as_the_end(): void
+    {
+        $this->travelTo(now()->setDate(2026, 12, 10)->setTime(8, 0));
+        $this->actingAs(User::factory()->create());
+        $this->seed(BenefitProgramSeeder::class);
+        $program = Program::where('benefit_code', 'december-assistance')->sole();
+
+        Livewire::test(Workspace::class, ['initialProgramId' => (string) $program->id])
+            ->set('form.location', 'Synthetic venue')->set('historicalClaimsChecked', true)
+            ->set('form.scheduled_at', '2026-12-10T00:00')->set('form.ends_at', '2026-12-10T12:00')
+            ->call('createSchedule')->assertHasNoErrors();
+
+        $this->assertSame('Dec 10, 2026 12:00 AM - 12:00 PM (Philippine time)', BenefitSchedule::sole()->payoutWindow());
+    }
+
+    #[TestWith(['24:00'])]
+    #[TestWith(['09:60'])]
+    #[TestWith(['a9:00'])]
+    #[TestWith(['09:a0'])]
+    #[TestWith(['009:00'])]
+    #[TestWith(['09:000'])]
+    public function test_start_and_end_reject_invalid_submitted_clock_values(string $time): void
+    {
+        $this->travelTo(now()->setDate(2026, 12, 10)->setTime(8, 0));
+        $this->actingAs(User::factory()->create());
+        $this->seed(BenefitProgramSeeder::class);
+        $program = Program::where('benefit_code', 'december-assistance')->sole();
+
+        Livewire::test(Workspace::class, ['initialProgramId' => (string) $program->id])
+            ->set('form.location', 'Synthetic venue')->set('historicalClaimsChecked', true)
+            ->set('form.scheduled_at', '2026-12-10T'.$time)->set('form.ends_at', '2026-12-10T'.$time)
+            ->call('createSchedule')->assertHasErrors(['form.scheduled_at' => 'date_format', 'form.ends_at' => 'date_format']);
+
+        $this->assertDatabaseEmpty('benefit_schedules');
     }
 
     public function test_existing_schedules_without_end_times_keep_their_original_time(): void

@@ -7,6 +7,7 @@ use App\Livewire\SeniorCitizens\IdManager;
 use App\Livewire\SeniorCitizens\IdOfficialSettings;
 use App\Models\AuditLog;
 use App\Models\Barangay;
+use App\Models\IdPrintAttempt;
 use App\Models\SeniorCitizen;
 use App\Models\SeniorCitizenIdCredential;
 use App\Models\SystemConfiguration;
@@ -354,6 +355,7 @@ class IdIssuanceTest extends TestCase
         $checkbox = (new \DOMXPath($document))->query('//input[@name="senior_ids[]" and @value="'.$senior->id.'"]')->item(0);
 
         $this->assertNotNull($checkbox);
+        $this->assertSame((string) $senior->id, $checkbox->getAttribute('data-senior-id'));
         $this->assertSame($disabled, $checkbox->hasAttribute('disabled'));
     }
 
@@ -511,18 +513,59 @@ class IdIssuanceTest extends TestCase
         $this->assertSame(67, app(IdCardLayout::class)->data($senior->fresh())['age']);
     }
 
-    public function test_printing_blocks_missing_qr_and_deceased_records(): void
+    public function test_printing_blocks_deceased_records_without_creating_a_credential(): void
     {
         Storage::fake('local');
         $this->actingAs(User::factory()->create());
-        $senior = $this->senior(['osca_id_number' => '26-0031', 'id_generated_at' => now()]);
-        $this->photo($senior);
-        $payload = ['paper' => 'long', 'purpose' => 'REPRINT'];
-        $this->post(route('senior-id.print', $senior), $payload)->assertStatus(422);
-        app(IdCredential::class)->createForIssued($senior);
-        $senior->update(['status' => 'DECEASED']);
-        $this->post(route('senior-id.print', $senior), $payload)->assertStatus(422);
+        $this->configureOfficials();
+        $senior = $this->senior(['osca_id_number' => '26-0031', 'id_generated_at' => now(), 'status' => 'DECEASED']);
+
+        $this->post(route('senior-id.print', $senior), ['paper' => 'long'])->assertUnprocessable();
+
+        $this->assertDatabaseEmpty('senior_citizen_id_credentials');
         $this->assertDatabaseMissing('audit_logs', ['action' => 'senior_citizen.id_print_generated']);
+    }
+
+    #[TestWith(['individual', 1])]
+    #[TestWith(['single', 1])]
+    #[TestWith(['single', 1, false])]
+    #[TestWith(['batch', 2])]
+    public function test_existing_ids_can_print_without_contacts_or_qr_credentials(string $layout, int $count, bool $issued = true): void
+    {
+        $this->freezeTime();
+        Storage::fake('local');
+        $this->actingAs(User::factory()->create());
+        $this->configureOfficials();
+        $issuedAt = $issued ? '2026-01-02 09:00:00' : null;
+        $seniors = collect(range(1, $count))->map(fn ($number) => $this->senior([
+            'osca_id_number' => '26-1000'.$number, 'id_generated_at' => $issuedAt, 'contact_number' => null,
+        ]));
+        $ids = $seniors->pluck('id')->map(strval(...))->all();
+
+        $response = $layout === 'individual'
+            ? $this->postJson(route('senior-id.print', $seniors->first()), ['paper' => 'a4'])
+            : $this->postJson(route('senior-id.batch-print'), ['paper' => 'a4', 'layout' => $layout, 'senior_ids' => $ids, 'reviewed' => true]);
+        $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $attempts = json_decode($response->headers->get('X-ID-Print-Attempts'), true);
+        $this->assertCount($count, $attempts);
+        $this->assertSame($seniors->pluck('id')->all(), IdPrintAttempt::orderBy('senior_citizen_id')->pluck('senior_citizen_id')->all());
+        $this->assertDatabaseCount('senior_citizen_id_credentials', $count);
+        $this->assertDatabaseCount('senior_citizens', $count);
+        $this->assertDatabaseEmpty('osca_id_numbers');
+        foreach ($seniors as $senior) {
+            $saved = $senior->fresh();
+            $this->assertSame($senior->osca_id_number, $saved->osca_id_number);
+            $this->assertSame($issuedAt ?? now()->toDateTimeString(), $saved->id_generated_at->toDateTimeString());
+            $this->assertSame('Pending Printing', $saved->idPrintingStatus());
+        }
+
+        $this->postJson(route('senior-id.printing.complete'), ['results' => [
+            ['attempt_id' => $attempts[0], 'result' => 'PRINTED'],
+        ]])->assertOk();
+        $this->assertSame('Printed', $seniors[0]->fresh()->idPrintingStatus());
+        if ($count === 2) {
+            $this->assertSame('Pending Printing', $seniors[1]->fresh()->idPrintingStatus());
+        }
     }
 
     public function test_printing_rejects_unsupported_paper(): void
@@ -532,7 +575,7 @@ class IdIssuanceTest extends TestCase
         $this->post(route('senior-id.print', $senior), ['paper' => 'legal', 'purpose' => 'OTHER'])->assertSessionHasErrors('paper');
     }
 
-    public function test_preview_uses_the_included_seal_without_an_uploaded_replacement(): void
+    public function test_preview_uses_the_elingap_logo(): void
     {
         Storage::fake('local');
         $this->actingAs(User::factory()->create());
@@ -540,24 +583,28 @@ class IdIssuanceTest extends TestCase
 
         $card = app(IdCardLayout::class)->data($senior, draft: true);
 
-        $this->assertSame(file_get_contents(public_path('images/lgu-seal.png')), base64_decode(explode(',', $card['seal'], 2)[1]));
+        $this->assertSame(file_get_contents(public_path('images/eLINGAP.png')), base64_decode(explode(',', $card['logo'], 2)[1]));
         Livewire::test(IdOfficialSettings::class)->assertSee('Using the included LGU seal.');
     }
 
-    public function test_removing_an_uploaded_seal_restores_the_included_seal(): void
+    public function test_removing_an_uploaded_seal_restores_the_transfer_seal_without_changing_the_id_logo(): void
     {
         Storage::fake('local');
         $this->actingAs(User::factory()->create());
         $this->configureOfficials();
         $senior = $this->senior();
-        $card = app(IdCardLayout::class)->data($senior, draft: true);
-        $this->assertSame(file_get_contents(base_path('tests/Fixtures/id-photo.jpg')), base64_decode(explode(',', $card['seal'], 2)[1]));
+        $before = app(IdCardLayout::class)->data($senior, draft: true);
+        $customSeal = app(IdAssets::class)->municipalSealDataUri($before['officials']['municipal_seal']);
+        $this->assertSame(file_get_contents(base_path('tests/Fixtures/id-photo.jpg')), base64_decode(explode(',', $customSeal, 2)[1]));
+        $this->assertSame(file_get_contents(public_path('images/eLINGAP.png')), base64_decode(explode(',', $before['logo'], 2)[1]));
 
         Livewire::test(IdOfficialSettings::class)->set('remove', ['municipal_seal'])->call('save')->assertHasNoErrors()
             ->assertSee('Using the included LGU seal.');
 
         $card = app(IdCardLayout::class)->data($senior, draft: true);
-        $this->assertSame(file_get_contents(public_path('images/lgu-seal.png')), base64_decode(explode(',', $card['seal'], 2)[1]));
+        $defaultSeal = app(IdAssets::class)->municipalSealDataUri($card['officials']['municipal_seal']);
+        $this->assertSame(file_get_contents(public_path('images/lgu-seal.png')), base64_decode(explode(',', $defaultSeal, 2)[1]));
+        $this->assertSame($before['logo'], $card['logo']);
     }
 
     public function test_printing_requires_official_names(): void
@@ -571,10 +618,10 @@ class IdIssuanceTest extends TestCase
         $this->assertDatabaseMissing('audit_logs', ['action' => 'senior_citizen.id_print_generated']);
     }
 
-    public function test_printing_uses_the_included_seal_without_an_uploaded_replacement(): void
+    public function test_printing_uses_the_elingap_logo_without_a_configured_seal(): void
     {
         if (! function_exists('imagecreatefrompng')) {
-            $this->markTestSkipped('PHP GD is required to print the included PNG seal.');
+            $this->markTestSkipped('PHP GD is required to print the included PNG logo.');
         }
 
         Storage::fake('local');
@@ -594,7 +641,7 @@ class IdIssuanceTest extends TestCase
     public function test_printing_continues_without_office_identity(): void
     {
         if (! function_exists('imagecreatefrompng')) {
-            $this->markTestSkipped('PHP GD is required to print the included PNG seal.');
+            $this->markTestSkipped('PHP GD is required to print the included PNG logo.');
         }
 
         Storage::fake('local');

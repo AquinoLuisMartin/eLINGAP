@@ -3,12 +3,14 @@
 namespace App\Services\Benefits;
 
 use App\Models\BenefitSchedule;
+use App\Models\Program;
 use App\Models\SeniorCitizen;
 use App\Services\SeniorCitizens\IdCredential;
 use App\Services\SeniorCitizens\OscaIdNumber;
 use App\Services\SeniorCitizens\SeniorRegistration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class SeniorEligibilityRecord
 {
@@ -46,7 +48,8 @@ class SeniorEligibilityRecord
         DB::transaction(function () use ($senior): void {
             SeniorRegistration::lockIdentityChanges();
             $senior = SeniorCitizen::query()->lockForUpdate()->findOrFail($senior->id);
-            abort_unless($senior->status->value === 'VERIFIED' && $senior->verified_at && $senior->smsContact(), 422, 'Verify the record before issuing its ID.');
+            abort_unless($senior->status->value === 'VERIFIED' && $senior->verified_at
+                && (filled($senior->osca_id_number) || $senior->smsContact()), 422, 'Verify the record before issuing its ID.');
             abort_if($senior->id_generated_at, 409, 'ID issuance is already recorded.');
             $senior->forceFill(['osca_id_number' => filled($senior->osca_id_number) ? $senior->osca_id_number : $this->numbers->next(), 'id_generated_at' => now()])->save();
             $this->credentials->ensure($senior);
@@ -67,6 +70,7 @@ class SeniorEligibilityRecord
             $senior = SeniorCitizen::query()->lockForUpdate()->findOrFail($senior->id);
             abort_unless($senior->status->value === 'VERIFIED', 422, 'Only verified records may be classified.');
             abort_unless($senior->verified_at && $senior->id_generated_at && $senior->osca_id_number, 422, 'Generate the OSCA ID before assigning benefits or classifications.');
+            $this->validatePensionClassifications($senior, $data);
             $fields = ['is_bedridden', 'is_indigent', 'has_national_pension', 'has_local_pension'];
             $before = $senior->only($fields);
             $senior->forceFill($data);
@@ -84,5 +88,15 @@ class SeniorEligibilityRecord
             $senior->histories()->create(['changed_by' => auth()->id(), 'action' => 'classifications_verified', 'changes' => $changes]);
             BenefitAudit::record('senior_citizen.classifications_verified', $senior, $changes);
         });
+    }
+
+    public function validatePensionClassifications(SeniorCitizen $senior, array $classifications): void
+    {
+        $national = (bool) $classifications['has_national_pension'];
+        $local = (bool) $classifications['has_local_pension'];
+        if (($national && $local) || (($national || $local) && $senior->activeAssignments()
+            ->whereRelation('program', 'benefit_code', $national ? Program::LOCAL_PENSION : Program::NATIONAL_PENSION)->exists())) {
+            throw ValidationException::withMessages(['pension' => BenefitAssignment::PENSION_CONFLICT]);
+        }
     }
 }

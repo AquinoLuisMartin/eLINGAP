@@ -8,6 +8,7 @@ use App\Http\Requests\Sms\CreateSmsBlastRequest;
 use App\Jobs\Sms\SendSmsJob;
 use App\Models\AuditLog;
 use App\Models\Barangay;
+use App\Models\BenefitEntitlement;
 use App\Models\BenefitSchedule;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
@@ -15,6 +16,7 @@ use App\Models\SmsBlast;
 use App\Models\SmsMessage;
 use App\Models\SmsTemplate;
 use App\Services\Benefits\BenefitSms;
+use App\Services\Sms\BirthdayGreetings;
 use App\Services\Sms\SmsService;
 use App\Services\Sms\SmsText;
 use Illuminate\Http\JsonResponse;
@@ -64,7 +66,18 @@ class SmsBlastController extends Controller
             abort_unless($selectedPayout, 404, 'This payout schedule is no longer available for messaging.');
         }
 
-        return view('sms.blasts.create', ['payoutSchedules' => $payoutSchedules, 'selectedPayout' => $selectedPayout, 'programs' => Program::query()->orderBy('name')->get(['id', 'name']), 'barangays' => Barangay::query()->where('is_active', true)->orderBy('name')->get(), 'templates' => SmsTemplate::query()->whereNull('superseded_by_id')->where('is_active', true)->orderBy('name')->get(['id', 'name', 'body', 'is_active', 'program_id']), 'retiredTemplates' => SmsTemplate::query()->whereNotNull('superseded_by_id')->pluck('id')->map(strval(...))->all(), 'eligible' => $eligible, 'excluded' => $total - $eligible]);
+        return view('sms.blasts.create', [
+            'payoutSchedules' => $payoutSchedules,
+            'selectedPayout' => $selectedPayout,
+            'programs' => Program::query()->orderBy('name')->get(['id', 'name']),
+            'barangays' => Barangay::query()->where('is_active', true)->orderBy('name')->get(),
+            'templates' => SmsTemplate::query()->whereNull('superseded_by_id')->where('is_active', true)
+                ->where('name', '!=', BirthdayGreetings::TEMPLATE)->orderBy('name')->get(['id', 'name', 'body', 'is_active', 'program_id']),
+            'retiredTemplates' => SmsTemplate::withTrashed()->whereNotNull('superseded_by_id')->orWhereNotNull('deleted_at')->orWhere('name', BirthdayGreetings::TEMPLATE)
+                ->pluck('id')->map(strval(...))->all(),
+            'eligible' => $eligible,
+            'excluded' => $total - $eligible,
+        ]);
     }
 
     public function store(CreateSmsBlastRequest $request, SmsService $smsService): RedirectResponse
@@ -113,8 +126,15 @@ class SmsBlastController extends Controller
     {
         Gate::authorize('create', SmsMessage::class);
         $delivery = DB::transaction(function () use ($request, $message): string {
+            $entitlement = $message->benefit_entitlement_id
+                ? BenefitEntitlement::query()->lockForUpdate()->findOrFail($message->benefit_entitlement_id)
+                : null;
             $locked = SmsMessage::query()->with('seniorCitizen')->lockForUpdate()->findOrFail($message->id);
             abort_unless($locked->status === SmsStatus::Failed, 409, 'Only failed messages can be retried.');
+            abort_if($entitlement?->activePayoutNotifications()->exists(), 409, 'This beneficiary has already been notified for this payout period.');
+            if ($entitlement) {
+                abort_unless(app(BenefitSms::class)->eligible($entitlement, $locked->blast?->benefit_schedule_id), 422, 'The payout recipient is no longer eligible for the original schedule.');
+            }
             if (str_starts_with($locked->provider_message_id ?? '', 'MOCK-')
                 && ($locked->deliveryLogs()->latest('id')->first()?->response_payload['mock'] ?? false) === true) {
                 abort_if(app()->isProduction(), 422, 'Mock SMS cannot be resent in production.');
@@ -127,14 +147,15 @@ class SmsBlastController extends Controller
 
                 return 'mock';
             }
-            if ($locked->senior_citizen_id) {
+            if ($locked->birthday_year !== null) {
+                abort_unless(app(BirthdayGreetings::class)->upcomingDate($locked->seniorCitizen)?->year === $locked->birthday_year,
+                    422, 'This birthday is outside the greeting window.');
+                $locked->recipient_number = SmsText::mobile($locked->seniorCitizen->contact_number) ?? '';
+            } elseif ($locked->senior_citizen_id) {
                 abort_unless($locked->seniorCitizen?->status?->value === 'VERIFIED', 422, 'Recipient is no longer eligible.');
                 $number = $locked->seniorCitizen->smsContact();
                 abort_unless($number, 422, 'Recipient has no valid mobile number.');
                 $locked->recipient_number = $number;
-            }
-            if ($locked->benefit_entitlement_id) {
-                abort_unless(app(BenefitSms::class)->eligible($locked->benefitEntitlement, $locked->blast?->benefit_schedule_id), 422, 'The payout recipient is no longer eligible for the original schedule.');
             }
             $number = SmsText::mobile($locked->recipient_number);
             abort_unless($number, 422, 'Recipient has no valid mobile number.');
@@ -144,7 +165,7 @@ class SmsBlastController extends Controller
             $locked->queued_at = now();
             $locked->save();
             AuditLog::create(['user_id' => $request->user()->id, 'action' => 'sms.retried', 'auditable_type' => SmsMessage::class, 'auditable_id' => $locked->id, 'ip_address' => $request->ip()]);
-            if ($locked->sms_blast_id === null && $locked->benefit_entitlement_id === null) {
+            if ($locked->sms_blast_id === null && $locked->benefit_entitlement_id === null && $locked->birthday_year === null) {
                 return 'direct';
             }
 

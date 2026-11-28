@@ -35,7 +35,7 @@ class PayoutScheduleTest extends TestCase
         $this->assertDatabaseCount('benefit_schedules', 0);
     }
 
-    public function test_payout_schedule_funding_is_editable_and_saved_for_review(): void
+    public function test_payout_schedule_saves_cash_aid_and_leaves_available_funds_for_review(): void
     {
         $this->travelTo(now()->setDate(2026, 11, 11)->setTime(12, 0));
         $this->actingAs(User::factory()->create());
@@ -52,15 +52,16 @@ class PayoutScheduleTest extends TestCase
                 $editableFields[] = $input->getAttribute('wire:model');
             }
         }
-        $this->assertSame(['form.amount', 'form.available_funds'], $editableFields);
+        $this->assertSame(['form.amount'], $editableFields);
+        $component->assertDontSee('Funds available for this schedule (PHP)');
 
-        $component->set('form.amount', '600')->set('form.available_funds', '12000')
+        $component->set('form.amount', '600')
             ->set('form.location', 'Synthetic venue')->set('form.scheduled_at', '2026-12-10T12:00')
             ->set('historicalClaimsChecked', true)->set('form.ends_at', '2026-12-10T17:00')->call('createSchedule')->assertHasNoErrors()
             ->assertSeeLivewire(SchedulePanel::class);
 
         $this->assertDatabaseHas('benefit_schedules', [
-            'program_id' => $program->id, 'amount' => '600.00', 'available_funds' => '12000.00', 'status' => 'DRAFT',
+            'program_id' => $program->id, 'amount' => '600.00', 'available_funds' => '0.00', 'status' => 'DRAFT',
         ]);
         $this->assertDatabaseCount('benefit_payments', 0);
     }

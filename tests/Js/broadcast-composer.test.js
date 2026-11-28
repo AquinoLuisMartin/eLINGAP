@@ -1,38 +1,37 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import broadcastComposer, { broadcastGuidance, templateCopy } from '../../resources/js/broadcast-composer.js';
+import broadcastComposer from '../../resources/js/broadcast-composer.js';
 
 function composer(options = {}) {
     const state = broadcastComposer(options);
-    let opened = 0;
-    let closed = 0;
     let updates = 0;
     state.$refs = {
-        templateDialog: { showModal() { opened++; }, close() { closed++; } },
         message: { dispatchEvent(event) { assert.equal(event.type, 'input'); updates++; } },
     };
     state.$nextTick = callback => callback();
-    return { state, opened: () => opened, closed: () => closed, updates: () => updates };
+    return { state, updates: () => updates };
 }
 
-function selection(value, body) {
-    return { target: { value, selectedOptions: [{ dataset: { body } }] } };
-}
-
-test('existing templates fill the composer with saved copy and all guidance placeholders', () => {
+test('quick template selection replaces the draft with the exact saved body', () => {
     const { state, updates } = composer();
+    const bodies = [
+        'Short notice', '  Preserve whitespace\n\nAnd line breaks.  ', 'A'.repeat(1600),
+        'OSCA | Synthetic program\nPetsa: [Petsa]\nOras: [Oras]\nLugar: [Lugar/Venue]',
+    ];
+    state.seedTemplates = bodies.map((body, index) => ({ id: String(index + 1), body, active: true }));
 
-    state.chooseTemplate(selection('1', 'OSCA: Pension reminder.'));
+    for (const template of state.seedTemplates) {
+        state.chooseTemplate(template.id);
+        assert.equal(state.broadcastBody, template.body);
+    }
 
-    assert.equal(state.broadcastBody, `OSCA: Pension reminder.\n\n${broadcastGuidance}`);
-    assert.equal(updates(), 1);
-    assert.equal(state.previousTemplate, '1');
+    assert.equal(updates(), bodies.length);
 });
 
 test('placeholder selection preserves a message already being edited', () => {
     const { state, updates } = composer({ message: 'Draft in progress.' });
 
-    state.chooseTemplate(selection('', undefined));
+    state.chooseTemplate('');
 
     assert.equal(state.broadcastBody, 'Draft in progress.');
     assert.equal(updates(), 0);
@@ -40,6 +39,7 @@ test('placeholder selection preserves a message already being edited', () => {
 
 test('template selection updates the composer when the dropdown has its own message state', () => {
     const { state } = composer();
+    state.seedTemplates = [{ id: '1', body: 'Saved message', active: true }];
     const dropdown = { message: '' };
     const scopes = [dropdown, state];
     const scope = new Proxy({}, {
@@ -47,54 +47,10 @@ test('template selection updates the composer when the dropdown has its own mess
         set: (_, key, value) => { (scopes.find(item => Object.hasOwn(item, key)) ?? state)[key] = value; return true; },
     });
 
-    state.chooseTemplate.call(scope, selection('1', 'Saved message'));
+    state.chooseTemplate.call(scope, '1');
 
-    assert.equal(state.broadcastBody, `Saved message\n\n${broadcastGuidance}`);
+    assert.equal(state.broadcastBody, 'Saved message');
     assert.equal(dropdown.message, '');
-});
-
-test('template guidance does not duplicate placeholders or exceed the message limit', () => {
-    assert.equal(templateCopy(broadcastGuidance), broadcastGuidance);
-    const copy = templateCopy('A'.repeat(1600));
-    assert.equal(copy.length, 1600);
-    assert.ok(copy.endsWith(broadcastGuidance));
-});
-
-test('complete program advisories copy verbatim without appending another generic message', () => {
-    const body = 'OSCA | Synthetic program\nPetsa: [Petsa]\nOras: [Oras]\nLugar: [Lugar/Venue]\nDalhin ang OSCA ID. Dumating sa oras.';
-    const { state } = composer();
-    state.chooseTemplate(selection('12', body));
-    assert.equal(state.broadcastBody, body);
-    assert.equal(templateCopy(body), body);
-});
-
-test('creating a template opens the editor without replacing the existing message', () => {
-    const { state, opened } = composer({ message: 'Existing draft' });
-    state.previousTemplate = '2';
-
-    state.chooseTemplate(selection('__new__'));
-
-    assert.equal(opened(), 1);
-    assert.equal(state.selectedTemplate, '2');
-    assert.equal(state.broadcastBody, 'Existing draft');
-    assert.equal(state.templateBody, broadcastGuidance);
-});
-
-test('valid templates stay in component state, populate the message, and can be selected again', () => {
-    const { state, closed, updates } = composer();
-    state.templateTitle = '  Office notice  ';
-    state.templateBody = '  Confirmed local message  ';
-
-    state.saveTemplate();
-    const id = state.localTemplates[0].id;
-    state.chooseTemplate(selection(id, state.localTemplates[0].body));
-
-    assert.deepEqual(state.localTemplates, [{ id, title: 'Office notice', body: 'Confirmed local message', active: true, programId: null }]);
-    assert.equal(state.selectedTemplate, id);
-    assert.equal(state.broadcastBody, 'Confirmed local message');
-    assert.equal(closed(), 1);
-    assert.equal(updates(), 2);
-    assert.deepEqual(composer().state.localTemplates, []);
 });
 
 test('program changes select a matching template, fill its saved body, and refresh the audience from the root scope', () => {
@@ -132,32 +88,19 @@ test('program changes select a matching template, fill its saved body, and refre
 test('program matching handles initial selections, edited seed templates, and program-specific local templates', () => {
     const { state } = composer({ program: '10' });
     state.seedTemplates = [{ id: '1', title: 'Program A - Schedule', body: 'Original', active: true, programId: 10 }];
-    state.overrides = { '1': { id: '1', title: 'Edited title', body: 'Edited message', active: true } };
+    state.overrides = {
+        '1': { id: '1', title: 'Edited title', body: 'Edited message', active: true },
+        'local-2': { id: 'local-2', title: 'Local reminder', body: 'Program A reminder', active: true, programId: '10' },
+    };
     state.matchProgramTemplate();
     assert.equal(state.selectedTemplate, '1');
     assert.equal(state.broadcastBody, 'Edited message');
-    state.templateTitle = 'Local reminder';
-    state.templateBody = 'Program A reminder';
-    state.saveTemplate();
-    assert.equal(state.localTemplates[0].programId, '10');
+    state.chooseTemplate('local-2');
+    assert.equal(state.broadcastBody, 'Program A reminder');
     state.program = '20';
     assert.deepEqual(state.programTemplates(), []);
     state.program = '';
     assert.equal(state.programTemplates().length, 2);
-});
-
-test('empty and oversized local templates do not save or close the editor', () => {
-    for (const [title, body] of [[' ', 'Message'], ['Title', ' '], ['A'.repeat(121), 'Message'], ['Title', 'A'.repeat(1601)]]) {
-        const { state, closed } = composer();
-        state.templateTitle = title;
-        state.templateBody = body;
-
-        state.saveTemplate();
-
-        assert.equal(state.localTemplates.length, 0);
-        assert.notEqual(state.templateError, '');
-        assert.equal(closed(), 0);
-    }
 });
 
 test('audience counts use the server and keep the current selection when responses arrive out of order', async (context) => {

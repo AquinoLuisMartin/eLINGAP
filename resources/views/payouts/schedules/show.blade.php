@@ -3,7 +3,7 @@
 @section('content')
 <x-workspace-navigation section="payouts" />
 <x-staff.page-header :title="$schedule->reference_number" :description="$schedule->program->name">
-    <a class="secondary-button" href="{{ route('payout-schedules.index') }}">Back to schedules</a>
+    <a class="primary-button" href="{{ route('payout-schedules.index') }}">Back to schedules</a>
 </x-staff.page-header>
 <section class="panel mb-5">
     <dl class="workspace-detail-grid">

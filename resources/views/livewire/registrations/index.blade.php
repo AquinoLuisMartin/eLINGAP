@@ -87,7 +87,7 @@
                             <x-admin.icon name="chevron-down" size="16" class="group-open:rotate-180" />
                         </span>
                     </summary>
-                    <form id="batch-id-print" method="POST" action="{{ route('senior-id.batch-print') }}" target="_blank" data-id-print data-confirm data-confirm-review data-confirm-action="Issue and print selected IDs" class="flex flex-col gap-3 border-t border-[var(--line)] bg-[var(--paper)] px-4 py-4 sm:px-5">
+                    <form id="batch-id-print" method="POST" action="{{ route('senior-id.batch-print') }}" target="_blank" data-id-print="batch" data-confirm data-confirm-review data-confirm-action="Issue and print selected IDs" class="flex flex-col gap-3 border-t border-[var(--line)] bg-[var(--paper)] px-4 py-4 sm:px-5">
                         @csrf
                         <div class="flex flex-wrap items-end gap-2">
                             <div class="field-label w-64 max-w-full"><label data-select-label>Print layout</label><x-select label="Print layout" name="layout" x-model="printLayout" @change="selected = []"><option value="single">Single ID</option><option value="batch" selected>Batch (4 per A4/Letter page)</option></x-select></div>
@@ -139,7 +139,10 @@
                                 @if ($canPrint)
                                     @php($printDisabled = $senior->status->value !== 'VERIFIED' || ! $senior->verified_at || $senior->died_on || $senior->death_declared_at || ! $senior->canGenerateIdPrint() || ($senior->id_prints_exists && ! $senior->latestIdPrintAttempt))
                                     <td class="text-center">
-                                        <input type="checkbox" form="batch-id-print" name="senior_ids[]" value="{{ $senior->id }}" data-senior-name="{{ $senior->full_name }}" x-model="selected" @disabled($printDisabled) :disabled="{{ $printDisabled ? 'true' : 'false' }} || (selected.length >= (printLayout === 'single' ? 1 : 4) && !selected.includes($el.value))" class="size-4 cursor-pointer accent-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-50" aria-label="Print ID for {{ $senior->full_name }}" aria-describedby="registration-print-help">
+                                        <input type="checkbox" form="batch-id-print" name="senior_ids[]" value="{{ $senior->id }}" data-senior-id="{{ $senior->id }}" data-senior-name="{{ $senior->full_name }}" @disabled($printDisabled)
+                                            :checked="selected.includes($el.dataset.seniorId)"
+                                            x-on:change="selected = $el.checked ? [...selected, $el.dataset.seniorId] : selected.filter(id =&gt; id !== $el.dataset.seniorId)"
+                                            :disabled="{{ $printDisabled ? 'true' : 'false' }} || (selected.length &gt;= (printLayout === 'single' ? 1 : 4) && !selected.includes($el.dataset.seniorId))" class="size-4 cursor-pointer accent-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-50" aria-label="Print ID for {{ $senior->full_name }}" aria-describedby="registration-print-help">
                                     </td>
                                 @endif
                                 <td class="min-w-42 whitespace-normal!">

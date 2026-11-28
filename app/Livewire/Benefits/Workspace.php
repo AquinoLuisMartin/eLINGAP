@@ -29,7 +29,7 @@ class Workspace extends Component
     #[Locked]
     public bool $payoutMode = false;
 
-    public array $form = ['program_id' => '', 'period_key' => '', 'eligibility_on' => '', 'scheduled_at' => '', 'ends_at' => '', 'location' => '', 'batch_name' => '', 'barangay_ids' => [], 'requirements' => '', 'allow_representative' => false, 'amount' => '', 'available_funds' => '0'];
+    public array $form = ['program_id' => '', 'period_key' => '', 'eligibility_on' => '', 'scheduled_at' => '', 'ends_at' => '', 'location' => '', 'batch_name' => '', 'barangay_ids' => [], 'requirements' => '', 'allow_representative' => false, 'amount' => ''];
 
     public array $newProgram = ['name' => '', 'agency' => '', 'government_level' => 'LGU', 'cadence' => 'ANNUAL'];
 
@@ -105,13 +105,17 @@ class Workspace extends Component
             'form.program_id' => $this->form['program_id'] === 'other' ? ['required', 'in:other'] : ['required', 'integer', $this->availableProgramRule()],
             'form.period_key' => ['required', 'string', 'max:40'],
             'form.eligibility_on' => ['required', 'date', 'before_or_equal:today'],
-            'form.scheduled_at' => ['required', 'date', 'after_or_equal:form.eligibility_on'],
-            'form.ends_at' => ['required', 'date', 'after:form.scheduled_at'],
+            'form.scheduled_at' => ['bail', 'required', 'date_format:Y-m-d\TH:i', 'after_or_equal:form.eligibility_on'],
+            'form.ends_at' => ['bail', 'required', 'date_format:Y-m-d\TH:i', 'after:form.scheduled_at'],
             'form.location' => ['required', 'string', 'max:250'], 'form.batch_name' => ['nullable', 'string', 'max:100'],
             'form.barangay_ids' => ['array'], 'form.barangay_ids.*' => ['integer', 'distinct', 'exists:barangays,id'],
             'form.requirements' => ['nullable', 'string', 'max:1500'], 'form.allow_representative' => ['required', 'boolean'],
-            'form.amount' => ['nullable', 'numeric', 'min:0.01', 'max:9999999999.99'], 'form.available_funds' => ['required', 'numeric', 'min:0', 'max:999999999999.99'],
-        ], [], ['form.scheduled_at' => 'payout start time', 'form.ends_at' => 'payout end time'])['form'];
+            'form.amount' => ['nullable', 'numeric', 'min:0.01', 'max:9999999999.99'],
+        ], [
+            'form.scheduled_at.date_format' => 'Choose a valid payout date and start time.',
+            'form.ends_at.date_format' => 'Choose a valid payout end time.',
+            'form.ends_at.after' => 'Choose an end time after the start time on the same payout date.',
+        ], ['form.scheduled_at' => 'payout start time', 'form.ends_at' => 'payout end time'])['form'];
         $data['amount'] = $data['amount'] === '' ? null : $data['amount'];
         $data['barangay_ids'] = array_map('intval', $data['barangay_ids']);
         $custom = [];

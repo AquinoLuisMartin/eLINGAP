@@ -9,7 +9,7 @@
                 <label for="mayor-name" class="block text-sm">Municipal Mayor name<input id="mayor-name" wire:model="mayorName" maxlength="150" required class="mt-2 block w-full"></label>
             </div>
         </x-senior-id.panel>
-        <x-senior-id.panel title="Municipal seal">
+        <x-senior-id.panel title="Municipal seal for transfer certificates">
             <div class="grid gap-8 md:grid-cols-2"><x-senior-id.image-upload property="seal" label="Official municipal seal" /><div><img src="{{ $images['municipal_seal'] }}" class="size-32 object-contain bg-white" alt="Current municipal seal">@if($hasCustomSeal)<label class="mt-4 flex gap-2 text-sm"><input type="checkbox" wire:model="remove" value="municipal_seal"> Use default LGU seal</label>@else<p class="mt-4 text-sm text-slate-500">Using the included LGU seal.</p>@endif</div></div>
         </x-senior-id.panel>
         <footer class="flex justify-end"><button class="primary-button" wire:loading.attr="disabled">Save official settings</button></footer>

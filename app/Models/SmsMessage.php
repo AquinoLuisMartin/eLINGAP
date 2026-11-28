@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['senior_citizen_id', 'sms_template_id', 'sms_blast_id', 'created_by', 'recipient_number', 'message', 'status', 'provider_message_id', 'failure_reason', 'queued_at', 'sent_at', 'benefit_entitlement_id'])]
+#[Fillable(['senior_citizen_id', 'sms_template_id', 'sms_blast_id', 'created_by', 'recipient_number', 'message', 'status', 'provider_message_id', 'failure_reason', 'queued_at', 'sent_at', 'benefit_entitlement_id', 'birthday_year'])]
 class SmsMessage extends Model
 {
     public function benefitEntitlement(): BelongsTo
@@ -18,7 +18,7 @@ class SmsMessage extends Model
 
     protected function casts(): array
     {
-        return ['status' => SmsStatus::class, 'queued_at' => 'datetime', 'sent_at' => 'datetime'];
+        return ['status' => SmsStatus::class, 'queued_at' => 'datetime', 'sent_at' => 'datetime', 'birthday_year' => 'integer'];
     }
 
     public function seniorCitizen(): BelongsTo
@@ -28,7 +28,7 @@ class SmsMessage extends Model
 
     public function template(): BelongsTo
     {
-        return $this->belongsTo(SmsTemplate::class, 'sms_template_id');
+        return $this->belongsTo(SmsTemplate::class, 'sms_template_id')->withTrashed();
     }
 
     public function blast(): BelongsTo

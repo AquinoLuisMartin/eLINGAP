@@ -151,6 +151,7 @@ class SchedulePanel extends Component
     {
         $schedule = $this->schedule();
         $entries = $schedule->entitlements()->select(['id', 'benefit_schedule_id', 'senior_citizen_id', 'period_key', 'amount', 'status', 'reviewed_at'])
+            ->withExists('activePayoutNotifications as already_notified')
             ->with([
                 'seniorCitizen:id,barangay_id,osca_id_number,first_name,middle_name,last_name,name_suffix,status',
                 'seniorCitizen.barangay:id,name', 'payments:id,benefit_entitlement_id,reversed_at',

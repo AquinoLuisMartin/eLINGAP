@@ -5,8 +5,10 @@ namespace App\Jobs\Sms;
 use App\Enums\SmsStatus;
 use App\Models\SmsMessage;
 use App\Services\Benefits\BenefitSms;
+use App\Services\Sms\BirthdayGreetings;
 use App\Services\Sms\SmsDeliveryRequiresReview;
 use App\Services\Sms\SmsGateway;
+use App\Services\Sms\SmsText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -33,9 +35,14 @@ class SendSmsJob implements ShouldQueue
             return;
         }
 
-        if ($smsMessage->senior_citizen_id) {
+        if ($smsMessage->birthday_year !== null || $smsMessage->senior_citizen_id) {
             $senior = $smsMessage->seniorCitizen;
-            if ($senior?->status?->value !== 'VERIFIED' || $senior->smsContact() !== $smsMessage->recipient_number || ($smsMessage->benefit_entitlement_id && ! app(BenefitSms::class)->eligible($smsMessage->benefitEntitlement, $smsMessage->blast?->benefit_schedule_id))) {
+            $eligible = $smsMessage->birthday_year !== null
+                ? app(BirthdayGreetings::class)->upcomingDate($senior)?->year === $smsMessage->birthday_year
+                    && SmsText::mobile($senior?->contact_number) === $smsMessage->recipient_number
+                : $senior?->status?->value === 'VERIFIED' && $senior->smsContact() === $smsMessage->recipient_number
+                    && (! $smsMessage->benefit_entitlement_id || app(BenefitSms::class)->eligible($smsMessage->benefitEntitlement, $smsMessage->blast?->benefit_schedule_id));
+            if (! $eligible) {
                 $smsMessage->update(['status' => SmsStatus::Failed, 'failure_reason' => 'Recipient is no longer eligible.']);
                 $smsMessage->deliveryLogs()->create(['status' => SmsStatus::Failed, 'response_payload' => ['error' => 'Recipient is no longer eligible.'], 'recorded_at' => now()]);
 

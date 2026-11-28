@@ -6,6 +6,7 @@ use App\Livewire\Benefits\SeniorRecord;
 use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\Beneficiary;
+use App\Models\BenefitEntitlement;
 use App\Models\Program;
 use App\Models\SeniorCitizen;
 use App\Models\SystemConfiguration;
@@ -39,8 +40,26 @@ class OscaConsultationTest extends TestCase
             ->assertSeeInOrder(['Senior Eligibility &amp; Benefits', 'Age Milestones', 'Benefit and Payment History'], false)
             ->assertDontSee('Registration & Benefits')->assertDontSee('Historical program enrollments')
             ->assertDontSee('TSS office request and verification note')->assertDontSee('Assign benefit')
-            ->assertSee('No benefit entitlements prepared yet.')
+            ->assertSee('No claimed benefits yet.')
             ->assertSee('Original period')->assertDontSee('Payment references');
+    }
+
+    public function test_senior_benefit_history_displays_only_claimed_entitlements(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = $this->senior();
+        $program = $this->program();
+        foreach (['CLAIMED', 'PENDING', 'UNCLAIMED', 'UNPAID'] as $status) {
+            BenefitEntitlement::create([
+                'senior_citizen_id' => $senior->id, 'program_id' => $program->id, 'status' => $status,
+                'period_key' => 'SYN-'.$status, 'eligibility_on' => today(), 'amount' => 500, 'rule_snapshot' => [],
+            ]);
+        }
+
+        $this->get(route('senior-citizens.show', [$senior, 'section' => 'milestones']))->assertOk()
+            ->assertSee('SYN-CLAIMED')->assertSee('>Claimed</td>', false)
+            ->assertDontSee('SYN-PENDING')->assertDontSee('SYN-UNCLAIMED')->assertDontSee('SYN-UNPAID');
+        $this->assertDatabaseCount('benefit_entitlements', 4);
     }
 
     public function test_registration_requires_contact_even_with_a_representative_number(): void
@@ -153,6 +172,52 @@ class OscaConsultationTest extends TestCase
         Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])->call('reviewClassifications')->call('saveClassifications')->assertStatus(422);
 
         $this->assertNull($senior->fresh()->classification_verified_at);
+    }
+
+    public function test_staff_must_select_only_one_pension_classification(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = $this->senior();
+        $component = Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])
+            ->set('classifications.has_national_pension', true)->set('classifications.has_local_pension', true)
+            ->call('reviewClassifications')->assertHasErrors('pension')->assertSet('classificationReview', null);
+        $this->assertFalse($senior->fresh()->has_national_pension);
+        $this->assertFalse($senior->fresh()->has_local_pension);
+
+        $component->set('classifications.has_local_pension', false)->call('reviewClassifications')->call('saveClassifications')->assertHasNoErrors();
+        $this->assertTrue($senior->fresh()->has_national_pension);
+        $this->assertFalse($senior->fresh()->has_local_pension);
+    }
+
+    #[TestWith(['has_national_pension', Program::LOCAL_PENSION])]
+    #[TestWith(['has_local_pension', Program::NATIONAL_PENSION])]
+    public function test_an_existing_pension_classification_blocks_assignment_to_the_other_pension(string $existing, string $oppositeProgram): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = $this->senior([$existing => true]);
+        $program = $this->program($oppositeProgram);
+
+        Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])
+            ->assertSeeHtml('value="'.$program->id.'" disabled')
+            ->set('programId', (string) $program->id)->call('reviewAssignment')->assertHasErrors('programId');
+        $this->post(route('programs.beneficiaries.store', $program), ['program_id' => $program->id, 'senior_citizen_id' => $senior->id, 'enrolled_on' => today()->toDateString()])
+            ->assertSessionHasErrors('programId');
+        $this->assertDatabaseEmpty('beneficiaries');
+    }
+
+    public function test_confirmation_rechecks_for_a_conflicting_pension_assignment_after_review(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $senior = $this->senior();
+        $program = $this->program(Program::NATIONAL_PENSION);
+        $component = Livewire::test(SeniorRecord::class, ['seniorId' => $senior->id])
+            ->set('classifications.has_local_pension', true)->call('reviewClassifications')->assertHasNoErrors();
+
+        app(BenefitAssignment::class)->assign($senior, $program);
+
+        $component->call('saveClassifications')->assertHasErrors('pension');
+        $this->assertFalse($senior->fresh()->has_local_pension);
+        $this->assertSame($program->id, $senior->activeAssignments()->sole()->program_id);
     }
 
     public function test_classification_review_and_cancel_do_not_save_the_selected_changes(): void

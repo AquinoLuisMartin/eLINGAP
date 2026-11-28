@@ -16,7 +16,10 @@ class SmsTemplateController extends Controller
     {
         Gate::authorize('viewAny', SmsMessage::class);
 
-        return view('sms.templates.index', ['templates' => SmsTemplate::query()->whereNull('superseded_by_id')->orderBy('name')->paginate(15), 'retiredTemplates' => SmsTemplate::query()->whereNotNull('superseded_by_id')->pluck('id')->map(strval(...))->all()]);
+        return view('sms.templates.index', [
+            'templates' => SmsTemplate::query()->whereNull('superseded_by_id')->orderBy('name')->paginate(15),
+            'retiredTemplates' => SmsTemplate::withTrashed()->whereNotNull('superseded_by_id')->orWhereNotNull('deleted_at')->pluck('id')->map(strval(...))->all(),
+        ]);
     }
 
     public function create(): View
@@ -31,5 +34,13 @@ class SmsTemplateController extends Controller
         SmsTemplate::create([...$request->validated(), 'created_by' => $request->user()->id]);
 
         return redirect()->route('sms.templates.index')->with('status', 'SMS template created.');
+    }
+
+    public function destroy(SmsTemplate $template): RedirectResponse
+    {
+        Gate::authorize('delete', $template);
+        $template->delete();
+
+        return redirect()->route('sms.templates.index')->with('status', 'SMS template deleted.');
     }
 }

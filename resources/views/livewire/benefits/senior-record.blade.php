@@ -1,3 +1,6 @@
+@use('App\Models\Program')
+@php($opposingPensions = ['has_national_pension' => ['has_local_pension', Program::LOCAL_PENSION], 'has_local_pension' => ['has_national_pension', Program::NATIONAL_PENSION]])
+
 <div class="flex min-w-0 flex-col gap-4">
     <div @class(['grid items-start gap-4', 'lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]' => $slots->has('milestones')])>
         <x-benefit-panel class="min-w-0 p-4!">
@@ -22,7 +25,7 @@
                                 <option value="">Select one program</option>
                                 @foreach ($programs as $program)
                                     @if ($senior->activeAssignments->isEmpty() || $senior->activeAssignments->contains('program_id', $program->id))
-                                        <option wire:key="assignment-program-{{ $program->id }}" value="{{ $program->id }}">{{ $program->name }}</option>
+                                        <option wire:key="assignment-program-{{ $program->id }}" value="{{ $program->id }}" @disabled(in_array($program->benefit_code, $unavailablePensions, true))>{{ $program->name }}</option>
                                     @endif
                                 @endforeach
                             </x-select>
@@ -34,9 +37,17 @@
                         <h3 class="text-base font-semibold text-(--navy) dark:text-slate-100">Senior Classifications</h3>
                         <div class="grid gap-x-4 sm:grid-cols-2">
                             @foreach ($classificationLabels as $field => $label)
-                                <label wire:key="classification-{{ $field }}" class="flex min-h-11 cursor-pointer items-center gap-2 text-sm"><input type="checkbox" wire:model="classifications.{{ $field }}" class="shrink-0">{{ $label }}</label>
+                                <label wire:key="classification-{{ $field }}" class="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+                                    <input type="checkbox" wire:model="classifications.{{ $field }}" class="shrink-0"
+                                        @isset($opposingPensions[$field])
+                                            aria-describedby="pension-classification-help"
+                                            x-bind:disabled="!$wire.classifications[@js($field)] && ($wire.classifications[@js($opposingPensions[$field][0])] || @js($activeProgramCodes->contains($opposingPensions[$field][1])))"
+                                        @endisset>
+                                    {{ $label }}
+                                </label>
                             @endforeach
                         </div>
+                        <p id="pension-classification-help" class="field-helper">Choose only one social pension.</p>
                         <div><button type="submit" class="primary-button w-full sm:w-auto" wire:loading.attr="disabled">Save Classifications</button></div>
                     </form>
                 @else
@@ -55,7 +66,7 @@
                     <tr wire:key="senior-claims-{{ $entry->id }}"><td colspan="4"><details><summary class="cursor-pointer text-sm font-semibold">Claim Information</summary><div class="mt-3"><x-payout-claim-history :payments="$entry->payments" /></div></details></td></tr>
                 @endif
             @empty
-                <tr><td colspan="4">No benefit entitlements prepared yet.</td></tr>
+                <tr><td colspan="4">No claimed benefits yet.</td></tr>
             @endforelse
         </tbody></table></x-staff.table>
         {{ $entitlements->links() }}

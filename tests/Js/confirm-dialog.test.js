@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { confirmAction, confirmSubmit, optionsFrom } from '../../resources/js/confirm-dialog.js';
+import initConfirmDialogs, { confirmAction, confirmSubmit, optionsFrom } from '../../resources/js/confirm-dialog.js';
 
 function page() {
     const node = () => ({ textContent: '', hidden: false, className: '', replaceChildren(...children) { this.children = children; } });
@@ -81,6 +81,36 @@ test('cancelled submissions are not resubmitted', async () => {
     assert.equal(form.resubmittedWith, undefined);
 });
 
+test('a delete button runs its action only after confirmation', async () => {
+    const { root, dialog, parts } = page();
+    const handlers = {};
+    root.addEventListener = (type, handler) => { handlers[type] = handler; };
+    initConfirmDialogs(root);
+    let deletes = 0;
+    const button = {
+        dataset: { confirm: 'Delete this template?', confirmLabel: 'Delete', confirmTone: 'danger' },
+        isConnected: true,
+        click() {
+            const event = submission(root).event;
+            event.target = { closest: () => this };
+            handlers.click(event);
+            if (!event.stopped) deletes++;
+        },
+    };
+
+    button.click();
+    assert.equal(parts['[data-confirm-accept]'].textContent, 'Delete');
+    assert.equal(deletes, 0);
+    dialog.close('cancel');
+    await new Promise(setImmediate);
+    assert.equal(deletes, 0);
+
+    button.click();
+    dialog.close('confirm');
+    await new Promise(setImmediate);
+    assert.equal(deletes, 1);
+});
+
 test('declarative attributes map to dialog options', () => {
     const options = optionsFrom({ dataset: { confirm: 'Stops releases.', confirmTitle: 'Declare?', confirmLabel: 'Record', confirmTone: 'danger' } });
 
@@ -111,6 +141,7 @@ test('batch action review lists only selected records and their count', () => {
         elements: [
             { name: 'senior_ids[]', checked: true, dataset: { seniorName: 'Synthetic One' } },
             { name: 'senior_ids[]', checked: false, dataset: { seniorName: 'Synthetic Two' } },
+            { name: 'senior_ids[]', checked: true, disabled: true, dataset: { seniorName: 'Synthetic Unavailable' } },
         ],
     });
     assert.equal(options.title, 'Confirm Action');

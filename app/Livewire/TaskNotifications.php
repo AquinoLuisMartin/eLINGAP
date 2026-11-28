@@ -7,6 +7,7 @@ use App\Models\Application;
 use App\Models\PasswordResetRequest;
 use App\Models\SeniorCitizen;
 use App\Models\SmsMessage;
+use App\Services\Sms\BirthdayGreetings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
@@ -79,9 +80,14 @@ class TaskNotifications extends Component
 
     public function render(): View
     {
+        $birthdays = auth()->user()->isOscaStaff() ? app(BirthdayGreetings::class)->alerts() : collect();
+        $taskCount = array_sum(array_column($this->tasks, 'count'));
+
         return view('livewire.task-notifications', [
             'tasks' => $this->tasks,
-            'taskCount' => array_sum(array_column($this->tasks, 'count')),
+            'taskCount' => $taskCount,
+            'birthdays' => $birthdays,
+            'notificationCount' => $taskCount + $birthdays->count(),
         ]);
     }
 }

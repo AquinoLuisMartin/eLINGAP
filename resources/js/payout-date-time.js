@@ -20,6 +20,12 @@ export default function payoutDateTime(value, endValue = '') {
         get endTime() {
             return clockTime(this.endHour, this.endMinute, this.endPeriod);
         },
+        get rangeError() {
+            const { time, endTime } = this;
+            return time && endTime && endTime <= time
+                ? 'Choose an end time after the start time on the same payout date.'
+                : '';
+        },
         set time(value) {
             const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value || '');
             this.hour = match ? String(Number(match[1]) % 12 || 12).padStart(2, '0') : '';
@@ -53,9 +59,25 @@ export default function payoutDateTime(value, endValue = '') {
         combinedEnd() {
             return this.date && this.endTime ? `${this.date}T${this.endTime}` : '';
         },
+        restrictTimeInput(input, field, isHour) {
+            const digits = input.value.replace(/\D/g, '').slice(0, 2);
+            const max = isHour ? 12 : 59;
+            const value = Number(digits) > max || (isHour && digits === '00') ? this[field] : digits;
+            if (input.value === value) return;
+
+            const caret = Math.min(value.length, input.value.slice(0, input.selectionStart).replace(/\D/g, '').length);
+            input.value = value;
+            input.setSelectionRange(caret, caret);
+        },
         update() {
             this.value = this.combined();
             this.endValue = this.combinedEnd();
+        },
+        validateRange(event) {
+            if (!this.rangeError) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            this.$refs.payoutEndHour.focus();
         },
     };
 }

@@ -27,4 +27,9 @@ class SmsMessagePolicy
     {
         return $user->isAdmin();
     }
+
+    public function delete(User $user, SmsTemplate $template): bool
+    {
+        return $user->is_active && $this->create($user);
+    }
 }

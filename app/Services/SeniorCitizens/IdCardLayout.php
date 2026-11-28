@@ -37,7 +37,7 @@ class IdCardLayout
             'signature' => null,
             'qr' => $credential ? 'data:image/svg+xml;base64,'.base64_encode($this->credentials->svg($credential)) : null,
             'officials' => $officials,
-            'seal' => $this->assets->municipalSealDataUri($officials['municipal_seal'] ?? null),
+            'logo' => 'data:image/png;base64,'.base64_encode(file_get_contents(public_path('images/eLINGAP.png'))),
             'headSignature' => $this->assets->pathDataUri($officials['osca_head_signature'] ?? null),
             'mayorSignature' => $this->assets->pathDataUri($officials['municipal_mayor_signature'] ?? null),
             'printedAt' => now(), 'age' => (int) $senior->birth_date->diffInYears(today()),
@@ -56,10 +56,10 @@ class IdCardLayout
             if (! $data['address']['fits']) {
                 throw ValidationException::withMessages(['address' => 'The address is too long to fit legibly on the ID. Review the address in the senior record before printing.']);
             }
-            if (blank($data['officials']['osca_head_name'] ?? null) || blank($data['officials']['municipal_mayor_name'] ?? null) || ! $data['seal']) {
-                throw ValidationException::withMessages(['officials' => 'Configure the OSCA Head, Municipal Mayor and official municipal seal before printing.']);
+            if (blank($data['officials']['osca_head_name'] ?? null) || blank($data['officials']['municipal_mayor_name'] ?? null)) {
+                throw ValidationException::withMessages(['officials' => 'Configure the OSCA Head and Municipal Mayor names before printing.']);
             }
-            if (! function_exists('imagecreatefrompng') && collect(['photo', 'signature', 'seal', 'headSignature', 'mayorSignature'])
+            if (! function_exists('imagecreatefrompng') && collect(['photo', 'signature', 'logo', 'headSignature', 'mayorSignature'])
                 ->contains(fn ($key) => str_starts_with($data[$key] ?? '', 'data:image/png'))) {
                 throw ValidationException::withMessages(['images' => 'Prepare PNG images through the image editor before printing, or enable PHP GD for existing PNG assets.']);
             }
